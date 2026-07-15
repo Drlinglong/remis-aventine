@@ -245,7 +245,17 @@ src/remis_aventine/
   doctor.py              # read-only environment probe
   validation.py          # JSON Schema validation
   calibration.py         # deterministic calibration summaries
-  adapters/remis.py      # Remis artifact compatibility adapter
+  calibration_pack.py    # reproducible multilingual pack builder
+  judge.py               # bounded remote judge adapters and resume path
+  external_metrics.py    # isolated MetricX/xCOMET worker protocol
+  metric_calibration.py  # metric/gold/judge alignment reports
+  evidence_alignment.py  # cross-signal agreement and disagreement
+  remis_pairwise.py      # hard-veto-aware pairwise tournament reports
+  adapters/
+    remis.py             # Remis artifact compatibility adapter
+    mt_metrics_eval.py   # bounded WMT MQM adapter
+    aces.py              # ACES/SPAN-ACES pairwise adapter
+  metric_workers/        # isolated metric-specific runtime workers
   schemas/               # versioned public contracts
 examples/calibration/    # synthetic MQM/ACES fixtures
 examples/recipes/        # small, safe manifests
@@ -279,7 +289,8 @@ docs/zh/developer/       # Chinese developer documentation
    结果同时验证了 hard-validator 先行与 position-consistent judge policy，也暴露出 high-thinking
    长文本裁判的 retry、吞吐与 checkpoint 问题。详见
    [`first_remis_tournament_2026-07-16.md`](first_remis_tournament_2026-07-16.md)。下一步先修正
-   logical-call/HTTP-attempt 预算语义并增加增量进度，再扩大选手或样本。
+   logical-call/HTTP-attempt 预算语义并增加增量进度，再扩大选手或样本；实现与验收统一由
+   [issue #5](https://github.com/Drlinglong/remis-aventine/issues/5) 跟踪。
 
 ## 明确不做
 

@@ -15,7 +15,8 @@ post-processing, repair, and optional deterministic validators.
 > bounded DeepSeek V4 Pro, xAI Grok 4.5, and Google-hosted Gemma 4 judge adapters; synthetic
 > fixtures; bounded `mt-metrics-eval` MQM and ACES/SPAN-ACES adapters; a read-only Remis
 > result adapter; hard-veto-aware Remis pairwise/repair-restraint reports; and isolated,
-> schema-bound MetricX-24/xCOMET baselines with gold/judge/metric alignment reports.
+> schema-bound MetricX-24/xCOMET baselines with gold/judge/metric alignment reports. A recorded
+> four-recipe Remis pilot now exercises the complete compatibility and evaluation path.
 > It does not yet execute a full Aventine-native recipe benchmark.
 
 ## Why Aventine?
@@ -120,6 +121,12 @@ text and generated judge results remain outside Git. `run-judge` reads the selec
 project `.env`, enforces a total HTTP request budget, retries transient/empty JSON responses, strips
 reasoning content, and can resume only failed outputs from a configuration-compatible artifact. See the
 [multilingual calibration guide](docs/zh/developer/multilingual_calibration.md).
+
+Known limitation: `--max-calls` currently caps HTTP attempts, including retries, while the runner also
+uses it when checking planned logical outputs. Until these budgets are separated, leave retry headroom
+above the planned output count. Split budgets, incremental checkpoints, progress telemetry, and a more
+compact long-text judge profile are tracked in
+[issue #5](https://github.com/Drlinglong/remis-aventine/issues/5).
 
 `build-mtme-mqm-pack` reads an already-installed, already-downloaded `mt-metrics-eval` EvalSet. It
 never downloads the multi-gigabyte WMT bundle itself. The adapter skips unrated segments, preserves

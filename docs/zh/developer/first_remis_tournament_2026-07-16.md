@@ -71,5 +71,13 @@ match，且只有一个 repair case 通过最终 hard validation。
 评测策略上，应先用 hard validator 和便宜的本地 metric/QE 初筛，再把高思考 judge 留给关键
 对局、证据分歧和高影响失败。
 
+## 当前状态与追踪
+
+当前 runner 已支持有界 retry、兼容配置校验的失败项续跑和成本统计，但还没有独立的逻辑输出/
+HTTP 尝试预算、逐项崩溃安全 checkpoint、实时进度，以及面向长文本的紧凑 verdict-first profile。
+这些可靠性工作统一记录在
+[issue #5](https://github.com/Drlinglong/remis-aventine/issues/5)。完成该项是扩大选手数量或样本规模
+前的下一里程碑；在此之前，请把请求预算耗尽视为基础设施失败，而不是选手失败。
+
 完整 adapted artifacts、judge outputs 和逐 case reports 位于 Git-ignored
 `benchmark_results/remis-tournament-2026-07-16/`；仓库只提交聚合结果、hash 和方法说明。
