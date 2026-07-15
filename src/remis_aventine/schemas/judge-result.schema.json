@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Drlinglong/remis-aventine/schemas/judge-result.schema.json",
+  "title": "Aventine Structured Judge Result",
+  "description": "A schema-bound translation-quality judgment. It is evaluation evidence, not a human gold label.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "judge", "evaluation"],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "judge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "model", "prompt_revision", "calibration_revision"],
+      "properties": {
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prompt_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "verdict",
+        "confidence",
+        "errors",
+        "rationale",
+        "limitations"
+      ],
+      "properties": {
+        "mode": {
+          "enum": ["single", "pairwise"]
+        },
+        "verdict": {
+          "type": "string"
+        },
+        "confidence": {
+          "enum": ["high", "medium", "low"]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["candidate", "category", "severity", "explanation"],
+            "properties": {
+              "candidate": {
+                "enum": ["candidate", "candidate_a", "candidate_b"]
+              },
+              "category": {
+                "enum": [
+                  "accuracy",
+                  "terminology",
+                  "fluency",
+                  "style",
+                  "locale",
+                  "context",
+                  "over_editing",
+                  "other"
+                ]
+              },
+              "severity": {
+                "enum": ["minor", "major", "critical"]
+              },
+              "explanation": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_excerpt": {
+                "type": "string"
+              },
+              "candidate_excerpt": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "dimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "semantic_accuracy": {"type": "integer", "minimum": 0, "maximum": 100},
+            "terminology": {"type": "integer", "minimum": 0, "maximum": 100},
+            "fluency": {"type": "integer", "minimum": 0, "maximum": 100},
+            "style": {"type": "integer", "minimum": 0, "maximum": 100},
+            "context_consistency": {"type": "integer", "minimum": 0, "maximum": 100},
+            "restraint": {"type": "integer", "minimum": 0, "maximum": 100}
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"mode": {"const": "single"}},
+            "required": ["mode"]
+          },
+          "then": {
+            "properties": {
+              "verdict": {"enum": ["pass", "fail", "uncertain"]},
+              "errors": {
+                "items": {
+                  "properties": {"candidate": {"const": "candidate"}}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"mode": {"const": "pairwise"}},
+            "required": ["mode"]
+          },
+          "then": {
+            "properties": {
+              "verdict": {
+                "enum": ["candidate_a", "candidate_b", "tie", "neither", "uncertain"]
+              },
+              "errors": {
+                "items": {
+                  "properties": {
+                    "candidate": {"enum": ["candidate_a", "candidate_b"]}
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"verdict": {"const": "fail"}},
+            "required": ["verdict"]
+          },
+          "then": {
+            "properties": {"errors": {"minItems": 1}}
+          }
+        }
+      ]
+    }
+  }
+}

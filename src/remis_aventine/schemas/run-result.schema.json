@@ -39,6 +39,12 @@
         "sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "provenance": {
+          "enum": ["manifest", "compatibility_snapshot"]
+        },
+        "snapshot": {
+          "type": "object"
         }
       }
     },

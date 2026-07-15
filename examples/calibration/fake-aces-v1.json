@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "id": "fake.aces.v1",
+  "suite": "aces",
+  "description": "Synthetic pairwise challenge cases. One schema-invalid verdict is intentional.",
+  "cases": [
+    {
+      "id": "aces-negation",
+      "input": {
+        "source": "The gate must not open.",
+        "candidate_a": "大门必须打开。",
+        "candidate_b": "大门绝不能打开。"
+      },
+      "gold": {
+        "mode": "pairwise",
+        "verdict": "candidate_b",
+        "max_severity": "major",
+        "primary_category": "accuracy",
+        "phenomenon": "negation"
+      },
+      "judge_output": {
+        "schema_version": 1,
+        "case_id": "aces-negation",
+        "judge": {
+          "profile": "fake-aces",
+          "model": "fixture-judge",
+          "prompt_revision": "fake-v1",
+          "calibration_revision": "fake-aces-v1"
+        },
+        "evaluation": {
+          "mode": "pairwise",
+          "verdict": "candidate_b",
+          "confidence": "high",
+          "errors": [
+            {
+              "candidate": "candidate_a",
+              "category": "accuracy",
+              "severity": "major",
+              "explanation": "Candidate A drops the negation."
+            }
+          ],
+          "rationale": "Only candidate B preserves the prohibition.",
+          "limitations": []
+        }
+      }
+    },
+    {
+      "id": "aces-entity",
+      "input": {
+        "source": "Mira met Sol at dawn.",
+        "candidate_a": "米拉在黎明时见到了索尔。",
+        "candidate_b": "索尔在黎明时见到了米拉。"
+      },
+      "gold": {
+        "mode": "pairwise",
+        "verdict": "candidate_a",
+        "max_severity": "major",
+        "primary_category": "accuracy",
+        "phenomenon": "role_swap"
+      },
+      "judge_output": {
+        "schema_version": 1,
+        "case_id": "aces-entity",
+        "judge": {
+          "profile": "fake-aces",
+          "model": "fixture-judge",
+          "prompt_revision": "fake-v1",
+          "calibration_revision": "fake-aces-v1"
+        },
+        "evaluation": {
+          "mode": "pairwise",
+          "verdict": "candidate_b",
+          "confidence": "medium",
+          "errors": [
+            {
+              "candidate": "candidate_a",
+              "category": "accuracy",
+              "severity": "major",
+              "explanation": "This intentionally assigns the role-swap error to the wrong candidate."
+            }
+          ],
+          "rationale": "This is an intentional wrong-winner calibration output.",
+          "limitations": []
+        }
+      }
+    },
+    {
+      "id": "aces-schema-failure",
+      "input": {
+        "source": "Five bells rang.",
+        "candidate_a": "五口钟响了。",
+        "candidate_b": "四口钟响了。"
+      },
+      "gold": {
+        "mode": "pairwise",
+        "verdict": "candidate_a",
+        "max_severity": "major",
+        "primary_category": "accuracy",
+        "phenomenon": "number"
+      },
+      "judge_output": {
+        "schema_version": 1,
+        "case_id": "aces-schema-failure",
+        "judge": {
+          "profile": "fake-aces",
+          "model": "fixture-judge",
+          "prompt_revision": "fake-v1",
+          "calibration_revision": "fake-aces-v1"
+        },
+        "evaluation": {
+          "mode": "pairwise",
+          "verdict": "pass",
+          "confidence": "high",
+          "errors": [],
+          "rationale": "The verdict is intentionally invalid for pairwise mode.",
+          "limitations": []
+        }
+      }
+    },
+    {
+      "id": "aces-legitimate-tie",
+      "input": {
+        "source": "The river is quiet.",
+        "candidate_a": "河流很安静。",
+        "candidate_b": "河面静谧。"
+      },
+      "gold": {
+        "mode": "pairwise",
+        "verdict": "tie",
+        "max_severity": "none",
+        "primary_category": "none",
+        "phenomenon": "equivalent_translation"
+      },
+      "judge_output": {
+        "schema_version": 1,
+        "case_id": "aces-legitimate-tie",
+        "judge": {
+          "profile": "fake-aces",
+          "model": "fixture-judge",
+          "prompt_revision": "fake-v1",
+          "calibration_revision": "fake-aces-v1"
+        },
+        "evaluation": {
+          "mode": "pairwise",
+          "verdict": "tie",
+          "confidence": "low",
+          "errors": [],
+          "rationale": "Both candidates are acceptable paraphrases.",
+          "limitations": ["The context is deliberately minimal."]
+        }
+      }
+    }
+  ]
+}

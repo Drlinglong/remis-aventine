@@ -147,6 +147,12 @@ Adapter 把通用 manifest 映射到具体实现。第一个 adapter 将复用 R
 过渡期允许 `remis_compat` 直接依赖 Remis checkout。长期依赖方向应逐渐反转：通用
 schema、aggregation 和 calibration 进入 Aventine core，Remis 只保留产品特定执行与 validator。
 
+当前阶段明确采用“复用优先”：Provider factory、生产 Prompt/Glossary 组装、
+`PostProcessValidator`、`TranslationFixerAgent` 和 benchmark runner 继续以 Remis 实现为准。
+Aventine 不复制这些模块的平行版本，而是在兼容层消费其 artifact；后续执行型 adapter 也应优先
+通过受控 checkout/import seam 调用 Remis。只有被证明通用、合同稳定且不再依赖 Remis 产品状态的
+部分，才逐步迁入 Aventine core。
+
 ### 阶段 3：确定性校验
 
 Validators 在 judge 之前执行。结果至少包含 `enabled`、`passed` 和结构化 findings。
@@ -238,7 +244,10 @@ src/remis_aventine/
   cli.py                 # CLI entry point
   doctor.py              # read-only environment probe
   validation.py          # JSON Schema validation
+  calibration.py         # deterministic calibration summaries
+  adapters/remis.py      # Remis artifact compatibility adapter
   schemas/               # versioned public contracts
+examples/calibration/    # synthetic MQM/ACES fixtures
 examples/recipes/        # small, safe manifests
 tests/                   # model-free unit tests
 docs/zh/developer/       # Chinese developer documentation
@@ -246,7 +255,8 @@ docs/zh/developer/       # Chinese developer documentation
 
 ## 实施阶段
 
-1. **V0**：CLI、schema、fake fixtures、parser、summary tests，不下载大数据。
+1. **V0**：CLI、recipe/run/judge schema、fake fixtures、summary metrics、Remis result adapter，
+   不下载大数据。首批零件已经落地；尚缺 Aventine-native runner/aggregator。
 2. **V1**：整理 20–50 条 MQM/ACES 小样本，运行本地 judge。
 3. **V2**：接入 `mt-metrics-eval` / WMT MQM adapter。
 4. **V3**：接入 ACES/SPAN-ACES adapter。

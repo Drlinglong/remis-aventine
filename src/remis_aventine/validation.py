@@ -33,14 +33,8 @@ def _error_path(error: Any) -> str:
     )
 
 
-def validate_document(path: Path, schema_name: str) -> dict[str, Any]:
-    try:
-        document = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise DocumentValidationError(
-            f"Invalid JSON at line {exc.lineno}, column {exc.colno}: {exc.msg}"
-        ) from exc
-
+def validate_payload(document: Any, schema_name: str) -> Any:
+    """Validate an already parsed payload against a packaged schema."""
     schema = load_schema(schema_name)
     Draft202012Validator.check_schema(schema)
     validator = Draft202012Validator(schema)
@@ -55,3 +49,14 @@ def validate_document(path: Path, schema_name: str) -> dict[str, Any]:
             issues,
         )
     return document
+
+
+def validate_document(path: Path, schema_name: str) -> dict[str, Any]:
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise DocumentValidationError(
+            f"Invalid JSON at line {exc.lineno}, column {exc.colno}: {exc.msg}"
+        ) from exc
+
+    return validate_payload(document, schema_name)

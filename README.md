@@ -10,8 +10,9 @@ Aventine evaluates complete translation pipelines, not isolated model names. A r
 a provider, model revision, prompts, decoding settings, context, glossary handling,
 post-processing, repair, and optional deterministic validators.
 
-> Status: pre-alpha. The repository currently provides the CLI foundation, versioned JSON
-> Schemas, example manifests, tests, and CI. It does not yet run a full benchmark.
+> Status: pre-alpha. The repository provides versioned recipe, run-result, and judge contracts;
+> deterministic calibration summaries; synthetic MQM/ACES fixtures; and a read-only Remis result
+> adapter. It does not yet execute a full Aventine-native benchmark.
 
 ## Why Aventine?
 
@@ -52,6 +53,7 @@ python -m pip install -e ".[dev]"
 
 aventine doctor --json
 aventine validate-recipe examples/recipes/remis-lm-studio.example.json
+aventine summarize-calibration examples/calibration/fake-mqm-v1.json --json
 pytest --cov
 ```
 
@@ -64,11 +66,26 @@ optional when invoking the environment's Python directly.
 aventine doctor [--remis-root PATH] [--json]
 aventine validate-recipe PATH [--json]
 aventine validate-result PATH [--json]
+aventine validate-judge PATH [--json]
+aventine summarize-calibration PATH [--json]
+aventine adapt-remis-result INPUT OUTPUT [--recipe-id ID] [--json]
 aventine --version
 ```
 
 `doctor` is read-only. It does not download datasets or run models. The validation commands check
-documents against the packaged, versioned JSON Schemas.
+documents against the packaged, versioned JSON Schemas. The calibration command counts malformed
+judge output as benchmark failure and reports recall, false-good, pairwise, confidence, phenomenon,
+and confusion metrics. The Remis adapter converts existing
+`evaluate_translation_quality.py` artifacts without copying raw provider responses.
+
+## Remis compatibility
+
+During the early phases, Aventine intentionally reuses Remis production behavior instead of
+reimplementing it. Remis remains the source of truth for provider calls, prompt and glossary
+assembly, deterministic validators, and repair execution. The compatibility adapter creates a
+validated Aventine result envelope around Remis benchmark artifacts and records a
+`compatibility_snapshot` recipe hash. General schemas, calibration, aggregation, and reporting stay
+in Aventine core so the dependency can be inverted gradually when those boundaries stabilize.
 
 ## Scope
 
@@ -93,6 +110,7 @@ tool for regression testing translation recipes.**
 ## Documentation
 
 - [中文开发者文档：愿景、边界与核心工作流](docs/zh/developer/vision_and_workflow.md)
+- [中文开发者文档：Judge 校准与 Remis 兼容层](docs/zh/developer/calibration_and_remis_compat.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 

@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "id": "fake.mqm.v1",
+  "suite": "mqm",
+  "description": "Synthetic, license-safe calibration cases. One malformed judge output is intentional.",
+  "cases": [
+    {
+      "id": "mqm-clean",
+      "input": {
+        "source": "The council approved the treaty.",
+        "candidate": "理事会批准了该条约。"
+      },
+      "gold": {
+        "mode": "single",
+        "verdict": "pass",
+        "max_severity": "none",
+        "primary_category": "none",
+        "phenomenon": "clean_translation"
+      },
+      "judge_output": {
+        "schema_version": 1,
+        "case_id": "mqm-clean",
+        "judge": {
+          "profile": "fake-mqm",
+          "model": "fixture-judge",
+          "prompt_revision": "fake-v1",
+          "calibration_revision": "fake-mqm-v1"
+        },
+        "evaluation": {
+          "mode": "single",
+          "verdict": "pass",
+          "confidence": "high",
+          "errors": [],
+          "rationale": "The meaning and register are preserved.",
+          "limitations": []
+        }
+      }
+    },
+    {
+      "id": "mqm-major-omission",
+      "input": {
+        "source": "The fleet did not retreat.",
+        "candidate": "舰队撤退了。"
+      },
+      "gold": {
+        "mode": "single",
+        "verdict": "fail",
+        "max_severity": "major",
+        "primary_category": "accuracy",
+        "phenomenon": "negation"
+      },
+      "judge_output": {
+        "schema_version": 1,
+        "case_id": "mqm-major-omission",
+        "judge": {
+          "profile": "fake-mqm",
+          "model": "fixture-judge",
+          "prompt_revision": "fake-v1",
+          "calibration_revision": "fake-mqm-v1"
+        },
+        "evaluation": {
+          "mode": "single",
+          "verdict": "fail",
+          "confidence": "high",
+          "errors": [
+            {
+              "candidate": "candidate",
+              "category": "accuracy",
+              "severity": "major",
+              "explanation": "The negation is omitted and the meaning is reversed.",
+              "source_excerpt": "did not retreat",
+              "candidate_excerpt": "撤退了"
+            }
+          ],
+          "rationale": "The candidate reverses a central proposition.",
+          "limitations": []
+        }
+      }
+    },
+    {
+      "id": "mqm-critical-entity",
+      "input": {
+        "source": "Deliver the medicine to Ardan.",
+        "candidate": "把药送给敌军。"
+      },
+      "gold": {
+        "mode": "single",
+        "verdict": "fail",
+        "max_severity": "critical",
+        "primary_category": "accuracy",
+        "phenomenon": "named_entity"
+      },
+      "judge_output": {
+        "schema_version": 1,
+        "case_id": "mqm-critical-entity",
+        "judge": {
+          "profile": "fake-mqm",
+          "model": "fixture-judge",
+          "prompt_revision": "fake-v1",
+          "calibration_revision": "fake-mqm-v1"
+        },
+        "evaluation": {
+          "mode": "single",
+          "verdict": "fail",
+          "confidence": "high",
+          "errors": [
+            {
+              "candidate": "candidate",
+              "category": "accuracy",
+              "severity": "critical",
+              "explanation": "The named recipient is replaced with an opposing group."
+            }
+          ],
+          "rationale": "The mistranslation could invert the task outcome.",
+          "limitations": []
+        }
+      }
+    },
+    {
+      "id": "mqm-false-good",
+      "input": {
+        "source": "Her oath was solemn and archaic.",
+        "candidate": "她随口做了个挺酷的保证。"
+      },
+      "gold": {
+        "mode": "single",
+        "verdict": "fail",
+        "max_severity": "major",
+        "primary_category": "style",
+        "phenomenon": "register"
+      },
+      "judge_output": {
+        "schema_version": 1,
+        "case_id": "mqm-false-good",
+        "judge": {
+          "profile": "fake-mqm",
+          "model": "fixture-judge",
+          "prompt_revision": "fake-v1",
+          "calibration_revision": "fake-mqm-v1"
+        },
+        "evaluation": {
+          "mode": "single",
+          "verdict": "pass",
+          "confidence": "medium",
+          "errors": [],
+          "rationale": "The fixture judge incorrectly accepts the register shift.",
+          "limitations": ["This is an intentional false-good calibration case."]
+        }
+      }
+    },
+    {
+      "id": "mqm-parse-failure",
+      "input": {
+        "source": "Only three ships survived.",
+        "candidate": "所有船只都幸存了。"
+      },
+      "gold": {
+        "mode": "single",
+        "verdict": "fail",
+        "max_severity": "major",
+        "primary_category": "accuracy",
+        "phenomenon": "quantity"
+      },
+      "judge_output": "this is intentionally not JSON"
+    }
+  ]
+}

@@ -10,6 +10,7 @@ from remis_aventine.cli import main
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_RECIPE = PROJECT_ROOT / "examples" / "recipes" / "remis-lm-studio.example.json"
+FAKE_MQM = PROJECT_ROOT / "examples" / "calibration" / "fake-mqm-v1.json"
 
 
 def test_validate_recipe_cli_emits_json(capsys) -> None:
@@ -138,3 +139,101 @@ def test_version_flag(capsys) -> None:
     captured = capsys.readouterr()
     assert exc_info.value.code == 0
     assert captured.out.startswith("aventine ")
+
+
+def test_validate_judge_cli(tmp_path, capsys) -> None:
+    fixture = json.loads(FAKE_MQM.read_text(encoding="utf-8"))
+    judge_path = tmp_path / "judge.json"
+    judge_path.write_text(json.dumps(fixture["cases"][0]["judge_output"]), encoding="utf-8")
+
+    exit_code = main(["validate-judge", str(judge_path), "--json"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert json.loads(captured.out)["schema"] == "judge-result.schema.json"
+
+
+def test_summarize_calibration_cli_emits_json_and_text(capsys) -> None:
+    exit_code = main(["summarize-calibration", str(FAKE_MQM), "--json"])
+    json_output = capsys.readouterr()
+
+    assert exit_code == 0
+    assert json.loads(json_output.out)["major_error_recall"] == 0.5
+
+    exit_code = main(["summarize-calibration", str(FAKE_MQM)])
+    text_output = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "valid judge outputs: 4/5" in text_output.out
+
+
+def test_summarize_calibration_cli_reports_missing_file(tmp_path, capsys) -> None:
+    exit_code = main(["summarize-calibration", str(tmp_path / "missing.json"), "--json"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert json.loads(captured.err)["error"]
+
+
+def test_adapt_remis_result_cli(tmp_path, capsys) -> None:
+    input_path = tmp_path / "remis.json"
+    output_path = tmp_path / "aventine.json"
+    input_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "benchmark": "Fake Remis benchmark",
+                "fixture_sha256": "f" * 64,
+                "created_at_utc": "2026-07-15T01:00:01Z",
+                "provider": "lm_studio",
+                "model_id": "fake/model",
+                "model_label": "Fake Model",
+                "track": "translation",
+                "summary": {"case_count": 1, "elapsed_seconds": 1},
+                "results": [
+                    {
+                        "id": "case-1",
+                        "execution_failure": None,
+                        "elapsed_seconds": 1,
+                        "outputs": ["译文"],
+                        "score": {
+                            "parsed": True,
+                            "item_count_match": True,
+                            "hard_pass": True,
+                            "items": [],
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "adapt-remis-result",
+            str(input_path),
+            str(output_path),
+            "--recipe-id",
+            "test.recipe",
+            "--json",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert exit_code == 0
+    assert payload["converted"] is True
+    assert output_path.is_file()
+    assert json.loads(output_path.read_text(encoding="utf-8"))["recipe"]["id"] == "test.recipe"
+
+
+def test_adapt_remis_result_cli_reports_invalid_input(tmp_path, capsys) -> None:
+    input_path = tmp_path / "remis.json"
+    input_path.write_text("{}", encoding="utf-8")
+
+    exit_code = main(["adapt-remis-result", str(input_path), str(tmp_path / "output.json")])
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert captured.err.startswith("error:")
