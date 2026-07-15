@@ -19,6 +19,10 @@ from remis_aventine.adapters.remis import RemisCompatibilityError, adapt_remis_r
 from remis_aventine.calibration import CalibrationFixtureError, summarize_calibration_fixture
 from remis_aventine.calibration_pack import CalibrationPackError, build_calibration_pack
 from remis_aventine.doctor import build_doctor_report
+from remis_aventine.evidence_alignment import (
+    EvidenceAlignmentError,
+    write_evidence_alignment_report,
+)
 from remis_aventine.external_metrics import ExternalMetricError, run_external_metric
 from remis_aventine.judge import JudgeRunError, judge_from_environment, run_judge_pack
 from remis_aventine.metric_calibration import (
@@ -205,6 +209,23 @@ def build_parser() -> argparse.ArgumentParser:
     metric_report_parser.add_argument("output_json", type=Path)
     metric_report_parser.add_argument("output_markdown", type=Path)
     metric_report_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    alignment_parser = subparsers.add_parser(
+        "report-evidence-alignment",
+        help="Align calibration gold with judge and one or more automatic metrics.",
+    )
+    alignment_parser.add_argument("calibration_pack", type=Path)
+    alignment_parser.add_argument("judge_result", type=Path)
+    alignment_parser.add_argument("output_json", type=Path)
+    alignment_parser.add_argument("output_markdown", type=Path)
+    alignment_parser.add_argument(
+        "--metric",
+        nargs=2,
+        action="append",
+        metavar=("PACK", "RESULT"),
+        required=True,
+    )
+    alignment_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     return parser
 
@@ -563,6 +584,40 @@ def _report_metric_calibration(args: argparse.Namespace) -> int:
     return 0
 
 
+def _report_evidence_alignment(args: argparse.Namespace) -> int:
+    try:
+        report = write_evidence_alignment_report(
+            args.calibration_pack,
+            args.judge_result,
+            [(Path(pack), Path(result)) for pack, result in args.metric],
+            args.output_json,
+            args.output_markdown,
+        )
+    except (
+        EvidenceAlignmentError,
+        CalibrationFixtureError,
+        DocumentValidationError,
+        OSError,
+    ) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    payload = {
+        "reported": True,
+        "output_json": str(args.output_json),
+        "output_markdown": str(args.output_markdown),
+        "case_count": report["judge"]["case_count"],
+        "judge_effective_accuracy": report["judge"]["effective_accuracy"],
+        "review_queue_count": len(report["review_queue"]),
+        "metrics": report["metrics"],
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"evidence alignment: {payload['case_count']} cases")
+        print(f"- judge effective accuracy: {payload['judge_effective_accuracy']}")
+        print(f"- review queue: {payload['review_queue_count']}")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
@@ -603,5 +658,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _build_metric_pack(args)
     if args.command == "report-metric-calibration":
         return _report_metric_calibration(args)
+    if args.command == "report-evidence-alignment":
+        return _report_evidence_alignment(args)
 
     raise AssertionError(f"Unhandled command: {args.command}")  # pragma: no cover

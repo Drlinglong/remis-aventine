@@ -618,3 +618,60 @@ def test_report_metric_calibration_cli(monkeypatch, tmp_path, capsys) -> None:
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert payload["pairwise_accuracy"] == 0.5
+
+
+def test_report_evidence_alignment_cli(monkeypatch, tmp_path, capsys) -> None:
+    selected = {}
+
+    def fake_report(*args):
+        selected["args"] = args
+        return {
+            "judge": {"case_count": 50, "effective_accuracy": 0.76},
+            "review_queue": [{"case_id": "hard"}],
+            "metrics": {"xcomet": {"pairwise_accuracy": 0.76}},
+        }
+
+    monkeypatch.setattr(cli, "write_evidence_alignment_report", fake_report)
+    exit_code = main(
+        [
+            "report-evidence-alignment",
+            "calibration.json",
+            "judge.json",
+            str(tmp_path / "report.json"),
+            str(tmp_path / "report.md"),
+            "--metric",
+            "metric-pack.json",
+            "metric-result.json",
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["judge_effective_accuracy"] == 0.76
+    assert payload["review_queue_count"] == 1
+    assert selected["args"][2][0][0] == Path("metric-pack.json")
+
+
+def test_report_evidence_alignment_cli_reports_error(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "write_evidence_alignment_report",
+        lambda *_args: (_ for _ in ()).throw(cli.EvidenceAlignmentError("bad join")),
+    )
+
+    exit_code = main(
+        [
+            "report-evidence-alignment",
+            "calibration.json",
+            "judge.json",
+            "report.json",
+            "report.md",
+            "--metric",
+            "metric-pack.json",
+            "metric-result.json",
+        ]
+    )
+
+    assert exit_code == 2
+    assert "bad join" in capsys.readouterr().err

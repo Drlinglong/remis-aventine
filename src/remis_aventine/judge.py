@@ -287,7 +287,12 @@ class DeepSeekJudge:
 
     def cost_fields(self, usage: dict[str, int], prior_run: dict[str, Any]) -> dict[str, Any]:
         current = _cost(usage)
-        prior = float(prior_run.get("estimated_cost_rmb", 0.0))
+        prior = float(
+            prior_run.get(
+                "cumulative_estimated_cost_rmb",
+                prior_run.get("estimated_cost_rmb", 0.0),
+            )
+        )
         return {
             "pricing_rmb_per_million_tokens": PRICING_RMB_PER_MILLION,
             "estimated_cost_rmb": current,
@@ -449,7 +454,12 @@ class XAIJudge(DeepSeekJudge):
         )
         exact = round(usage["cost_in_usd_ticks"] / 10_000_000_000, 10)
         current = exact or estimated
-        prior = float(prior_run.get("exact_cost_usd", 0.0))
+        prior = float(
+            prior_run.get(
+                "cumulative_exact_cost_usd",
+                prior_run.get("exact_cost_usd", 0.0),
+            )
+        )
         return {
             "pricing_usd_per_million_tokens": XAI_PRICING_USD_PER_MILLION,
             "estimated_cost_usd": estimated,

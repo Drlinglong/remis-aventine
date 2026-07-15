@@ -100,7 +100,8 @@ reference；这尤其适合 Remis 现有的 translation benchmark。
 ```
 
 xCOMET 分数是 `higher_is_better`，并在模型提供时保留 error spans。其模型卡使用
-CC-BY-NC-SA-4.0；在把结果用于商业流程前需要单独检查许可边界。
+CC-BY-NC-SA-4.0；用户已在 gated model 页面手动同意访问，这只解决权重访问，不等于额外取得
+商业授权。在把模型或结果用于商业流程前仍需重新检查许可边界；当前本地研发与校准继续进行。
 
 ## 已完成的 smoke
 
@@ -147,3 +148,21 @@ phenomenon 分组。不要从单条语言方向样本推导该语言的稳定模
 Transformers 4.57.6 会对本地 XLM-R tokenizer 误报 Mistral regex 警告；Transformers 官方已将
 这一行为记录为 non-Mistral tokenizer 的误报。不要对 XLM-R 强设 `fix_mistral_regex=True`，该
 参数会破坏其 Metaspace pre-tokenizer。
+
+## Gold / Judge / Metric 对齐结果
+
+相同 50 条 WMT23 `en-de` MQM 与 50 对 ACES 已使用 DeepSeek V4 Pro 重新判断，并通过
+`report-evidence-alignment` 与 xCOMET 逐 case 对齐：
+
+- MQM：Judge verdict accuracy `56%`，major recall `82.35%`，false-good `50%`；主要问题是
+  minor/no-error 边界，而不是 major 完全失明。xCOMET 在 Judge 判对/判错两组的均分分别约
+  `0.8830 / 0.9138`，说明二者失败并非简单同向。
+- ACES：Judge base accuracy `84%`，swap accuracy `88%`，position consistency `86%`；只有
+  position-consistent verdict 才进入严格对齐，此时 43 对中双方都对 34、仅 Judge 对 7、仅
+  xCOMET 对 0、双方都错 2。两者任一命中的 oracle union 为 `95.35%`，它是互补性上限，不是
+  可直接部署的 ensemble 准确率。
+
+完整逐 case 结果保存在 Git-ignored
+`benchmark_results/evidence-alignment-2026-07-15/`。16 个 ACES case 进入 review queue，原因包括
+位置不一致、Judge/xCOMET 分歧或双方共同失败。这个结果支持下一阶段使用 hard validator 先 veto、
+自动 metric 提供证据、LLM Judge 处理软质量与争议，而不是让任一模型独自终审。

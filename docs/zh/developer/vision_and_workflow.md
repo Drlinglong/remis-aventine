@@ -270,8 +270,13 @@ docs/zh/developer/       # Chinese developer documentation
 6. **V5**：可选 MetricX-24 / xCOMET baseline。已落地 schema-bound metric pack/result、
    隔离 runtime worker 和统一 CLI；MetricX reference/QE 与 xCOMET reference 的本地真实权重
    smoke 已通过。xCOMET 已进一步跑完 50 条 WMT23 MQM 与 50 对 ACES：MQM 的 gold severity
-   均分单调下降，ACES winner accuracy 为 76%。下一步是把相同 case 与 calibrated judge 对齐，
-   测量 metric/judge/gold 的一致与分歧。
+   均分单调下降，ACES winner accuracy 为 76%。相同 case 已与 DeepSeek V4 Pro judge 对齐：
+   ACES base/swap accuracy 为 84%/88%，position consistency 为 86%；严格一致的 43 对中
+   Judge-only correct 7、xCOMET-only correct 0、双方都错 2。MQM 则暴露出 Judge 对 minor/no-error
+   边界不稳。Judge 层校准闭环已经可以运行，下一步进入小规模真实 Remis recipe 选手试跑。
+7. **V6**：真实选手 pilot。冻结少量 Remis translation/repair case，记录完整 recipe manifest，
+   先执行 hard validators，再组合本地 metric 与校准后的 judge；高思考远程 Judge 优先路由到
+   metric 分歧、高影响错误和低置信度样本，避免无差别长期占用成本与延迟。
 
 ## 明确不做
 

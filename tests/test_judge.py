@@ -83,6 +83,37 @@ def test_deepseek_judge_wraps_server_owned_metadata_and_usage() -> None:
     assert request_body["max_tokens"] == 4000
 
 
+def test_resume_cost_fields_use_prior_cumulative_totals() -> None:
+    deepseek = DeepSeekJudge("test-key")
+    deepseek_cost = deepseek.cost_fields(
+        {
+            "cache_hit_input_tokens": 0,
+            "cache_miss_input_tokens": 0,
+            "output_tokens": 1000,
+        },
+        {
+            "estimated_cost_rmb": 0.1,
+            "cumulative_estimated_cost_rmb": 0.9,
+        },
+    )
+    assert deepseek_cost["prior_estimated_cost_rmb"] == 0.9
+    assert deepseek_cost["cumulative_estimated_cost_rmb"] > 0.9
+
+    xai = XAIJudge("test-key")
+    xai_cost = xai.cost_fields(
+        {
+            "cache_hit_input_tokens": 0,
+            "cache_miss_input_tokens": 0,
+            "output_tokens": 1000,
+            "reasoning_tokens": 0,
+            "cost_in_usd_ticks": 0,
+        },
+        {"exact_cost_usd": 0.1, "cumulative_exact_cost_usd": 0.8},
+    )
+    assert xai_cost["prior_exact_cost_usd"] == 0.8
+    assert xai_cost["cumulative_exact_cost_usd"] > 0.8
+
+
 def test_deepseek_judge_removes_optional_null_fields() -> None:
     evaluation = _evaluation()
     evaluation["evaluation"]["errors"] = [

@@ -15,7 +15,7 @@ post-processing, repair, and optional deterministic validators.
 > bounded DeepSeek V4 Pro, xAI Grok 4.5, and Google-hosted Gemma 4 judge adapters; synthetic
 > fixtures; bounded `mt-metrics-eval` MQM and ACES/SPAN-ACES adapters; a read-only Remis
 > result adapter; hard-veto-aware Remis pairwise/repair-restraint reports; and isolated,
-> schema-bound MetricX-24/xCOMET baselines.
+> schema-bound MetricX-24/xCOMET baselines with gold/judge/metric alignment reports.
 > It does not yet execute a full Aventine-native recipe benchmark.
 
 ## Why Aventine?
@@ -88,6 +88,8 @@ aventine run-metric INPUT OUTPUT --metric metricx-24|xcomet --runtime-python PAT
 aventine build-metric-pack CALIBRATION_PACK OUTPUT [--json]
 aventine report-metric-calibration METRIC_PACK METRIC_RESULT OUTPUT_JSON OUTPUT_MARKDOWN
   [--json]
+aventine report-evidence-alignment CALIBRATION_PACK JUDGE_RESULT OUTPUT_JSON OUTPUT_MARKDOWN
+  --metric METRIC_PACK METRIC_RESULT [--metric METRIC_PACK METRIC_RESULT ...] [--json]
 aventine --version
 ```
 
@@ -139,6 +141,11 @@ hypothesis and a pairwise case to two hypotheses. It excludes missing-reference 
 `report-metric-calibration` then reports score distributions for MQM-style single cases and
 threshold-free winner accuracy for ACES-style pairs. Raw external text and per-case scores remain in
 Git-ignored `benchmark_results`; a hash-only aggregate manifest may be committed.
+
+`report-evidence-alignment` joins the same calibration cases across human gold, a structured judge,
+and one or more automatic metrics. It does not invent a pass/fail threshold for continuous MQM
+scores. For pairwise cases it reports both-correct, judge-only, metric-only, both-wrong, position
+inconsistency, and a review queue.
 
 ## Remis compatibility
 

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "id": "evidence-alignment-v1",
+  "created_at": "2026-07-15",
+  "judge": {
+    "provider": "deepseek",
+    "model": "deepseek-v4-pro",
+    "profile": "deepseek-v4-pro-thinking-high",
+    "prompt_revision": "translation-judge-v2",
+    "max_tokens": 4000
+  },
+  "metric": {
+    "name": "xcomet",
+    "model_id": "Unbabel/XCOMET-XL",
+    "model_sha256": "b644a48a1163ca7f8d3bcf237816eea7ecf368ecdbd6eb16ea27fef218fcd716"
+  },
+  "runs": {
+    "mqm-en-de": {
+      "source_pack_id": "mtme-mqm.wmt23.en-de.mqm.merged.9183973cb66f",
+      "source_sha256": "bad733ef50ae2a7e0d0572b0c0f992ab1c4cb97403b273bc349e26fd3c98af17",
+      "case_count": 50,
+      "judge_verdict_accuracy": 0.56,
+      "judge_major_error_recall": 0.823529,
+      "judge_false_good_rate": 0.5,
+      "judge_result_sha256": "c888f887de40ba2268d0f273687df33a68df44c032fdb6e18b66a8edc65c671b",
+      "alignment_report_sha256": "2d2fd44cf1850acba053e5b9fef8e86e993a4b60581dd7a91ff32e631209ceff"
+    },
+    "aces-global": {
+      "source_pack_id": "aces.b497a6456957a5660ac20b8cac5b5222eb9b669c.6e35aaaeda9d",
+      "source_sha256": "3f07020baf7bf3e5050467fddd1946a6b1c9d6ec3099e15d84277fa98d617519",
+      "case_count": 50,
+      "judge_base_accuracy": 0.84,
+      "judge_swap_accuracy": 0.88,
+      "judge_position_consistency": 0.86,
+      "strict_aligned_case_count": 43,
+      "both_correct": 34,
+      "judge_only_correct": 7,
+      "metric_only_correct": 0,
+      "both_wrong": 2,
+      "oracle_union_accuracy": 0.9534883720930233,
+      "review_queue_count": 16,
+      "judge_result_sha256": "2907e9bb2afffee2f555037b7cc7066a72972dd23d4b51e9602c4022cce7d99d",
+      "alignment_report_sha256": "03c045ad48f27413dbca4ffe982eee465b121bc2aa04a670cca37f050aab2cf3"
+    }
+  },
+  "artifact_policy": "Source text, per-case judge outputs, metric scores, and alignment reports remain in Git-ignored benchmark_results; this manifest contains only hashes and aggregate evidence."
+}
