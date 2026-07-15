@@ -11,14 +11,12 @@ adapter 不运行翻译模型、不计算 COMET，也不自动下载外部数据
 
 ## 准备官方工具与数据
 
-按 `mt-metrics-eval` 官方仓库说明安装代码并下载数据，例如：
+`mtme` optional dependency 固定到核对过的官方 commit。官方 `setup.py` 在中文 Windows 上读取
+README 时可能使用 GBK，因此安装前显式启用 Python UTF-8 mode：
 
 ```powershell
-git clone https://github.com/google-research/mt-metrics-eval.git `
-  "$env:USERPROFILE\.cache\aventine\sources\mt-metrics-eval"
-
-.\.venv\Scripts\python.exe -m pip install `
-  "$env:USERPROFILE\.cache\aventine\sources\mt-metrics-eval"
+$env:PYTHONUTF8 = "1"
+.\.venv\Scripts\python.exe -m pip install -e ".[mtme]"
 
 .\.venv\Scripts\python.exe -m mt_metrics_eval.mtme --download
 ```

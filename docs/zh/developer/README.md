@@ -4,6 +4,7 @@
 - [Judge 校准、Summary Metrics 与 Remis 兼容层](calibration_and_remis_compat.md)
 - [多语言小样本与远程 Judge](multilingual_calibration.md)
 - [mt-metrics-eval / WMT MQM adapter](mt_metrics_eval_adapter.md)
+- [ACES / SPAN-ACES adapter](aces_adapter.md)
 - [Judge provider 三方对照](judge_provider_comparison_2026-07-15.md)
 
 当前文档面向 Aventine 的开发者、评测维护者和研究使用者。用户侧图形界面不在近期范围内。

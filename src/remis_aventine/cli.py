@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from remis_aventine import __version__
+from remis_aventine.adapters.aces import ACESAdapterError, build_aces_pack
 from remis_aventine.adapters.mt_metrics_eval import (
     MTMetricsEvalAdapterError,
     build_mtme_mqm_pack,
@@ -107,6 +108,20 @@ def build_parser() -> argparse.ArgumentParser:
     mtme_parser.add_argument("--limit", type=int, default=50)
     mtme_parser.add_argument("--system", action="append", dest="systems")
     mtme_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    aces_parser = subparsers.add_parser(
+        "build-aces-pack",
+        help="Build a bounded pairwise pack from a pinned ACES or SPAN-ACES JSONL file.",
+    )
+    aces_parser.add_argument("input", type=Path)
+    aces_parser.add_argument("output", type=Path)
+    aces_parser.add_argument("--kind", choices=("aces", "span-aces"), required=True)
+    aces_parser.add_argument("--dataset-revision", required=True)
+    aces_parser.add_argument("--expected-sha256", required=True)
+    aces_parser.add_argument("--limit", type=int, default=50)
+    aces_parser.add_argument("--language-pair", action="append", dest="language_pairs")
+    aces_parser.add_argument("--phenomenon", action="append", dest="phenomena")
+    aces_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     judge_run_parser = subparsers.add_parser(
         "run-judge",
@@ -276,6 +291,37 @@ def _build_mtme_pack(args: argparse.Namespace) -> int:
     return 0
 
 
+def _build_aces_pack(args: argparse.Namespace) -> int:
+    try:
+        pack = build_aces_pack(
+            args.input,
+            args.output,
+            args.kind,
+            args.dataset_revision,
+            args.expected_sha256,
+            limit=args.limit,
+            language_pairs=args.language_pairs,
+            phenomena=args.phenomena,
+        )
+    except (ACESAdapterError, OSError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    payload = {
+        "built": True,
+        "id": pack["id"],
+        "output": str(args.output),
+        "case_count": len(pack["cases"]),
+        "matching_row_count": pack["adapter"]["matching_row_count"],
+        "content_sha256": pack["adapter"]["content_sha256"],
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"built: {payload['id']} -> {payload['output']}")
+        print(f"- selected cases: {payload['case_count']}/{payload['matching_row_count']}")
+        print(f"- content SHA-256: {payload['content_sha256']}")
+    return 0
+
+
 def _run_judge(args: argparse.Namespace) -> int:
     try:
         judge = judge_from_environment(args.env_file, args.provider)
@@ -335,6 +381,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _build_pack(args)
     if args.command == "build-mtme-mqm-pack":
         return _build_mtme_pack(args)
+    if args.command == "build-aces-pack":
+        return _build_aces_pack(args)
     if args.command == "run-judge":
         return _run_judge(args)
 

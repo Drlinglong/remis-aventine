@@ -13,7 +13,8 @@ post-processing, repair, and optional deterministic validators.
 > Status: pre-alpha. The repository provides versioned recipe, run-result, and judge contracts;
 > deterministic calibration summaries; a reproducible 48-case multilingual calibration pack;
 > bounded DeepSeek V4 Pro, xAI Grok 4.5, and Google-hosted Gemma 4 judge adapters; synthetic
-> fixtures; a bounded `mt-metrics-eval` MQM adapter; and a read-only Remis result adapter.
+> fixtures; bounded `mt-metrics-eval` MQM and ACES/SPAN-ACES adapters; and a read-only Remis
+> result adapter.
 > It does not yet execute a full Aventine-native recipe benchmark.
 
 ## Why Aventine?
@@ -74,6 +75,8 @@ aventine adapt-remis-result INPUT OUTPUT [--recipe-id ID] [--json]
 aventine build-calibration-pack SOURCE_ROOT OUTPUT [--remis-fixture PATH] [--json]
 aventine build-mtme-mqm-pack TEST_SET LANGUAGE_PAIR RATING_SET DATASET_REVISION OUTPUT
   [--data-root PATH] [--limit N] [--system NAME] [--json]
+aventine build-aces-pack INPUT OUTPUT --kind aces|span-aces --dataset-revision REVISION
+  --expected-sha256 SHA256 [--limit N] [--language-pair PAIR] [--phenomenon NAME] [--json]
 aventine run-judge INPUT OUTPUT [--case-id ID] [--max-calls N] [--workers N]
   [--provider deepseek|xai|google] [--resume-from PATH] [--env-file PATH] [--json]
 aventine --version
@@ -96,6 +99,10 @@ reasoning content, and can resume only failed outputs from a configuration-compa
 never downloads the multi-gigabyte WMT bundle itself. The adapter skips unrated segments, preserves
 MQM spans and provenance, applies deterministic severity-balanced selection capped at 50 cases by
 default, and writes external text/results only to the caller-selected path.
+
+`build-aces-pack` reads a SHA-256-pinned ACES or SPAN-ACES JSONL file and produces pairwise cases
+with deterministic candidate order and language-pair/phenomenon coverage. SPAN-ACES annotations are
+stored only as human gold and never included in the judge input.
 
 ## Remis compatibility
 
@@ -132,6 +139,7 @@ tool for regression testing translation recipes.**
 - [中文开发者文档：Judge 校准与 Remis 兼容层](docs/zh/developer/calibration_and_remis_compat.md)
 - [中文开发者文档：多语言小样本与远程 Judge](docs/zh/developer/multilingual_calibration.md)
 - [中文开发者文档：mt-metrics-eval / WMT MQM adapter](docs/zh/developer/mt_metrics_eval_adapter.md)
+- [中文开发者文档：ACES / SPAN-ACES adapter](docs/zh/developer/aces_adapter.md)
 - [Judge provider 三方对照](docs/zh/developer/judge_provider_comparison_2026-07-15.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

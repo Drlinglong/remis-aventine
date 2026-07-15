@@ -261,7 +261,8 @@ docs/zh/developer/       # Chinese developer documentation
    DeepSeek、Grok、Gemma 三方远程对照已经完成。
 3. **V2**：接入 `mt-metrics-eval` / WMT MQM adapter。首个 bounded adapter 已落地；真实 WMT
    数据仍由使用者在仓外安装和下载。
-4. **V3**：接入 ACES/SPAN-ACES adapter。
+4. **V3**：接入 ACES/SPAN-ACES adapter。首个 bounded pairwise adapter 已落地，支持固定
+   source hash、language-pair/phenomenon coverage、A/B swap 与独立 span gold。
 5. **V4**：接入 Remis recipe pairwise report 和 repair over-editing。
 6. **V5**：可选 xCOMET/xCOMET-lite baseline。
 

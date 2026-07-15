@@ -310,6 +310,55 @@ def test_build_mtme_mqm_pack_cli(monkeypatch, tmp_path, capsys) -> None:
     assert selected["rating_set"] == "mqm.merged"
 
 
+def test_build_aces_pack_cli(monkeypatch, tmp_path, capsys) -> None:
+    selected = {}
+
+    def fake_builder(source, output, kind, revision, expected_sha, **kwargs):
+        selected.update(
+            source=source,
+            output=output,
+            kind=kind,
+            revision=revision,
+            expected_sha=expected_sha,
+            **kwargs,
+        )
+        return {
+            "id": "aces-pack",
+            "cases": [{"id": "one"}],
+            "adapter": {"matching_row_count": 100, "content_sha256": "b" * 64},
+        }
+
+    monkeypatch.setattr(cli, "build_aces_pack", fake_builder)
+    source = tmp_path / "span.jsonl"
+    output = tmp_path / "pack.json"
+
+    exit_code = main(
+        [
+            "build-aces-pack",
+            str(source),
+            str(output),
+            "--kind",
+            "span-aces",
+            "--dataset-revision",
+            "b497a645",
+            "--expected-sha256",
+            "a" * 64,
+            "--limit",
+            "20",
+            "--language-pair",
+            "ja-ko",
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["case_count"] == 1
+    assert selected["kind"] == "span-aces"
+    assert selected["limit"] == 20
+    assert selected["language_pairs"] == ["ja-ko"]
+
+
 def test_run_judge_cli(monkeypatch, tmp_path, capsys) -> None:
     selected = {}
 

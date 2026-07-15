@@ -15,7 +15,7 @@ SOURCE_FILES = {
     "aces": {
         "relative_path": Path("aces/challenge_set.jsonl"),
         "sha256": "f4dc0df4f8ade8e94adf691f78f3cba62a266515aded09f1e53e433943c1dd93",
-        "url": "https://huggingface.co/datasets/nikitam/ACES/resolve/main/data/challenge_set.jsonl",
+        "url": "https://huggingface.co/datasets/nikitam/ACES/resolve/b497a6456957a5660ac20b8cac5b5222eb9b669c/challenge_set.jsonl",
         "license": "CC-BY-NC-SA-4.0",
     },
     "mqm-ende": {
