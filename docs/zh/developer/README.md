@@ -6,6 +6,7 @@
 - [mt-metrics-eval / WMT MQM adapter](mt_metrics_eval_adapter.md)
 - [ACES / SPAN-ACES adapter](aces_adapter.md)
 - [MetricX / xCOMET 隔离 runtime](external_metric_runtimes.md)
+- [首届 Remis recipe pilot（2026-07-16）](first_remis_tournament_2026-07-16.md)
 - [Judge provider 三方对照](judge_provider_comparison_2026-07-15.md)
 
 当前文档面向 Aventine 的开发者、评测维护者和研究使用者。用户侧图形界面不在近期范围内。

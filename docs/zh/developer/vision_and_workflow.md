@@ -274,9 +274,12 @@ docs/zh/developer/       # Chinese developer documentation
    ACES base/swap accuracy 为 84%/88%，position consistency 为 86%；严格一致的 43 对中
    Judge-only correct 7、xCOMET-only correct 0、双方都错 2。MQM 则暴露出 Judge 对 minor/no-error
    边界不稳。Judge 层校准闭环已经可以运行，下一步进入小规模真实 Remis recipe 选手试跑。
-7. **V6**：真实选手 pilot。冻结少量 Remis translation/repair case，记录完整 recipe manifest，
-   先执行 hard validators，再组合本地 metric 与校准后的 judge；高思考远程 Judge 优先路由到
-   metric 分歧、高影响错误和低置信度样本，避免无差别长期占用成本与延迟。
+7. **V6**：真实选手 pilot 已完成。首届比赛复用 7 个 Remis frozen translation/repair case 和
+   四份生产路径 artifact；Qwen 3.6 获得第一，Gemma 4、TranslateGemma、Nemotron 依次随后。
+   结果同时验证了 hard-validator 先行与 position-consistent judge policy，也暴露出 high-thinking
+   长文本裁判的 retry、吞吐与 checkpoint 问题。详见
+   [`first_remis_tournament_2026-07-16.md`](first_remis_tournament_2026-07-16.md)。下一步先修正
+   logical-call/HTTP-attempt 预算语义并增加增量进度，再扩大选手或样本。
 
 ## 明确不做
 

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "id": "remis-tournament-2026-07-16",
+  "fixture": {
+    "case_count": 7,
+    "translation_case_count": 5,
+    "repair_case_count": 2,
+    "sha256": "4fad788b58c9c48acbdb6a0d0d82563348e5e072b7dd20cfc9a45f6882a47335"
+  },
+  "judge": {
+    "provider": "deepseek",
+    "model": "deepseek-v4-pro",
+    "profile": "deepseek-v4-pro-thinking-high",
+    "prompt_revision": "translation-judge-v2",
+    "max_tokens": 4000,
+    "logical_output_target": 40,
+    "http_request_count": 113,
+    "valid_output_count": 32,
+    "estimated_cost_rmb": 2.513589
+  },
+  "ranking": [
+    {
+      "rank": 1,
+      "model": "Qwen3.6-27B-Q4_K_M",
+      "recipe_sha256": "c9ffc6284ca7df4d57b993ad4733959171ab5b9dcb26281b2944dc93249dcafd",
+      "hard_pass_count": 7,
+      "wins": 15,
+      "losses": 1,
+      "ties": 2,
+      "neither": 0,
+      "unresolved": 3
+    },
+    {
+      "rank": 2,
+      "model": "Gemma4-31B-QAT-Q4_0",
+      "recipe_sha256": "ba6b6cc123e5706a5f5b47b8c054b736390d7ad35427ffe6c4f447e73b9060ba",
+      "hard_pass_count": 7,
+      "wins": 11,
+      "losses": 4,
+      "ties": 2,
+      "neither": 0,
+      "unresolved": 4
+    },
+    {
+      "rank": 3,
+      "model": "TranslateGemma-27B-Instruct-Q6_K",
+      "recipe_sha256": "89230f08f94bd7ae10d0df2cdc8cf3e77e27c665cda53dabf23d6bff5e1c5010",
+      "hard_pass_count": 5,
+      "wins": 4,
+      "losses": 7,
+      "ties": 2,
+      "neither": 2,
+      "unresolved": 6
+    },
+    {
+      "rank": 4,
+      "model": "Nemotron-Cascade-2-30B-A3B-Q4_K_M",
+      "recipe_sha256": "2d0d808cd21e054ad6b0c155e352a49bb6805f0682abab864c60ff2f0a861eaf",
+      "hard_pass_count": 1,
+      "wins": 0,
+      "losses": 18,
+      "ties": 0,
+      "neither": 2,
+      "unresolved": 1
+    }
+  ],
+  "pairwise_report_sha256": {
+    "gemma4-vs-nemotron": "bf6713f3abe3b3717559316a7a5314abffe4b95bf4ff99cac8e434dfbedce291",
+    "gemma4-vs-qwen36": "d0fbfc4722dd46326234b7ac00cc48a5b6b4309a58d0cc183ff1eca3e162abc9",
+    "gemma4-vs-translategemma": "818edffa86dd8e5c838147dbbb199714c8a91ab4a37d41050896277b00ca093a",
+    "qwen36-vs-nemotron": "843d8ed808627ee82db7580de5dd42fc38e7e291687101e9a69c93b45bd14e65",
+    "translategemma-vs-nemotron": "169346573c77603a26adb46e321917d6b4498b598de9712064f0527792dafa6e",
+    "translategemma-vs-qwen36": "6c3284c8e5812cd35c130069ee05281e14ebb003df929175e79ce0753c0875b0"
+  },
+  "artifact_policy": "Raw Remis artifacts, candidate text, per-call judge outputs, and pairwise reports remain in Git-ignored benchmark_results."
+}

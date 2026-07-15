@@ -185,6 +185,7 @@ tool for regression testing translation recipes.**
 - [中文开发者文档：ACES / SPAN-ACES adapter](docs/zh/developer/aces_adapter.md)
 - [中文开发者文档：MetricX / xCOMET 隔离 runtime](docs/zh/developer/external_metric_runtimes.md)
 - [Judge provider 三方对照](docs/zh/developer/judge_provider_comparison_2026-07-15.md)
+- [首届 Remis recipe pilot](docs/zh/developer/first_remis_tournament_2026-07-16.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 
