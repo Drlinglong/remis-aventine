@@ -1,0 +1,140 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+import remis_aventine.cli as cli
+from remis_aventine.cli import main
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+EXAMPLE_RECIPE = PROJECT_ROOT / "examples" / "recipes" / "remis-lm-studio.example.json"
+
+
+def test_validate_recipe_cli_emits_json(capsys) -> None:
+    exit_code = main(["validate-recipe", str(EXAMPLE_RECIPE), "--json"])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert exit_code == 0
+    assert payload["valid"] is True
+    assert payload["schema"] == "recipe-manifest.schema.json"
+    assert captured.err == ""
+
+
+def test_validate_recipe_cli_reports_invalid_document(tmp_path, capsys) -> None:
+    invalid_recipe = tmp_path / "invalid.json"
+    invalid_recipe.write_text('{"schema_version": 1}', encoding="utf-8")
+
+    exit_code = main(["validate-recipe", str(invalid_recipe), "--json"])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.err)
+    assert exit_code == 2
+    assert payload["valid"] is False
+    assert payload["issues"]
+    assert captured.out == ""
+
+
+def test_doctor_cli_does_not_require_optional_integrations(capsys) -> None:
+    exit_code = main(["doctor", "--json"])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert exit_code == 0
+    assert payload["ready"] is True
+    assert payload["checks"]["remis"]["status"] == "not_configured"
+
+
+def test_validate_recipe_cli_emits_text(capsys) -> None:
+    exit_code = main(["validate-recipe", str(EXAMPLE_RECIPE)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out.startswith("valid:")
+    assert captured.err == ""
+
+
+def test_invalid_recipe_cli_emits_readable_text(tmp_path, capsys) -> None:
+    invalid_recipe = tmp_path / "invalid.json"
+    invalid_recipe.write_text('{"schema_version": 1}', encoding="utf-8")
+
+    exit_code = main(["validate-recipe", str(invalid_recipe)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert captured.out == ""
+    assert captured.err.startswith("error:")
+    assert "- $:" in captured.err
+
+
+def test_missing_recipe_cli_reports_io_error(tmp_path, capsys) -> None:
+    missing_recipe = tmp_path / "missing.json"
+
+    exit_code = main(["validate-recipe", str(missing_recipe), "--json"])
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.err)
+    assert exit_code == 2
+    assert payload["issues"] == []
+
+
+def test_doctor_cli_emits_text(capsys) -> None:
+    exit_code = main(["doctor"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Aventine core ready: true" in captured.out
+    assert "- python: ready" in captured.out
+
+
+def test_doctor_cli_propagates_core_failure(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "build_doctor_report",
+        lambda _root: {
+            "ready": False,
+            "checks": {"python": {"status": "unsupported", "detail": "Python is too old."}},
+        },
+    )
+
+    exit_code = main(["doctor", "--json"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert json.loads(captured.out)["ready"] is False
+
+
+def test_validate_result_cli(tmp_path, capsys) -> None:
+    result_path = tmp_path / "result.json"
+    result_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "run_id": "smoke-001",
+                "suite": "remis",
+                "recipe": {"id": "example", "sha256": "a" * 64},
+                "started_at": "2026-07-15T00:00:00Z",
+                "finished_at": "2026-07-15T00:00:01Z",
+                "cases": [],
+                "summary": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(["validate-result", str(result_path), "--json"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert json.loads(captured.out)["schema"] == "run-result.schema.json"
+
+
+def test_version_flag(capsys) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--version"])
+
+    captured = capsys.readouterr()
+    assert exc_info.value.code == 0
+    assert captured.out.startswith("aventine ")

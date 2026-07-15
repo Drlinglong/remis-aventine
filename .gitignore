@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Aventine local benchmark data and generated artifacts
+benchmark_data/
+benchmark_results/
+.cache/aventine/
+
+# Local Remis checkout link or compatibility workspace
+.remis-root
+
+# Project-local test scratch
+.pytest-basetemp/

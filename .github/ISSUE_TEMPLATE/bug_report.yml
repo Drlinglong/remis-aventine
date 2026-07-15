@@ -1,0 +1,34 @@
+name: Bug report
+description: Report reproducible incorrect behavior in Aventine.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include provider keys, private translations, or proprietary benchmark samples.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Observed behavior
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include a small safe fixture and the exact CLI command when possible.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Paste `aventine doctor --json` after removing private paths if necessary.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Additional context
+      description: Relevant logs, schema versions, or suspected trust-boundary impact.

@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "remis-aventine"
+version = "0.1.0a0"
+description = "A reproducible evaluation ground for translation recipes, born from Remis."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+authors = [{ name = "Drlinglong" }]
+keywords = [
+  "machine-translation",
+  "translation-evaluation",
+  "llm-as-a-judge",
+  "mqm",
+  "benchmark",
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Testing",
+]
+dependencies = [
+  "jsonschema>=4.23,<5",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2,<2",
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<7",
+  "ruff>=0.11,<1",
+]
+
+[project.urls]
+Homepage = "https://github.com/Drlinglong/remis-aventine"
+Documentation = "https://github.com/Drlinglong/remis-aventine/tree/main/docs"
+Issues = "https://github.com/Drlinglong/remis-aventine/issues"
+Source = "https://github.com/Drlinglong/remis-aventine"
+
+[project.scripts]
+aventine = "remis_aventine.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"remis_aventine.schemas" = ["*.json"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "SIM", "UP"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["remis_aventine"]
+omit = ["src/remis_aventine/__main__.py"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true

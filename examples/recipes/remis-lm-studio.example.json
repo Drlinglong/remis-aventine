@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "id": "remis.lm-studio.translate-repair",
+  "display_name": "Remis LM Studio translate + repair",
+  "description": "An illustrative recipe manifest. It does not run a model by itself.",
+  "source_language": "en",
+  "target_language": "zh-Hans",
+  "provider": {
+    "name": "lm_studio",
+    "endpoint": "http://127.0.0.1:1234/v1",
+    "settings": {
+      "timeout_seconds": 120
+    }
+  },
+  "model": {
+    "id": "auto",
+    "settings": {
+      "temperature": 0.1
+    }
+  },
+  "stages": [
+    {
+      "kind": "translate",
+      "implementation": "remis.translation_agent",
+      "prompt_revision": "remis-current"
+    },
+    {
+      "kind": "repair",
+      "implementation": "remis.translation_fixer_agent",
+      "prompt_revision": "remis-current"
+    }
+  ],
+  "validator_policy": {
+    "mode": "veto",
+    "profile": "remis.paradox-localization"
+  },
+  "reference_access": "judge_only",
+  "metadata": {
+    "origin": "Remis frozen translation benchmark"
+  }
+}
