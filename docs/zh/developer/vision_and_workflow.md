@@ -257,8 +257,10 @@ docs/zh/developer/       # Chinese developer documentation
 
 1. **V0**：CLI、recipe/run/judge schema、fake fixtures、summary metrics、Remis result adapter，
    不下载大数据。首批零件已经落地；尚缺 Aventine-native runner/aggregator。
-2. **V1**：整理 20–50 条 MQM/ACES 小样本，运行本地 judge。
-3. **V2**：接入 `mt-metrics-eval` / WMT MQM adapter。
+2. **V1**：整理 20–50 条 MQM/ACES 小样本，运行 calibrated judge。首轮 48 条多语言样本及
+   DeepSeek、Grok、Gemma 三方远程对照已经完成。
+3. **V2**：接入 `mt-metrics-eval` / WMT MQM adapter。首个 bounded adapter 已落地；真实 WMT
+   数据仍由使用者在仓外安装和下载。
 4. **V3**：接入 ACES/SPAN-ACES adapter。
 5. **V4**：接入 Remis recipe pairwise report 和 repair over-editing。
 6. **V5**：可选 xCOMET/xCOMET-lite baseline。

@@ -262,6 +262,54 @@ def test_build_calibration_pack_cli(monkeypatch, tmp_path, capsys) -> None:
     assert payload["holdout_count"] == 1
 
 
+def test_build_mtme_mqm_pack_cli(monkeypatch, tmp_path, capsys) -> None:
+    selected = {}
+
+    def fake_builder(test_set, language_pair, rating_set, dataset_revision, output, **kwargs):
+        selected.update(
+            test_set=test_set,
+            language_pair=language_pair,
+            rating_set=rating_set,
+            dataset_revision=dataset_revision,
+            output=output,
+            **kwargs,
+        )
+        return {
+            "id": "mtme-pack",
+            "cases": [{"id": "one"}],
+            "adapter": {
+                "available_rated_case_count": 10,
+                "content_sha256": "a" * 64,
+            },
+        }
+
+    monkeypatch.setattr(cli, "build_mtme_mqm_pack", fake_builder)
+    output = tmp_path / "pack.json"
+
+    exit_code = main(
+        [
+            "build-mtme-mqm-pack",
+            "wmt23",
+            "en-de",
+            "mqm.merged",
+            "mtme-v2",
+            str(output),
+            "--limit",
+            "20",
+            "--system",
+            "system-a",
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["case_count"] == 1
+    assert selected["limit"] == 20
+    assert selected["systems"] == ["system-a"]
+    assert selected["rating_set"] == "mqm.merged"
+
+
 def test_run_judge_cli(monkeypatch, tmp_path, capsys) -> None:
     selected = {}
 

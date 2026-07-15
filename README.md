@@ -13,7 +13,7 @@ post-processing, repair, and optional deterministic validators.
 > Status: pre-alpha. The repository provides versioned recipe, run-result, and judge contracts;
 > deterministic calibration summaries; a reproducible 48-case multilingual calibration pack;
 > bounded DeepSeek V4 Pro, xAI Grok 4.5, and Google-hosted Gemma 4 judge adapters; synthetic
-> fixtures; and a read-only Remis result adapter.
+> fixtures; a bounded `mt-metrics-eval` MQM adapter; and a read-only Remis result adapter.
 > It does not yet execute a full Aventine-native recipe benchmark.
 
 ## Why Aventine?
@@ -72,6 +72,8 @@ aventine validate-judge PATH [--json]
 aventine summarize-calibration PATH [--json]
 aventine adapt-remis-result INPUT OUTPUT [--recipe-id ID] [--json]
 aventine build-calibration-pack SOURCE_ROOT OUTPUT [--remis-fixture PATH] [--json]
+aventine build-mtme-mqm-pack TEST_SET LANGUAGE_PAIR RATING_SET DATASET_REVISION OUTPUT
+  [--data-root PATH] [--limit N] [--system NAME] [--json]
 aventine run-judge INPUT OUTPUT [--case-id ID] [--max-calls N] [--workers N]
   [--provider deepseek|xai|google] [--resume-from PATH] [--env-file PATH] [--json]
 aventine --version
@@ -89,6 +91,11 @@ text and generated judge results remain outside Git. `run-judge` reads the selec
 project `.env`, enforces a total HTTP request budget, retries transient/empty JSON responses, strips
 reasoning content, and can resume only failed outputs from a configuration-compatible artifact. See the
 [multilingual calibration guide](docs/zh/developer/multilingual_calibration.md).
+
+`build-mtme-mqm-pack` reads an already-installed, already-downloaded `mt-metrics-eval` EvalSet. It
+never downloads the multi-gigabyte WMT bundle itself. The adapter skips unrated segments, preserves
+MQM spans and provenance, applies deterministic severity-balanced selection capped at 50 cases by
+default, and writes external text/results only to the caller-selected path.
 
 ## Remis compatibility
 
@@ -124,6 +131,7 @@ tool for regression testing translation recipes.**
 - [中文开发者文档：愿景、边界与核心工作流](docs/zh/developer/vision_and_workflow.md)
 - [中文开发者文档：Judge 校准与 Remis 兼容层](docs/zh/developer/calibration_and_remis_compat.md)
 - [中文开发者文档：多语言小样本与远程 Judge](docs/zh/developer/multilingual_calibration.md)
+- [中文开发者文档：mt-metrics-eval / WMT MQM adapter](docs/zh/developer/mt_metrics_eval_adapter.md)
 - [Judge provider 三方对照](docs/zh/developer/judge_provider_comparison_2026-07-15.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

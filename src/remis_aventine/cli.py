@@ -10,6 +10,10 @@ from pathlib import Path
 from typing import Any
 
 from remis_aventine import __version__
+from remis_aventine.adapters.mt_metrics_eval import (
+    MTMetricsEvalAdapterError,
+    build_mtme_mqm_pack,
+)
 from remis_aventine.adapters.remis import RemisCompatibilityError, adapt_remis_result
 from remis_aventine.calibration import CalibrationFixtureError, summarize_calibration_fixture
 from remis_aventine.calibration_pack import CalibrationPackError, build_calibration_pack
@@ -89,6 +93,20 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("examples/calibration/remis-synthetic-v1.json"),
     )
     pack_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    mtme_parser = subparsers.add_parser(
+        "build-mtme-mqm-pack",
+        help="Build a bounded MQM judge pack from an installed mt-metrics-eval dataset.",
+    )
+    mtme_parser.add_argument("test_set", help="EvalSet name, for example wmt23.")
+    mtme_parser.add_argument("language_pair", help="EvalSet language pair, for example en-de.")
+    mtme_parser.add_argument("rating_set", help="Exact EvalSet rating name.")
+    mtme_parser.add_argument("dataset_revision", help="Pinned external dataset revision label.")
+    mtme_parser.add_argument("output", type=Path)
+    mtme_parser.add_argument("--data-root", type=Path)
+    mtme_parser.add_argument("--limit", type=int, default=50)
+    mtme_parser.add_argument("--system", action="append", dest="systems")
+    mtme_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     judge_run_parser = subparsers.add_parser(
         "run-judge",
@@ -227,6 +245,37 @@ def _build_pack(args: argparse.Namespace) -> int:
     return 0
 
 
+def _build_mtme_pack(args: argparse.Namespace) -> int:
+    try:
+        pack = build_mtme_mqm_pack(
+            args.test_set,
+            args.language_pair,
+            args.rating_set,
+            args.dataset_revision,
+            args.output,
+            data_root=args.data_root,
+            limit=args.limit,
+            systems=args.systems,
+        )
+    except (MTMetricsEvalAdapterError, OSError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    payload = {
+        "built": True,
+        "id": pack["id"],
+        "output": str(args.output),
+        "case_count": len(pack["cases"]),
+        "available_rated_case_count": pack["adapter"]["available_rated_case_count"],
+        "content_sha256": pack["adapter"]["content_sha256"],
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"built: {payload['id']} -> {payload['output']}")
+        print(f"- selected cases: {payload['case_count']}/{payload['available_rated_case_count']}")
+        print(f"- content SHA-256: {payload['content_sha256']}")
+    return 0
+
+
 def _run_judge(args: argparse.Namespace) -> int:
     try:
         judge = judge_from_environment(args.env_file, args.provider)
@@ -284,6 +333,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     if args.command == "build-calibration-pack":
         return _build_pack(args)
+    if args.command == "build-mtme-mqm-pack":
+        return _build_mtme_pack(args)
     if args.command == "run-judge":
         return _run_judge(args)
 
