@@ -39,8 +39,7 @@ def _successful_worker(command, **_kwargs):
                     "device": "NVIDIA GeForce RTX 5090",
                 },
                 "cases": [
-                    {"id": case["id"], "score": 0.5, "error_spans": []}
-                    for case in pack["cases"]
+                    {"id": case["id"], "score": 0.5, "error_spans": []} for case in pack["cases"]
                 ],
             }
         ),
@@ -54,9 +53,7 @@ def test_metric_example_matches_schema() -> None:
     assert pack["cases"][0]["reference"] == "Hallo Welt"
 
 
-def test_run_xcomet_uses_isolated_runtime_and_writes_valid_result(
-    monkeypatch, tmp_path
-) -> None:
+def test_run_xcomet_uses_isolated_runtime_and_writes_valid_result(monkeypatch, tmp_path) -> None:
     python, model, _support = _paths(tmp_path)
     output = tmp_path / "result.json"
     monkeypatch.setattr(external_metrics, "_sha256_model", lambda _path: "a" * 64)
@@ -147,13 +144,9 @@ def test_xcomet_rejects_qe_and_metricx_requires_support_paths(tmp_path) -> None:
         "hf_home": tmp_path,
     }
     with pytest.raises(ExternalMetricError, match="requires reference"):
-        run_external_metric(
-            SMOKE_PACK, tmp_path / "x.json", metric="xcomet", mode="qe", **common
-        )
+        run_external_metric(SMOKE_PACK, tmp_path / "x.json", metric="xcomet", mode="qe", **common)
     with pytest.raises(ExternalMetricError, match="requires both"):
-        run_external_metric(
-            SMOKE_PACK, tmp_path / "m.json", metric="metricx-24", **common
-        )
+        run_external_metric(SMOKE_PACK, tmp_path / "m.json", metric="metricx-24", **common)
 
 
 def test_reference_mode_rejects_missing_reference_and_duplicate_ids(tmp_path) -> None:
@@ -216,9 +209,7 @@ def test_worker_failures_timeout_and_malformed_output_are_explicit(monkeypatch, 
 
     monkeypatch.setattr(external_metrics.subprocess, "run", timeout)
     with pytest.raises(ExternalMetricError, match="runtime budget"):
-        run_external_metric(
-            SMOKE_PACK, tmp_path / "timeout.json", timeout_seconds=1, **common
-        )
+        run_external_metric(SMOKE_PACK, tmp_path / "timeout.json", timeout_seconds=1, **common)
 
     def malformed(command, **_kwargs):
         Path(command[command.index("--output") + 1]).write_text("{}", encoding="utf-8")

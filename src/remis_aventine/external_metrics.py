@@ -76,8 +76,7 @@ def _validate_cases(pack: dict[str, Any], mode: str, metric: str) -> None:
         missing = [case["id"] for case in pack["cases"] if not case.get("reference")]
         if missing:
             raise ExternalMetricError(
-                "Reference mode requires a reference for every case; missing: "
-                + ", ".join(missing)
+                "Reference mode requires a reference for every case; missing: " + ", ".join(missing)
             )
     if metric == "xcomet" and mode != "reference":
         raise ExternalMetricError("xCOMET-XL requires reference mode.")
@@ -113,9 +112,7 @@ def _worker_command(
     ]
     if metric == "metricx-24":
         if tokenizer_path is None or metricx_source is None:
-            raise ExternalMetricError(
-                "MetricX requires both tokenizer_path and metricx_source."
-            )
+            raise ExternalMetricError("MetricX requires both tokenizer_path and metricx_source.")
         command.extend(
             [
                 "--tokenizer",
@@ -141,9 +138,10 @@ def _read_worker_result(path: Path, expected_ids: list[str]) -> dict[str, Any]:
     cases = payload.get("cases")
     if not isinstance(cases, list):
         raise ExternalMetricError("Metric worker returned missing, reordered, or unexpected cases.")
-    if any(not isinstance(case, dict) for case in cases) or [
-        case.get("id") for case in cases
-    ] != expected_ids:
+    if (
+        any(not isinstance(case, dict) for case in cases)
+        or [case.get("id") for case in cases] != expected_ids
+    ):
         raise ExternalMetricError("Metric worker returned missing, reordered, or unexpected cases.")
     if any(
         isinstance(case.get("score"), bool)

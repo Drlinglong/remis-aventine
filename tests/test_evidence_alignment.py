@@ -193,8 +193,7 @@ def _artifacts(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
         "started_at": "2026-07-15T00:00:00Z",
         "finished_at": "2026-07-15T00:00:01Z",
         "cases": [
-            {"id": case["id"], "score": score_by_id[case["id"]]}
-            for case in metric_pack["cases"]
+            {"id": case["id"], "score": score_by_id[case["id"]]} for case in metric_pack["cases"]
         ],
         "summary": {
             "case_count": len(score_by_id),
@@ -211,9 +210,7 @@ def _artifacts(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
 def test_alignment_separates_complementary_and_shared_failures(tmp_path) -> None:
     calibration, judge, metric_pack, metric_result = _artifacts(tmp_path)
 
-    report = summarize_evidence_alignment(
-        calibration, judge, [(metric_pack, metric_result)]
-    )
+    report = summarize_evidence_alignment(calibration, judge, [(metric_pack, metric_result)])
 
     assert report["judge"]["base_accuracy"] == 0.6
     assert report["judge"]["position_consistency"] == 1.0
@@ -226,9 +223,7 @@ def test_alignment_separates_complementary_and_shared_failures(tmp_path) -> None
     assert summary["oracle_union_accuracy"] == 0.75
     assert summary["single_scores_by_judge_outcome"]["judge_correct"]["mean"] == 0.9
     assert len(report["review_queue"]) == 3
-    metric_only = next(
-        item for item in report["review_queue"] if item["case_id"] == "metric-only"
-    )
+    metric_only = next(item for item in report["review_queue"] if item["case_id"] == "metric-only")
     assert "judge_gold_mismatch" in metric_only["reasons"]
 
 
@@ -239,9 +234,7 @@ def test_alignment_marks_position_inconsistency_unresolved(tmp_path) -> None:
     case["swap_judge_output"] = _evaluation("both-correct", "pairwise", "candidate_a")
     judge.write_text(json.dumps(payload), encoding="utf-8")
 
-    report = summarize_evidence_alignment(
-        calibration, judge, [(metric_pack, metric_result)]
-    )
+    report = summarize_evidence_alignment(calibration, judge, [(metric_pack, metric_result)])
 
     assert report["judge"]["position_consistency"] == 0.75
     row = next(case for case in report["cases"] if case["case_id"] == "both-correct")

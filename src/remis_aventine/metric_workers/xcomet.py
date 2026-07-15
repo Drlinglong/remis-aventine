@@ -58,9 +58,7 @@ def main() -> int:
     )
     spans = getattr(prediction.metadata, "error_spans", None)
     results = []
-    for index, (case, score) in enumerate(
-        zip(pack["cases"], prediction.scores, strict=True)
-    ):
+    for index, (case, score) in enumerate(zip(pack["cases"], prediction.scores, strict=True)):
         result = {"id": case["id"], "score": float(score)}
         if spans is not None:
             result["error_spans"] = _json_value(spans[index])

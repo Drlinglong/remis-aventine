@@ -584,9 +584,7 @@ def test_build_metric_pack_cli(monkeypatch, tmp_path, capsys) -> None:
             },
         },
     )
-    exit_code = main(
-        ["build-metric-pack", "source.json", str(tmp_path / "pack.json"), "--json"]
-    )
+    exit_code = main(["build-metric-pack", "source.json", str(tmp_path / "pack.json"), "--json"])
 
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0

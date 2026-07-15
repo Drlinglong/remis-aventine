@@ -44,9 +44,7 @@ def _case_metadata(case: dict[str, Any], role: str) -> dict[str, Any]:
     }
 
 
-def build_metric_pack_from_calibration(
-    input_path: Path, output_path: Path
-) -> dict[str, Any]:
+def build_metric_pack_from_calibration(input_path: Path, output_path: Path) -> dict[str, Any]:
     """Flatten reference-bearing single and pairwise cases into metric hypotheses."""
     source = load_calibration_fixture(input_path)
     emitted: list[dict[str, Any]] = []
@@ -185,9 +183,7 @@ def _ranking_summary(
     }
 
 
-def summarize_metric_calibration(
-    pack_path: Path, result_path: Path
-) -> dict[str, Any]:
+def summarize_metric_calibration(pack_path: Path, result_path: Path) -> dict[str, Any]:
     """Join a metric result to its pack and summarize gold-conditioned evidence."""
     pack = validate_document(pack_path, "metric-pack.schema.json")
     result = validate_document(result_path, "metric-result.schema.json")
@@ -215,10 +211,7 @@ def summarize_metric_calibration(
     if len(result_ids) != len(set(result_ids)) or set(result_ids) != set(pack_cases):
         raise MetricCalibrationError("Metric result cases do not match the metric pack exactly.")
 
-    rows = [
-        (pack_cases[case["id"]]["metadata"], float(case["score"]))
-        for case in result["cases"]
-    ]
+    rows = [(pack_cases[case["id"]]["metadata"], float(case["score"])) for case in result["cases"]]
     single_rows = [
         (metadata, score) for metadata, score in rows if metadata["gold_mode"] == "single"
     ]

@@ -198,9 +198,7 @@ def test_write_metric_report_creates_json_and_markdown(tmp_path) -> None:
     output_json = tmp_path / "report" / "report.json"
     output_markdown = tmp_path / "report" / "report.md"
 
-    report = write_metric_calibration_report(
-        pack_path, result_path, output_json, output_markdown
-    )
+    report = write_metric_calibration_report(pack_path, result_path, output_json, output_markdown)
 
     assert report["pairwise"]["accuracy"] == 1.0
     assert json.loads(output_json.read_text(encoding="utf-8"))["hypothesis_count"] == 3

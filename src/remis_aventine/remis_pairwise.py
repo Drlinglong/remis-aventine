@@ -229,9 +229,7 @@ def summarize_remis_pairwise(input_path: Path) -> dict[str, Any]:
     policy_cases = fixture.get("policy_cases")
     repair = fixture.get("repair_over_editing")
     valid_envelope = (
-        isinstance(recipes, dict)
-        and isinstance(policy_cases, list)
-        and isinstance(repair, dict)
+        isinstance(recipes, dict) and isinstance(policy_cases, list) and isinstance(repair, dict)
     )
     if not valid_envelope:
         raise RemisPairwiseError("Input is not a Remis pairwise pack or judge result.")

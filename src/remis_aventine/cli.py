@@ -348,9 +348,7 @@ def _build_remis_pairwise(args: argparse.Namespace) -> int:
 
 def _report_remis_pairwise(args: argparse.Namespace) -> int:
     try:
-        report = write_remis_pairwise_report(
-            args.input, args.output_json, args.output_markdown
-        )
+        report = write_remis_pairwise_report(args.input, args.output_json, args.output_markdown)
     except (CalibrationFixtureError, RemisPairwiseError, OSError) as exc:
         return _emit_command_error(exc, as_json=args.json)
     payload = {
