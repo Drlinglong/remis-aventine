@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Drlinglong/remis-aventine/schemas/metric-result.schema.json",
+  "title": "Aventine Automatic Metric Result",
+  "description": "Reproducible evidence emitted by an isolated external translation-metric runtime.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "pack_id", "metric", "runtime", "started_at", "finished_at", "cases", "summary"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "pack_id": {"type": "string", "minLength": 1},
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "model_id", "model_sha256", "mode", "direction"],
+      "properties": {
+        "name": {"enum": ["metricx-24", "xcomet"]},
+        "model_id": {"type": "string", "minLength": 1},
+        "model_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "mode": {"enum": ["qe", "reference"]},
+        "direction": {"enum": ["lower_is_better", "higher_is_better"]}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python", "packages", "device"],
+      "properties": {
+        "python": {"type": "string", "minLength": 1},
+        "packages": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        },
+        "device": {"type": "string", "minLength": 1}
+      }
+    },
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "score"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "score": {"type": "number"},
+          "error_spans": {
+            "type": "array",
+            "items": {"type": "object"}
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_count", "mean_score", "minimum_score", "maximum_score"],
+      "properties": {
+        "case_count": {"type": "integer", "minimum": 1},
+        "mean_score": {"type": "number"},
+        "minimum_score": {"type": "number"},
+        "maximum_score": {"type": "number"}
+      }
+    }
+  }
+}

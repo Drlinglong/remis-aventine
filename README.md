@@ -14,7 +14,8 @@ post-processing, repair, and optional deterministic validators.
 > deterministic calibration summaries; a reproducible 48-case multilingual calibration pack;
 > bounded DeepSeek V4 Pro, xAI Grok 4.5, and Google-hosted Gemma 4 judge adapters; synthetic
 > fixtures; bounded `mt-metrics-eval` MQM and ACES/SPAN-ACES adapters; a read-only Remis
-> result adapter; and hard-veto-aware Remis pairwise/repair-restraint reports.
+> result adapter; hard-veto-aware Remis pairwise/repair-restraint reports; and isolated,
+> schema-bound MetricX-24/xCOMET baselines.
 > It does not yet execute a full Aventine-native recipe benchmark.
 
 ## Why Aventine?
@@ -81,6 +82,9 @@ aventine build-aces-pack INPUT OUTPUT --kind aces|span-aces --dataset-revision R
   --expected-sha256 SHA256 [--limit N] [--language-pair PAIR] [--phenomenon NAME] [--json]
 aventine run-judge INPUT OUTPUT [--case-id ID] [--max-calls N] [--workers N]
   [--provider deepseek|xai|google] [--resume-from PATH] [--env-file PATH] [--json]
+aventine run-metric INPUT OUTPUT --metric metricx-24|xcomet --runtime-python PATH
+  --model-path PATH --model-id ID --model-sha256 SHA256 [--mode qe|reference]
+  [--tokenizer-path PATH] [--metricx-source PATH] [--hf-home PATH] [--json]
 aventine --version
 ```
 
@@ -121,6 +125,12 @@ default, and writes external text/results only to the caller-selected path.
 with deterministic candidate order and language-pair/phenomenon coverage. SPAN-ACES annotations are
 stored only as human gold and never included in the judge input.
 
+`run-metric` keeps heavyweight and mutually incompatible ML dependencies outside Aventine's core
+environment. It launches a caller-selected Python runtime without a shell, uses only local pinned
+weights/cache, verifies the model SHA-256, records runtime package versions, and validates both input and
+output. MetricX-24 supports reference and QE modes; xCOMET currently requires references. See the
+[isolated metric runtime guide](docs/zh/developer/external_metric_runtimes.md).
+
 ## Remis compatibility
 
 During the early phases, Aventine intentionally reuses Remis production behavior instead of
@@ -138,7 +148,7 @@ Initial suites:
 - `aces`: test whether a judge detects fluent but meaningfully wrong translations.
 - `remis`: compare real game-localization recipes, including translation and repair tracks.
 
-Planned optional baselines include xCOMET and `mt-metrics-eval`. Aventine is CLI-first; no graphical
+Optional baselines include MetricX-24 and xCOMET. Aventine is CLI-first; no graphical
 interface is planned for the initial releases.
 
 ## Non-goals
@@ -157,6 +167,7 @@ tool for regression testing translation recipes.**
 - [中文开发者文档：多语言小样本与远程 Judge](docs/zh/developer/multilingual_calibration.md)
 - [中文开发者文档：mt-metrics-eval / WMT MQM adapter](docs/zh/developer/mt_metrics_eval_adapter.md)
 - [中文开发者文档：ACES / SPAN-ACES adapter](docs/zh/developer/aces_adapter.md)
+- [中文开发者文档：MetricX / xCOMET 隔离 runtime](docs/zh/developer/external_metric_runtimes.md)
 - [Judge provider 三方对照](docs/zh/developer/judge_provider_comparison_2026-07-15.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

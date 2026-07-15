@@ -19,6 +19,7 @@ from remis_aventine.adapters.remis import RemisCompatibilityError, adapt_remis_r
 from remis_aventine.calibration import CalibrationFixtureError, summarize_calibration_fixture
 from remis_aventine.calibration_pack import CalibrationPackError, build_calibration_pack
 from remis_aventine.doctor import build_doctor_report
+from remis_aventine.external_metrics import ExternalMetricError, run_external_metric
 from remis_aventine.judge import JudgeRunError, judge_from_environment, run_judge_pack
 from remis_aventine.remis_pairwise import (
     RemisPairwiseError,
@@ -162,6 +163,25 @@ def build_parser() -> argparse.ArgumentParser:
     judge_run_parser.add_argument("--resume-from", type=Path)
     judge_run_parser.add_argument("--env-file", type=Path, default=Path(".env"))
     judge_run_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    metric_parser = subparsers.add_parser(
+        "run-metric",
+        help="Run MetricX-24 or xCOMET in an isolated, caller-supplied Python runtime.",
+    )
+    metric_parser.add_argument("input", type=Path)
+    metric_parser.add_argument("output", type=Path)
+    metric_parser.add_argument("--metric", choices=("metricx-24", "xcomet"), required=True)
+    metric_parser.add_argument("--runtime-python", type=Path, required=True)
+    metric_parser.add_argument("--model-path", type=Path, required=True)
+    metric_parser.add_argument("--model-id", required=True)
+    metric_parser.add_argument("--model-sha256", required=True)
+    metric_parser.add_argument("--mode", choices=("qe", "reference"), default="reference")
+    metric_parser.add_argument("--batch-size", type=int, default=1)
+    metric_parser.add_argument("--timeout-seconds", type=int, default=1800)
+    metric_parser.add_argument("--tokenizer-path", type=Path)
+    metric_parser.add_argument("--metricx-source", type=Path)
+    metric_parser.add_argument("--hf-home", type=Path)
+    metric_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     return parser
 
@@ -422,6 +442,42 @@ def _run_judge(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_metric(args: argparse.Namespace) -> int:
+    try:
+        result = run_external_metric(
+            args.input,
+            args.output,
+            metric=args.metric,
+            runtime_python=args.runtime_python,
+            model_path=args.model_path,
+            model_id=args.model_id,
+            model_sha256=args.model_sha256,
+            mode=args.mode,
+            batch_size=args.batch_size,
+            timeout_seconds=args.timeout_seconds,
+            tokenizer_path=args.tokenizer_path,
+            metricx_source=args.metricx_source,
+            hf_home=args.hf_home,
+        )
+    except (DocumentValidationError, ExternalMetricError, OSError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    payload = {
+        "completed": True,
+        "output": str(args.output),
+        "metric": result["metric"]["name"],
+        "mode": result["metric"]["mode"],
+        **result["summary"],
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"metric run: {payload['metric']} ({payload['mode']})")
+        print(f"- cases: {payload['case_count']}")
+        print(f"- mean score: {payload['mean_score']}")
+        print(f"- output: {payload['output']}")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
@@ -456,5 +512,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _build_aces_pack(args)
     if args.command == "run-judge":
         return _run_judge(args)
+    if args.command == "run-metric":
+        return _run_metric(args)
 
     raise AssertionError(f"Unhandled command: {args.command}")  # pragma: no cover

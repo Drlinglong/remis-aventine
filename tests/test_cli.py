@@ -448,3 +448,123 @@ def test_run_judge_cli(monkeypatch, tmp_path, capsys) -> None:
     assert payload["completed"] is True
     assert payload["planned_call_count"] == 1
     assert selected["provider"] == "xai"
+
+
+def test_run_metric_cli(monkeypatch, tmp_path, capsys) -> None:
+    selected = {}
+
+    def fake_run(*args, **kwargs):
+        selected["args"] = args
+        selected["kwargs"] = kwargs
+        return {
+            "metric": {"name": "metricx-24", "mode": "qe"},
+            "summary": {
+                "case_count": 1,
+                "mean_score": 0.25,
+                "minimum_score": 0.25,
+                "maximum_score": 0.25,
+            },
+        }
+
+    monkeypatch.setattr(cli, "run_external_metric", fake_run)
+    output = tmp_path / "metric.json"
+    exit_code = main(
+        [
+            "run-metric",
+            "pack.json",
+            str(output),
+            "--metric",
+            "metricx-24",
+            "--runtime-python",
+            "python.exe",
+            "--model-path",
+            "model.bin",
+            "--model-id",
+            "google/model",
+            "--model-sha256",
+            "a" * 64,
+            "--mode",
+            "qe",
+            "--tokenizer-path",
+            "tokenizer",
+            "--metricx-source",
+            "source",
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["metric"] == "metricx-24"
+    assert selected["kwargs"]["mode"] == "qe"
+
+
+def test_run_metric_cli_reports_runtime_error(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "run_external_metric",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(cli.ExternalMetricError("no GPU")),
+    )
+    exit_code = main(
+        [
+            "run-metric",
+            "pack.json",
+            "result.json",
+            "--metric",
+            "xcomet",
+            "--runtime-python",
+            "python.exe",
+            "--model-path",
+            "model.ckpt",
+            "--model-id",
+            "Unbabel/XCOMET-XL",
+            "--model-sha256",
+            "b" * 64,
+            "--hf-home",
+            ".",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert "no GPU" in captured.err
+
+
+def test_run_metric_cli_emits_text(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "run_external_metric",
+        lambda *_args, **_kwargs: {
+            "metric": {"name": "xcomet", "mode": "reference"},
+            "summary": {
+                "case_count": 2,
+                "mean_score": 0.75,
+                "minimum_score": 0.5,
+                "maximum_score": 1.0,
+            },
+        },
+    )
+    exit_code = main(
+        [
+            "run-metric",
+            "pack.json",
+            "result.json",
+            "--metric",
+            "xcomet",
+            "--runtime-python",
+            "python.exe",
+            "--model-path",
+            "model.ckpt",
+            "--model-id",
+            "Unbabel/XCOMET-XL",
+            "--model-sha256",
+            "b" * 64,
+            "--hf-home",
+            ".",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "metric run: xcomet (reference)" in captured.out
+    assert "mean score: 0.75" in captured.out

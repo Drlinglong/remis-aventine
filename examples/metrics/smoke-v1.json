@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "metric-smoke-v1",
+  "suite": "smoke",
+  "description": "Tiny reference-bearing pack for verifying an installed external metric runtime.",
+  "cases": [
+    {
+      "id": "en-de-perfect",
+      "source": "Hello world",
+      "hypothesis": "Hallo Welt",
+      "reference": "Hallo Welt"
+    }
+  ]
+}

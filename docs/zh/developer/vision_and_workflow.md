@@ -267,7 +267,9 @@ docs/zh/developer/       # Chinese developer documentation
    保留安全的 source/repair 证据；hard fail 先由确定性 policy 裁决；仅对双方均合格的 case
    复用现有 schema-bound judge 做 A/B 与 swap；位置不一致时保持 unresolved；JSON/Markdown
    报告直接汇总 Remis 的 `valid_items_unchanged` 与 `reference_exact_match`。
-6. **V5**：可选 xCOMET/xCOMET-lite baseline。
+6. **V5**：可选 MetricX-24 / xCOMET baseline。已落地 schema-bound metric pack/result、
+   隔离 runtime worker 和统一 CLI；MetricX reference/QE 与 xCOMET reference 的本地真实权重
+   smoke 已通过。下一步是在 reference-bearing calibration 子集上测量它们与 judge/gold 的分歧。
 
 ## 明确不做
 
