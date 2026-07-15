@@ -174,8 +174,8 @@ class _FakeJudge:
         }
 
     def evaluate(self, case):
-        mode = case["gold"]["mode"]
-        verdict = case["gold"]["verdict"]
+        mode = case.get("evaluation_mode") or case["gold"]["mode"]
+        verdict = case.get("synthetic_verdict") or case["gold"]["verdict"]
         return {
             "schema_version": 1,
             "case_id": case["id"],
@@ -220,6 +220,34 @@ def test_run_judge_pack_adds_aces_swap_and_cost(tmp_path) -> None:
     assert summary["swap_accuracy"] == 1.0
     assert summary["position_consistency_rate"] == 1.0
     assert set(summary["partition_metrics"]) == {"calibration", "holdout"}
+
+
+def test_run_judge_pack_supports_goldless_operational_pairwise(tmp_path) -> None:
+    fixture = {
+        "schema_version": 1,
+        "id": "remis-pairwise-v1",
+        "suite": "remis-pairwise",
+        "recipes": {"left": {"id": "a"}, "right": {"id": "b"}},
+        "policy_cases": [],
+        "repair_over_editing": {"left": {}, "right": {}},
+        "cases": [
+            {
+                "id": "repair",
+                "evaluation_mode": "pairwise",
+                "synthetic_verdict": "tie",
+                "ab_swap": True,
+                "input": {"source": ["x"], "candidate_a": ["a"], "candidate_b": ["b"]},
+            }
+        ],
+    }
+    input_path = tmp_path / "input.json"
+    input_path.write_text(json.dumps(fixture), encoding="utf-8")
+
+    result = run_judge_pack(input_path, tmp_path / "output.json", _FakeJudge(), max_calls=2)
+
+    assert result["run"]["planned_call_count"] == 2
+    assert result["recipes"] == fixture["recipes"]
+    assert result["cases"][0]["judge_output"]["evaluation"]["mode"] == "pairwise"
 
 
 def test_run_judge_pack_enforces_call_cap(tmp_path) -> None:

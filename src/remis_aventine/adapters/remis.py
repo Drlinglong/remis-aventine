@@ -11,7 +11,7 @@ from typing import Any
 
 from remis_aventine.validation import validate_payload
 
-ADAPTER_REVISION = "remis-translation-quality-v1"
+ADAPTER_REVISION = "remis-translation-quality-v2"
 
 
 class RemisCompatibilityError(ValueError):
@@ -106,12 +106,30 @@ def _automatic_metrics(result: dict[str, Any]) -> dict[str, Any]:
     return metrics
 
 
+def _source_inputs(score: dict[str, Any]) -> list[Any]:
+    items = score.get("items")
+    if not isinstance(items, list):
+        return []
+    return [item.get("source") for item in items if isinstance(item, dict)]
+
+
+def _repair_evidence(result: dict[str, Any]) -> dict[str, Any] | None:
+    if result.get("track") != "repair":
+        return None
+    return {
+        "injected_errors": result.get("injected_errors", []),
+        "broken_translation": result.get("broken_translation"),
+        "reference_translation": result.get("reference_translation"),
+        "broken_validation": result.get("broken_validation"),
+    }
+
+
 def _convert_case(result: dict[str, Any]) -> dict[str, Any]:
     case_id = _required_string(result, "id")
     status = _status(result)
     score = result.get("score") if isinstance(result.get("score"), dict) else {}
     passed = score.get("hard_pass") if status == "completed" else None
-    return {
+    converted = {
         "id": case_id,
         "execution_status": status,
         "hard_validation": {
@@ -131,7 +149,12 @@ def _convert_case(result: dict[str, Any]) -> dict[str, Any]:
             "focus": result.get("focus", []),
         },
         "candidate_outputs": result.get("outputs"),
+        "source_inputs": _source_inputs(score),
     }
+    repair_evidence = _repair_evidence(result)
+    if repair_evidence is not None:
+        converted["repair_evidence"] = repair_evidence
+    return converted
 
 
 def convert_remis_result(

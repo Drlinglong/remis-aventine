@@ -239,6 +239,58 @@ def test_adapt_remis_result_cli_reports_invalid_input(tmp_path, capsys) -> None:
     assert captured.err.startswith("error:")
 
 
+def test_build_remis_pairwise_pack_cli(monkeypatch, tmp_path, capsys) -> None:
+    output = tmp_path / "pack.json"
+    monkeypatch.setattr(
+        cli,
+        "build_remis_pairwise_pack",
+        lambda *_args: {"cases": [{"id": "soft"}], "policy_cases": [{"id": "hard"}]},
+    )
+
+    exit_code = main(
+        ["build-remis-pairwise-pack", "left.json", "right.json", str(output), "--json"]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["judge_case_count"] == 1
+    assert payload["hard_policy_case_count"] == 1
+
+
+def test_report_remis_pairwise_cli(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "write_remis_pairwise_report",
+        lambda *_args: {
+            "summary": {
+                "case_count": 2,
+                "left_win_count": 1,
+                "right_win_count": 0,
+                "tie_count": 0,
+                "neither_count": 0,
+                "unresolved_count": 1,
+                "hard_validation_decision_count": 1,
+                "judge_position_inconsistent_count": 0,
+            }
+        },
+    )
+
+    exit_code = main(
+        [
+            "report-remis-pairwise",
+            "judged.json",
+            str(tmp_path / "report.json"),
+            str(tmp_path / "report.md"),
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["reported"] is True
+    assert payload["unresolved_count"] == 1
+
+
 def test_build_calibration_pack_cli(monkeypatch, tmp_path, capsys) -> None:
     monkeypatch.setattr(
         cli,

@@ -263,7 +263,10 @@ docs/zh/developer/       # Chinese developer documentation
    数据仍由使用者在仓外安装和下载。
 4. **V3**：接入 ACES/SPAN-ACES adapter。首个 bounded pairwise adapter 已落地，支持固定
    source hash、language-pair/phenomenon coverage、A/B swap 与独立 span gold。
-5. **V4**：接入 Remis recipe pairwise report 和 repair over-editing。
+5. **V4**：接入 Remis recipe pairwise report 和 repair over-editing。已落地：兼容 adapter
+   保留安全的 source/repair 证据；hard fail 先由确定性 policy 裁决；仅对双方均合格的 case
+   复用现有 schema-bound judge 做 A/B 与 swap；位置不一致时保持 unresolved；JSON/Markdown
+   报告直接汇总 Remis 的 `valid_items_unchanged` 与 `reference_exact_match`。
 6. **V5**：可选 xCOMET/xCOMET-lite baseline。
 
 ## 明确不做

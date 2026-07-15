@@ -71,8 +71,15 @@ context, over_editing, other. Severities: minor, major, critical. A fail needs a
 """
 
 
+def _case_mode(case: dict[str, Any]) -> str:
+    mode = case.get("evaluation_mode")
+    if mode in {"single", "pairwise"}:
+        return str(mode)
+    return str(case["gold"]["mode"])
+
+
 def _prompt(case: dict[str, Any]) -> str:
-    mode = case["gold"]["mode"]
+    mode = _case_mode(case)
     return (
         f"Evaluate this {mode} translation case. The language pair and all available evidence are "
         "inside INPUT. Return strict JSON matching the example.\nINPUT:\n"
@@ -419,7 +426,7 @@ class XAIJudge(DeepSeekJudge):
                 "json_schema": {
                     "name": "translation_judge_evaluation",
                     "strict": True,
-                    "schema": _xai_response_schema(case["gold"]["mode"]),
+                    "schema": _xai_response_schema(_case_mode(case)),
                 },
             },
             "reasoning_effort": self.reasoning_effort,
@@ -499,7 +506,7 @@ class GoogleGemmaJudge(DeepSeekJudge):
             ],
             "generationConfig": {
                 "responseMimeType": "application/json",
-                "responseJsonSchema": _google_response_schema(case["gold"]["mode"]),
+                "responseJsonSchema": _google_response_schema(_case_mode(case)),
                 "maxOutputTokens": self.max_tokens,
             },
         }
@@ -543,11 +550,12 @@ def _swapped_case(case: dict[str, Any]) -> dict[str, Any]:
         swapped["input"]["candidate_b"],
         swapped["input"]["candidate_a"],
     )
-    verdict = swapped["gold"]["verdict"]
-    swapped["gold"]["verdict"] = {
-        "candidate_a": "candidate_b",
-        "candidate_b": "candidate_a",
-    }.get(verdict, verdict)
+    if isinstance(swapped.get("gold"), dict):
+        verdict = swapped["gold"]["verdict"]
+        swapped["gold"]["verdict"] = {
+            "candidate_a": "candidate_b",
+            "candidate_b": "candidate_a",
+        }.get(verdict, verdict)
     return swapped
 
 
@@ -619,7 +627,8 @@ def run_judge_pack(
         case["pack_revision"] = fixture["id"]
         if "judge_output" not in case:
             tasks.append((case_index, "judge_output", case))
-        if case.get("origin_suite") == "aces" and "swap_judge_output" not in case:
+        wants_swap = case.get("origin_suite") == "aces" or case.get("ab_swap") is True
+        if wants_swap and "swap_judge_output" not in case:
             tasks.append((case_index, "swap_judge_output", _swapped_case(case)))
 
     planned_calls = len(tasks)
@@ -681,6 +690,9 @@ def run_judge_pack(
         },
         "cases": cases,
     }
+    for field in ("adapter", "recipes", "policy_cases", "repair_over_editing"):
+        if field in fixture:
+            result[field] = deepcopy(fixture[field])
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",

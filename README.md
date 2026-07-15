@@ -13,8 +13,8 @@ post-processing, repair, and optional deterministic validators.
 > Status: pre-alpha. The repository provides versioned recipe, run-result, and judge contracts;
 > deterministic calibration summaries; a reproducible 48-case multilingual calibration pack;
 > bounded DeepSeek V4 Pro, xAI Grok 4.5, and Google-hosted Gemma 4 judge adapters; synthetic
-> fixtures; bounded `mt-metrics-eval` MQM and ACES/SPAN-ACES adapters; and a read-only Remis
-> result adapter.
+> fixtures; bounded `mt-metrics-eval` MQM and ACES/SPAN-ACES adapters; a read-only Remis
+> result adapter; and hard-veto-aware Remis pairwise/repair-restraint reports.
 > It does not yet execute a full Aventine-native recipe benchmark.
 
 ## Why Aventine?
@@ -72,6 +72,8 @@ aventine validate-result PATH [--json]
 aventine validate-judge PATH [--json]
 aventine summarize-calibration PATH [--json]
 aventine adapt-remis-result INPUT OUTPUT [--recipe-id ID] [--json]
+aventine build-remis-pairwise-pack LEFT_RUN RIGHT_RUN OUTPUT [--json]
+aventine report-remis-pairwise INPUT OUTPUT_JSON OUTPUT_MARKDOWN [--json]
 aventine build-calibration-pack SOURCE_ROOT OUTPUT [--remis-fixture PATH] [--json]
 aventine build-mtme-mqm-pack TEST_SET LANGUAGE_PAIR RATING_SET DATASET_REVISION OUTPUT
   [--data-root PATH] [--limit N] [--system NAME] [--json]
@@ -87,6 +89,21 @@ documents against the packaged, versioned JSON Schemas. The calibration command 
 judge output as benchmark failure and reports recall, false-good, pairwise, confidence, phenomenon,
 and confusion metrics. The Remis adapter converts existing
 `evaluate_translation_quality.py` artifacts without copying raw provider responses.
+
+The Remis V4 path stays artifact-first. Adapt two production-backed benchmark outputs, build the
+pairwise pack, reuse the existing judge, then render JSON and Markdown reports:
+
+```text
+aventine adapt-remis-result remis-a.json a.json
+aventine adapt-remis-result remis-b.json b.json
+aventine build-remis-pairwise-pack a.json b.json pairwise.json
+aventine run-judge pairwise.json judged.json --provider deepseek --max-calls 100
+aventine report-remis-pairwise judged.json report.json report.md
+```
+
+Cases decided by execution status or hard-validator veto are excluded from judge calls. Eligible
+cases are evaluated in both A/B orders; position-inconsistent judgments remain unresolved. Repair
+reporting reuses Remis's `valid_items_unchanged` and `reference_exact_match` evidence.
 
 The real multilingual pack is rebuilt from SHA-256-pinned external MQM/ACES files. Raw upstream
 text and generated judge results remain outside Git. `run-judge` reads the selected provider's

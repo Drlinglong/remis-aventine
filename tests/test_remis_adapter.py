@@ -106,6 +106,29 @@ def test_recipe_snapshot_hash_is_stable_and_override_is_supported() -> None:
     assert first["recipe"]["id"] == "custom.recipe"
 
 
+def test_adapter_preserves_safe_pairwise_and_repair_evidence() -> None:
+    artifact = _remis_artifact()
+    result = artifact["results"][0]
+    result.update(
+        track="repair",
+        broken_translation=["旧译"],
+        reference_translation=["新译"],
+        injected_errors=[{"code": "missing_token", "item": 0}],
+        broken_validation=[{"code": "missing_token"}],
+    )
+    result["score"]["items"][0]["source"] = "source"
+    result["score"]["valid_items_unchanged"] = False
+
+    converted = convert_remis_result(artifact)
+    case = converted["cases"][0]
+
+    assert converted["environment"]["adapter_revision"] == "remis-translation-quality-v2"
+    assert case["source_inputs"] == ["source"]
+    assert case["repair_evidence"]["broken_translation"] == ["旧译"]
+    assert case["repair_evidence"]["reference_translation"] == ["新译"]
+    assert "raw_response" not in case
+
+
 def test_adapter_writes_valid_result(tmp_path) -> None:
     input_path = tmp_path / "remis.json"
     output_path = tmp_path / "nested" / "aventine.json"

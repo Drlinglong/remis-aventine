@@ -20,6 +20,11 @@ from remis_aventine.calibration import CalibrationFixtureError, summarize_calibr
 from remis_aventine.calibration_pack import CalibrationPackError, build_calibration_pack
 from remis_aventine.doctor import build_doctor_report
 from remis_aventine.judge import JudgeRunError, judge_from_environment, run_judge_pack
+from remis_aventine.remis_pairwise import (
+    RemisPairwiseError,
+    build_remis_pairwise_pack,
+    write_remis_pairwise_report,
+)
 from remis_aventine.validation import DocumentValidationError, validate_document
 
 
@@ -81,6 +86,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override the deterministic compatibility recipe id.",
     )
     adapter_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    remis_pairwise_parser = subparsers.add_parser(
+        "build-remis-pairwise-pack",
+        help="Build a hard-veto-aware judge pack from two adapted Remis runs.",
+    )
+    remis_pairwise_parser.add_argument("left", type=Path)
+    remis_pairwise_parser.add_argument("right", type=Path)
+    remis_pairwise_parser.add_argument("output", type=Path)
+    remis_pairwise_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    remis_report_parser = subparsers.add_parser(
+        "report-remis-pairwise",
+        help="Write JSON and Markdown reports from a Remis pairwise pack or judge run.",
+    )
+    remis_report_parser.add_argument("input", type=Path)
+    remis_report_parser.add_argument("output_json", type=Path)
+    remis_report_parser.add_argument("output_markdown", type=Path)
+    remis_report_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     pack_parser = subparsers.add_parser(
         "build-calibration-pack",
@@ -238,6 +261,50 @@ def _adapt_remis(
     return 0
 
 
+def _build_remis_pairwise(args: argparse.Namespace) -> int:
+    try:
+        pack = build_remis_pairwise_pack(args.left, args.right, args.output)
+    except (RemisPairwiseError, OSError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    payload = {
+        "built": True,
+        "output": str(args.output),
+        "judge_case_count": len(pack["cases"]),
+        "hard_policy_case_count": len(pack["policy_cases"]),
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(
+            f"Remis pairwise pack: {payload['judge_case_count']} judge cases, "
+            f"{payload['hard_policy_case_count']} hard-policy cases"
+        )
+    return 0
+
+
+def _report_remis_pairwise(args: argparse.Namespace) -> int:
+    try:
+        report = write_remis_pairwise_report(
+            args.input, args.output_json, args.output_markdown
+        )
+    except (CalibrationFixtureError, RemisPairwiseError, OSError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    payload = {
+        "reported": True,
+        "output_json": str(args.output_json),
+        "output_markdown": str(args.output_markdown),
+        **report["summary"],
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(
+            f"Remis pairwise report: left {payload['left_win_count']}, "
+            f"right {payload['right_win_count']}, unresolved {payload['unresolved_count']}"
+        )
+    return 0
+
+
 def _build_pack(args: argparse.Namespace) -> int:
     try:
         pack = build_calibration_pack(args.source_root, args.output, args.remis_fixture)
@@ -377,6 +444,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             recipe_id=args.recipe_id,
             as_json=args.json,
         )
+    if args.command == "build-remis-pairwise-pack":
+        return _build_remis_pairwise(args)
+    if args.command == "report-remis-pairwise":
+        return _report_remis_pairwise(args)
     if args.command == "build-calibration-pack":
         return _build_pack(args)
     if args.command == "build-mtme-mqm-pack":
