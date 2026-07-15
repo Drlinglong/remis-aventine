@@ -12,7 +12,9 @@ from typing import Any
 from remis_aventine import __version__
 from remis_aventine.adapters.remis import RemisCompatibilityError, adapt_remis_result
 from remis_aventine.calibration import CalibrationFixtureError, summarize_calibration_fixture
+from remis_aventine.calibration_pack import CalibrationPackError, build_calibration_pack
 from remis_aventine.doctor import build_doctor_report
+from remis_aventine.judge import JudgeRunError, judge_from_environment, run_judge_pack
 from remis_aventine.validation import DocumentValidationError, validate_document
 
 
@@ -74,6 +76,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override the deterministic compatibility recipe id.",
     )
     adapter_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    pack_parser = subparsers.add_parser(
+        "build-calibration-pack",
+        help="Build the fixed 48-case pack from an already-downloaded external source cache.",
+    )
+    pack_parser.add_argument("source_root", type=Path)
+    pack_parser.add_argument("output", type=Path)
+    pack_parser.add_argument(
+        "--remis-fixture",
+        type=Path,
+        default=Path("examples/calibration/remis-synthetic-v1.json"),
+    )
+    pack_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    judge_run_parser = subparsers.add_parser(
+        "run-judge",
+        help="Run the bounded DeepSeek V4 Pro judge over a calibration pack.",
+    )
+    judge_run_parser.add_argument("input", type=Path)
+    judge_run_parser.add_argument("output", type=Path)
+    judge_run_parser.add_argument("--limit", type=int)
+    judge_run_parser.add_argument("--case-id", action="append", dest="case_ids")
+    judge_run_parser.add_argument("--max-calls", type=int, default=100)
+    judge_run_parser.add_argument("--workers", type=int, default=1)
+    judge_run_parser.add_argument("--resume-from", type=Path)
+    judge_run_parser.add_argument("--env-file", type=Path, default=Path(".env"))
+    judge_run_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     return parser
 
@@ -173,6 +202,58 @@ def _adapt_remis(
     return 0
 
 
+def _build_pack(args: argparse.Namespace) -> int:
+    try:
+        pack = build_calibration_pack(args.source_root, args.output, args.remis_fixture)
+    except (CalibrationPackError, OSError, json.JSONDecodeError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    payload = {
+        "built": True,
+        "id": pack["id"],
+        "output": str(args.output),
+        "case_count": len(pack["cases"]),
+        "calibration_count": sum(case["partition"] == "calibration" for case in pack["cases"]),
+        "holdout_count": sum(case["partition"] == "holdout" for case in pack["cases"]),
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"built: {payload['id']} -> {payload['output']}")
+        print(f"- cases: {payload['case_count']}")
+        print(f"- calibration/holdout: {payload['calibration_count']}/{payload['holdout_count']}")
+    return 0
+
+
+def _run_judge(args: argparse.Namespace) -> int:
+    try:
+        judge = judge_from_environment(args.env_file)
+        result = run_judge_pack(
+            args.input,
+            args.output,
+            judge,
+            limit=args.limit,
+            case_ids=args.case_ids,
+            max_calls=args.max_calls,
+            workers=args.workers,
+            resume_from=args.resume_from,
+        )
+    except (CalibrationFixtureError, JudgeRunError, OSError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    payload = {
+        "completed": True,
+        "output": str(args.output),
+        "case_count": len(result["cases"]),
+        **result["run"],
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"judge run: {payload['case_count']} cases, {payload['planned_call_count']} calls")
+        print(f"- failures: {payload['failure_count']}")
+        print(f"- estimated cost: RMB {payload['estimated_cost_rmb']}")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
@@ -195,5 +276,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             recipe_id=args.recipe_id,
             as_json=args.json,
         )
+    if args.command == "build-calibration-pack":
+        return _build_pack(args)
+    if args.command == "run-judge":
+        return _run_judge(args)
 
     raise AssertionError(f"Unhandled command: {args.command}")  # pragma: no cover

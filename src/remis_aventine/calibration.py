@@ -94,6 +94,10 @@ def _predicted_category(evaluation: dict[str, Any]) -> str:
 def summarize_calibration_fixture(path: Path) -> dict[str, Any]:
     """Summarize schema reliability and gold-label agreement for one fixture."""
     fixture = load_calibration_fixture(path)
+    return _summarize_calibration(fixture, include_partitions=True)
+
+
+def _summarize_calibration(fixture: dict[str, Any], *, include_partitions: bool) -> dict[str, Any]:
     cases = fixture["cases"]
     valid_count = 0
     verdict_correct = 0
@@ -117,6 +121,10 @@ def summarize_calibration_fixture(path: Path) -> dict[str, Any]:
     false_good_count = 0
     evidence_error_count = 0
     evidence_backed_error_count = 0
+    swap_total = 0
+    swap_valid = 0
+    swap_correct = 0
+    position_consistent = 0
 
     for index, case in enumerate(cases):
         if not isinstance(case, dict):
@@ -188,6 +196,25 @@ def summarize_calibration_fixture(path: Path) -> dict[str, Any]:
         if mode == "single" and expected_verdict == "fail" and predicted_verdict == "pass":
             false_good_count += 1
 
+        if "swap_judge_output" in case:
+            swap_total += 1
+            swap_output, _swap_failure = _parse_judge_output(case_id, case.get("swap_judge_output"))
+            if swap_output is not None:
+                swap_valid += 1
+                swap_verdict = swap_output["evaluation"]["verdict"]
+                inverted_expected = {
+                    "candidate_a": "candidate_b",
+                    "candidate_b": "candidate_a",
+                }.get(expected_verdict, expected_verdict)
+                inverted_prediction = {
+                    "candidate_a": "candidate_b",
+                    "candidate_b": "candidate_a",
+                }.get(predicted_verdict, predicted_verdict)
+                if swap_verdict == inverted_expected:
+                    swap_correct += 1
+                if swap_verdict == inverted_prediction:
+                    position_consistent += 1
+
     phenomenon_metrics = {
         phenomenon: {
             "case_count": count,
@@ -197,7 +224,7 @@ def summarize_calibration_fixture(path: Path) -> dict[str, Any]:
         for phenomenon, count in sorted(phenomenon_totals.items())
     }
 
-    return {
+    summary = {
         "schema_version": 1,
         "fixture_id": fixture["id"],
         "suite": fixture["suite"],
@@ -216,6 +243,9 @@ def summarize_calibration_fixture(path: Path) -> dict[str, Any]:
         "false_good_rate": _rate(false_good_count, false_good_total),
         "low_confidence_rate": _rate(confidence_counts["low"], valid_count),
         "source_evidence_coverage": _rate(evidence_backed_error_count, evidence_error_count),
+        "swap_valid_rate": _rate(swap_valid, swap_total),
+        "swap_accuracy": _rate(swap_correct, swap_total),
+        "position_consistency_rate": _rate(position_consistent, swap_valid),
         "confidence_counts": dict(sorted(confidence_counts.items())),
         "predicted_error_severity_counts": dict(sorted(predicted_error_severity_counts.items())),
         "phenomenon_accuracy_by_type": phenomenon_metrics,
@@ -229,3 +259,19 @@ def summarize_calibration_fixture(path: Path) -> dict[str, Any]:
         },
         "failures": failures,
     }
+    if include_partitions:
+        partitions = sorted(
+            {case.get("partition") for case in cases if isinstance(case.get("partition"), str)}
+        )
+        if partitions:
+            summary["partition_metrics"] = {
+                partition: _summarize_calibration(
+                    {
+                        **fixture,
+                        "cases": [case for case in cases if case.get("partition") == partition],
+                    },
+                    include_partitions=False,
+                )
+                for partition in partitions
+            }
+    return summary

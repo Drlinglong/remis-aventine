@@ -237,3 +237,49 @@ def test_adapt_remis_result_cli_reports_invalid_input(tmp_path, capsys) -> None:
     captured = capsys.readouterr()
     assert exit_code == 2
     assert captured.err.startswith("error:")
+
+
+def test_build_calibration_pack_cli(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "build_calibration_pack",
+        lambda *_args: {
+            "id": "pack-v1",
+            "cases": [
+                {"partition": "calibration"},
+                {"partition": "holdout"},
+            ],
+        },
+    )
+
+    exit_code = main(
+        ["build-calibration-pack", str(tmp_path), str(tmp_path / "pack.json"), "--json"]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["case_count"] == 2
+    assert payload["holdout_count"] == 1
+
+
+def test_run_judge_cli(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(cli, "judge_from_environment", lambda _path: object())
+    monkeypatch.setattr(
+        cli,
+        "run_judge_pack",
+        lambda *_args, **_kwargs: {
+            "cases": [{"id": "case"}],
+            "run": {
+                "planned_call_count": 1,
+                "failure_count": 0,
+                "estimated_cost_rmb": 0.01,
+            },
+        },
+    )
+
+    exit_code = main(["run-judge", "input.json", str(tmp_path / "output.json"), "--json"])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["completed"] is True
+    assert payload["planned_call_count"] == 1

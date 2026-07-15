@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "multilingual-48-v1",
+  "case_counts": {"mqm": 12, "aces": 24, "remis": 12, "total": 48},
+  "partition_counts": {"calibration": 36, "holdout": 12},
+  "selection_algorithm": "sha256-lexicographic-v1",
+  "aces_ab_swap": true,
+  "external_data_policy": "Raw upstream text and generated judge results stay outside Git.",
+  "sources": {
+    "aces": {"license":"CC-BY-NC-SA-4.0","sha256":"f4dc0df4f8ade8e94adf691f78f3cba62a266515aded09f1e53e433943c1dd93","url":"https://huggingface.co/datasets/nikitam/ACES/resolve/main/data/challenge_set.jsonl"},
+    "mqm-ende": {"license":"Apache-2.0","sha256":"82acffc68ab61a5efeb98f7e09fec45bf49d9aaafba72c9b4cf378b7ec5dee85"},
+    "mqm-zhen": {"license":"Apache-2.0","sha256":"f7905f799c47a9a2510996dac62d1fa9ce0a5d74e772bfff4029febd58f5cad0"},
+    "mqm-enru": {"license":"Apache-2.0","sha256":"3f50f6f0356c4b2624cf5ccd5982268b9c1afbbb229e045f5b13f2fd886b00b8"}
+  }
+}

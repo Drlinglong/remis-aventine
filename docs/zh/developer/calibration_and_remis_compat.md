@@ -2,12 +2,16 @@
 
 ## 当前交付切片
 
-这一阶段先让评测合同和失败传播真正运转起来，不运行大型数据集，也不调用真实 Judge：
+第一阶段先让评测合同和失败传播运转起来：
 
 1. `judge-result.schema.json` 锁定结构化 Judge 输出；
 2. 两组纯合成 MQM/ACES fixture 提供可重复输入；
 3. `calibration.py` 计算确定性汇总指标；
 4. `adapters/remis.py` 把 Remis 当前 benchmark artifact 转成 Aventine run result。
+
+后续切片已经增加仓外真实小样本构建器与 DeepSeek V4 Pro runner，详见
+[`multilingual_calibration.md`](multilingual_calibration.md)。Fake fixture 仍保留，用于零成本测试失败合同；
+它不再代表当前能力上限。
 
 这些 fixture 故意包含 false-good、选错 pairwise winner、JSON parse failure 和 schema failure。
 校准工具如果只能在“所有输出都完美”时运行，就无法证明失败合同有效。

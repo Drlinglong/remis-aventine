@@ -11,8 +11,9 @@ a provider, model revision, prompts, decoding settings, context, glossary handli
 post-processing, repair, and optional deterministic validators.
 
 > Status: pre-alpha. The repository provides versioned recipe, run-result, and judge contracts;
-> deterministic calibration summaries; synthetic MQM/ACES fixtures; and a read-only Remis result
-> adapter. It does not yet execute a full Aventine-native benchmark.
+> deterministic calibration summaries; a reproducible 48-case multilingual calibration pack;
+> a bounded DeepSeek V4 Pro judge runner; synthetic fixtures; and a read-only Remis result adapter.
+> It does not yet execute a full Aventine-native recipe benchmark.
 
 ## Why Aventine?
 
@@ -69,6 +70,9 @@ aventine validate-result PATH [--json]
 aventine validate-judge PATH [--json]
 aventine summarize-calibration PATH [--json]
 aventine adapt-remis-result INPUT OUTPUT [--recipe-id ID] [--json]
+aventine build-calibration-pack SOURCE_ROOT OUTPUT [--remis-fixture PATH] [--json]
+aventine run-judge INPUT OUTPUT [--case-id ID] [--max-calls N] [--workers N]
+  [--resume-from PATH] [--env-file PATH] [--json]
 aventine --version
 ```
 
@@ -77,6 +81,13 @@ documents against the packaged, versioned JSON Schemas. The calibration command 
 judge output as benchmark failure and reports recall, false-good, pairwise, confidence, phenomenon,
 and confusion metrics. The Remis adapter converts existing
 `evaluate_translation_quality.py` artifacts without copying raw provider responses.
+
+The real multilingual pack is rebuilt from SHA-256-pinned external MQM/ACES files. Raw upstream
+text and generated judge results remain outside Git. `run-judge` reads `DEEPSEEK_API_KEY` from the
+process environment or a Git-ignored project `.env`, enforces a total HTTP request budget, retries
+transient/empty JSON responses, strips reasoning content, and can resume only failed outputs from a
+configuration-compatible artifact. See the
+[multilingual calibration guide](docs/zh/developer/multilingual_calibration.md).
 
 ## Remis compatibility
 
@@ -111,6 +122,7 @@ tool for regression testing translation recipes.**
 
 - [中文开发者文档：愿景、边界与核心工作流](docs/zh/developer/vision_and_workflow.md)
 - [中文开发者文档：Judge 校准与 Remis 兼容层](docs/zh/developer/calibration_and_remis_compat.md)
+- [中文开发者文档：多语言小样本与 DeepSeek Judge](docs/zh/developer/multilingual_calibration.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 
