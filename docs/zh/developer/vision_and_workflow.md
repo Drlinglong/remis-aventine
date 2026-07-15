@@ -269,7 +269,9 @@ docs/zh/developer/       # Chinese developer documentation
    报告直接汇总 Remis 的 `valid_items_unchanged` 与 `reference_exact_match`。
 6. **V5**：可选 MetricX-24 / xCOMET baseline。已落地 schema-bound metric pack/result、
    隔离 runtime worker 和统一 CLI；MetricX reference/QE 与 xCOMET reference 的本地真实权重
-   smoke 已通过。下一步是在 reference-bearing calibration 子集上测量它们与 judge/gold 的分歧。
+   smoke 已通过。xCOMET 已进一步跑完 50 条 WMT23 MQM 与 50 对 ACES：MQM 的 gold severity
+   均分单调下降，ACES winner accuracy 为 76%。下一步是把相同 case 与 calibrated judge 对齐，
+   测量 metric/judge/gold 的一致与分歧。
 
 ## 明确不做
 

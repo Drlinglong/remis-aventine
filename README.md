@@ -85,6 +85,9 @@ aventine run-judge INPUT OUTPUT [--case-id ID] [--max-calls N] [--workers N]
 aventine run-metric INPUT OUTPUT --metric metricx-24|xcomet --runtime-python PATH
   --model-path PATH --model-id ID --model-sha256 SHA256 [--mode qe|reference]
   [--tokenizer-path PATH] [--metricx-source PATH] [--hf-home PATH] [--json]
+aventine build-metric-pack CALIBRATION_PACK OUTPUT [--json]
+aventine report-metric-calibration METRIC_PACK METRIC_RESULT OUTPUT_JSON OUTPUT_MARKDOWN
+  [--json]
 aventine --version
 ```
 
@@ -130,6 +133,12 @@ environment. It launches a caller-selected Python runtime without a shell, uses 
 weights/cache, verifies the model SHA-256, records runtime package versions, and validates both input and
 output. MetricX-24 supports reference and QE modes; xCOMET currently requires references. See the
 [isolated metric runtime guide](docs/zh/developer/external_metric_runtimes.md).
+
+`build-metric-pack` preserves gold/provenance metadata while flattening a single case to one
+hypothesis and a pairwise case to two hypotheses. It excludes missing-reference cases explicitly.
+`report-metric-calibration` then reports score distributions for MQM-style single cases and
+threshold-free winner accuracy for ACES-style pairs. Raw external text and per-case scores remain in
+Git-ignored `benchmark_results`; a hash-only aggregate manifest may be committed.
 
 ## Remis compatibility
 

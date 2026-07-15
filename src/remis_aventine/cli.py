@@ -21,6 +21,11 @@ from remis_aventine.calibration_pack import CalibrationPackError, build_calibrat
 from remis_aventine.doctor import build_doctor_report
 from remis_aventine.external_metrics import ExternalMetricError, run_external_metric
 from remis_aventine.judge import JudgeRunError, judge_from_environment, run_judge_pack
+from remis_aventine.metric_calibration import (
+    MetricCalibrationError,
+    build_metric_pack_from_calibration,
+    write_metric_calibration_report,
+)
 from remis_aventine.remis_pairwise import (
     RemisPairwiseError,
     build_remis_pairwise_pack,
@@ -182,6 +187,24 @@ def build_parser() -> argparse.ArgumentParser:
     metric_parser.add_argument("--metricx-source", type=Path)
     metric_parser.add_argument("--hf-home", type=Path)
     metric_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    metric_pack_parser = subparsers.add_parser(
+        "build-metric-pack",
+        help="Flatten reference-bearing calibration cases for MetricX or xCOMET.",
+    )
+    metric_pack_parser.add_argument("input", type=Path)
+    metric_pack_parser.add_argument("output", type=Path)
+    metric_pack_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    metric_report_parser = subparsers.add_parser(
+        "report-metric-calibration",
+        help="Summarize metric scores against calibration gold labels.",
+    )
+    metric_report_parser.add_argument("pack", type=Path)
+    metric_report_parser.add_argument("result", type=Path)
+    metric_report_parser.add_argument("output_json", type=Path)
+    metric_report_parser.add_argument("output_markdown", type=Path)
+    metric_report_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     return parser
 
@@ -478,6 +501,68 @@ def _run_metric(args: argparse.Namespace) -> int:
     return 0
 
 
+def _build_metric_pack(args: argparse.Namespace) -> int:
+    try:
+        pack = build_metric_pack_from_calibration(args.input, args.output)
+    except (
+        CalibrationFixtureError,
+        MetricCalibrationError,
+        DocumentValidationError,
+        OSError,
+    ) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    adapter = pack["adapter"]
+    payload = {
+        "built": True,
+        "output": str(args.output),
+        "id": pack["id"],
+        "source_case_count": adapter["source_case_count"],
+        "selected_source_case_count": adapter["selected_source_case_count"],
+        "hypothesis_count": len(pack["cases"]),
+        "skipped_case_counts": adapter["skipped_case_counts"],
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"metric pack: {payload['id']}")
+        print(
+            f"- source cases: "
+            f"{payload['selected_source_case_count']}/{payload['source_case_count']}"
+        )
+        print(f"- hypotheses: {payload['hypothesis_count']}")
+        print(f"- output: {payload['output']}")
+    return 0
+
+
+def _report_metric_calibration(args: argparse.Namespace) -> int:
+    try:
+        report = write_metric_calibration_report(
+            args.pack,
+            args.result,
+            args.output_json,
+            args.output_markdown,
+        )
+    except (MetricCalibrationError, DocumentValidationError, OSError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    payload = {
+        "reported": True,
+        "output_json": str(args.output_json),
+        "output_markdown": str(args.output_markdown),
+        "hypothesis_count": report["hypothesis_count"],
+        "single_case_count": report["single"]["case_count"],
+        "pairwise_case_count": report["pairwise"]["case_count"],
+        "pairwise_accuracy": report["pairwise"]["accuracy"],
+    }
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"metric calibration: {payload['hypothesis_count']} hypotheses")
+        print(f"- single/pairwise: {payload['single_case_count']}/{payload['pairwise_case_count']}")
+        if payload["pairwise_accuracy"] is not None:
+            print(f"- pairwise accuracy: {payload['pairwise_accuracy']}")
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
@@ -514,5 +599,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _run_judge(args)
     if args.command == "run-metric":
         return _run_metric(args)
+    if args.command == "build-metric-pack":
+        return _build_metric_pack(args)
+    if args.command == "report-metric-calibration":
+        return _report_metric_calibration(args)
 
     raise AssertionError(f"Unhandled command: {args.command}")  # pragma: no cover

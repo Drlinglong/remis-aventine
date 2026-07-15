@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "id": "xcomet-local-v1",
+  "created_at": "2026-07-15",
+  "model": {
+    "id": "Unbabel/XCOMET-XL",
+    "sha256": "b644a48a1163ca7f8d3bcf237816eea7ecf368ecdbd6eb16ea27fef218fcd716",
+    "mode": "reference",
+    "direction": "higher_is_better"
+  },
+  "runtime": {
+    "device": "NVIDIA GeForce RTX 5090",
+    "python": "3.11.15",
+    "torch": "2.10.0+cu128",
+    "transformers": "4.57.6",
+    "unbabel-comet": "2.2.7",
+    "sentencepiece": "0.2.2"
+  },
+  "adapter_revision": "calibration-metric-v1",
+  "runs": {
+    "mqm-en-de": {
+      "source_pack_id": "mtme-mqm.wmt23.en-de.mqm.merged.9183973cb66f",
+      "source_sha256": "bad733ef50ae2a7e0d0572b0c0f992ab1c4cb97403b273bc349e26fd3c98af17",
+      "source_case_count": 50,
+      "hypothesis_count": 50,
+      "mean_score": 0.8965369379520416,
+      "severity_mean_scores": {
+        "none": 0.9506624080240726,
+        "minor": 0.8953056826310999,
+        "major": 0.84682657438166
+      },
+      "pass_fail_ranking_accuracy": 0.7610294117647058,
+      "severity_ranking_accuracy": 0.7274909963985594,
+      "metric_pack_sha256": "3df01037843f2b315aefceb6f998a4a52213929050d51080b66741e1a371f8fa",
+      "metric_result_sha256": "ced1210bd1ff09c86b89f980db814ea43a94865e09b3136ba262acb1a0fd1351",
+      "report_sha256": "e2807c3dbc79491106c50e59bfd6e07022f5c0a01c9d5e890fdaa5c12c2bfd74"
+    },
+    "aces-global": {
+      "source_pack_id": "aces.b497a6456957a5660ac20b8cac5b5222eb9b669c.6e35aaaeda9d",
+      "source_sha256": "3f07020baf7bf3e5050467fddd1946a6b1c9d6ec3099e15d84277fa98d617519",
+      "source_case_count": 50,
+      "hypothesis_count": 100,
+      "language_pair_count": 40,
+      "mean_score": 0.8148537968099118,
+      "pairwise_correct_count": 38,
+      "pairwise_accuracy": 0.76,
+      "tie_count": 0,
+      "metric_pack_sha256": "3e4ac0b5b83adf2785173a4a5e9927d5bb0aafe96abba2908ff2a08791d9c252",
+      "metric_result_sha256": "32b766fdbc49a65236767a31f247c1124eb64260a6baf91ce3308d91e5fc3ebe",
+      "report_sha256": "d6a6c4dba54457ce56a8d9611f80b4944b57145c82d630a880edbc97da079af6"
+    }
+  },
+  "artifact_policy": "Metric packs, per-case scores, reports, and upstream text remain in Git-ignored benchmark_results; this manifest contains only hashes and aggregate evidence."
+}

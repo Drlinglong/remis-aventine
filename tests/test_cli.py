@@ -568,3 +568,53 @@ def test_run_metric_cli_emits_text(monkeypatch, capsys) -> None:
     assert exit_code == 0
     assert "metric run: xcomet (reference)" in captured.out
     assert "mean score: 0.75" in captured.out
+
+
+def test_build_metric_pack_cli(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "build_metric_pack_from_calibration",
+        lambda *_args: {
+            "id": "metric.pack",
+            "cases": [{"id": "a"}, {"id": "b"}],
+            "adapter": {
+                "source_case_count": 2,
+                "selected_source_case_count": 1,
+                "skipped_case_counts": {"missing_reference": 1},
+            },
+        },
+    )
+    exit_code = main(
+        ["build-metric-pack", "source.json", str(tmp_path / "pack.json"), "--json"]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["hypothesis_count"] == 2
+    assert payload["selected_source_case_count"] == 1
+
+
+def test_report_metric_calibration_cli(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "write_metric_calibration_report",
+        lambda *_args: {
+            "hypothesis_count": 4,
+            "single": {"case_count": 0},
+            "pairwise": {"case_count": 2, "accuracy": 0.5},
+        },
+    )
+    exit_code = main(
+        [
+            "report-metric-calibration",
+            "pack.json",
+            "result.json",
+            str(tmp_path / "report.json"),
+            str(tmp_path / "report.md"),
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["pairwise_accuracy"] == 0.5
