@@ -92,7 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     judge_run_parser = subparsers.add_parser(
         "run-judge",
-        help="Run the bounded DeepSeek V4 Pro judge over a calibration pack.",
+        help="Run a bounded remote judge over a calibration pack.",
     )
     judge_run_parser.add_argument("input", type=Path)
     judge_run_parser.add_argument("output", type=Path)
@@ -100,6 +100,9 @@ def build_parser() -> argparse.ArgumentParser:
     judge_run_parser.add_argument("--case-id", action="append", dest="case_ids")
     judge_run_parser.add_argument("--max-calls", type=int, default=100)
     judge_run_parser.add_argument("--workers", type=int, default=1)
+    judge_run_parser.add_argument(
+        "--provider", choices=("deepseek", "xai", "google"), default="deepseek"
+    )
     judge_run_parser.add_argument("--resume-from", type=Path)
     judge_run_parser.add_argument("--env-file", type=Path, default=Path(".env"))
     judge_run_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
@@ -226,7 +229,7 @@ def _build_pack(args: argparse.Namespace) -> int:
 
 def _run_judge(args: argparse.Namespace) -> int:
     try:
-        judge = judge_from_environment(args.env_file)
+        judge = judge_from_environment(args.env_file, args.provider)
         result = run_judge_pack(
             args.input,
             args.output,
@@ -250,7 +253,10 @@ def _run_judge(args: argparse.Namespace) -> int:
     else:
         print(f"judge run: {payload['case_count']} cases, {payload['planned_call_count']} calls")
         print(f"- failures: {payload['failure_count']}")
-        print(f"- estimated cost: RMB {payload['estimated_cost_rmb']}")
+        if "exact_cost_usd" in payload:
+            print(f"- exact cost: USD {payload['exact_cost_usd']}")
+        else:
+            print(f"- estimated cost: RMB {payload['estimated_cost_rmb']}")
     return 0
 
 

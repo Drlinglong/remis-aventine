@@ -263,7 +263,13 @@ def test_build_calibration_pack_cli(monkeypatch, tmp_path, capsys) -> None:
 
 
 def test_run_judge_cli(monkeypatch, tmp_path, capsys) -> None:
-    monkeypatch.setattr(cli, "judge_from_environment", lambda _path: object())
+    selected = {}
+
+    def fake_judge(_path, provider):
+        selected["provider"] = provider
+        return object()
+
+    monkeypatch.setattr(cli, "judge_from_environment", fake_judge)
     monkeypatch.setattr(
         cli,
         "run_judge_pack",
@@ -277,9 +283,19 @@ def test_run_judge_cli(monkeypatch, tmp_path, capsys) -> None:
         },
     )
 
-    exit_code = main(["run-judge", "input.json", str(tmp_path / "output.json"), "--json"])
+    exit_code = main(
+        [
+            "run-judge",
+            "input.json",
+            str(tmp_path / "output.json"),
+            "--provider",
+            "xai",
+            "--json",
+        ]
+    )
 
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0
     assert payload["completed"] is True
     assert payload["planned_call_count"] == 1
+    assert selected["provider"] == "xai"

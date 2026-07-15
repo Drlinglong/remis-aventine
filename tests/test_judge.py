@@ -9,7 +9,9 @@ import pytest
 from remis_aventine.calibration import summarize_calibration_fixture
 from remis_aventine.judge import (
     DeepSeekJudge,
+    GoogleGemmaJudge,
     JudgeRunError,
+    XAIJudge,
     judge_from_environment,
     run_judge_pack,
 )
@@ -146,6 +148,31 @@ def test_judge_from_environment_reads_ignored_file(tmp_path, monkeypatch) -> Non
 
 
 class _FakeJudge:
+    provider = "fake"
+    provider_label = "Fake"
+    model_id = "fake"
+    profile = "fake"
+    prompt_revision = "fake"
+    max_tokens = 100
+    thinking = "disabled"
+    reasoning_effort = "none"
+
+    def empty_usage(self):
+        return {
+            "cache_hit_input_tokens": 0,
+            "cache_miss_input_tokens": 0,
+            "output_tokens": 0,
+        }
+
+    def cost_fields(self, usage, prior_run):
+        current = round(usage["output_tokens"] / 1_000_000, 6)
+        prior = float(prior_run.get("estimated_cost_rmb", 0.0))
+        return {
+            "estimated_cost_rmb": current,
+            "prior_estimated_cost_rmb": prior,
+            "cumulative_estimated_cost_rmb": round(prior + current, 6),
+        }
+
     def evaluate(self, case):
         mode = case["gold"]["mode"]
         verdict = case["gold"]["verdict"]
@@ -295,8 +322,103 @@ def test_deepseek_judge_requires_api_key(tmp_path, monkeypatch) -> None:
         judge_from_environment(tmp_path / "missing.env")
 
 
+def test_xai_judge_uses_low_reasoning_strict_schema_and_exact_cost() -> None:
+    requests = []
+
+    def opener(request, **_kwargs):
+        requests.append(request)
+        payload = {
+            "choices": [{"message": {"content": json.dumps(_evaluation())}}],
+            "usage": {
+                "prompt_tokens": 50,
+                "completion_tokens": 30,
+                "prompt_tokens_details": {"cached_tokens": 20},
+                "completion_tokens_details": {"reasoning_tokens": 12},
+                "cost_in_usd_ticks": 12_300_000,
+            },
+        }
+        return _Response(json.dumps(payload).encode())
+
+    judge = XAIJudge("test-key", opener=opener)
+    result, usage = judge.evaluate(_case())
+
+    assert result["judge"]["model"] == "grok-4.5"
+    assert usage["reasoning_tokens"] == 12
+    assert usage["cost_in_usd_ticks"] == 12_300_000
+    body = json.loads(requests[0].data)
+    assert body["reasoning_effort"] == "low"
+    assert body["response_format"]["type"] == "json_schema"
+    schema = body["response_format"]["json_schema"]["schema"]
+    assert schema["properties"]["evaluation"]["properties"]["mode"] == {"const": "single"}
+    error_schema = schema["properties"]["evaluation"]["properties"]["errors"]["items"]
+    assert error_schema["properties"]["source_excerpt"] == {"type": ["string", "null"]}
+    assert requests[0].headers["X-grok-conv-id"] == "aventine-translation-judge-v2"
+    costs = judge.cost_fields(usage, {})
+    assert costs["exact_cost_usd"] == 0.00123
+    assert costs["estimated_cost_usd"] == 0.000322
+    assert costs["cost_source"] == "api_ticks"
+
+
+def test_judge_from_environment_selects_xai(tmp_path, monkeypatch) -> None:
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
+    env_path = tmp_path / ".env"
+    env_path.write_text("XAI_API_KEY=xai-test\n", encoding="utf-8")
+
+    judge = judge_from_environment(env_path, "xai")
+
+    assert isinstance(judge, XAIJudge)
+    assert judge.api_key == "xai-test"
+
+
+def test_google_gemma_judge_uses_generate_content_schema_and_free_cost() -> None:
+    requests = []
+
+    def opener(request, **_kwargs):
+        requests.append(request)
+        payload = {
+            "candidates": [{"content": {"parts": [{"text": json.dumps(_evaluation())}]}}],
+            "usageMetadata": {
+                "promptTokenCount": 100,
+                "candidatesTokenCount": 25,
+                "cachedContentTokenCount": 40,
+            },
+        }
+        return _Response(json.dumps(payload).encode())
+
+    judge = GoogleGemmaJudge("test-key", opener=opener)
+    result, usage = judge.evaluate(_case())
+
+    assert result["judge"]["model"] == "gemma-4-31b-it"
+    assert usage == {
+        "cache_hit_input_tokens": 40,
+        "cache_miss_input_tokens": 60,
+        "output_tokens": 25,
+        "reasoning_tokens": 0,
+    }
+    body = json.loads(requests[0].data)
+    config = body["generationConfig"]
+    assert config["responseMimeType"] == "application/json"
+    mode_schema = config["responseJsonSchema"]["properties"]["evaluation"]["properties"]["mode"]
+    assert mode_schema == {"type": "string", "enum": ["single"]}
+    assert "minLength" not in json.dumps(config["responseJsonSchema"])
+    assert requests[0].headers["X-goog-api-key"] == "test-key"
+    assert "Authorization" not in requests[0].headers
+    assert judge.cost_fields(usage, {})["exact_cost_usd"] == 0.0
+
+
+def test_judge_from_environment_selects_google(tmp_path, monkeypatch) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    env_path = tmp_path / ".env"
+    env_path.write_text("GEMINI_API_KEY=google-test\n", encoding="utf-8")
+
+    judge = judge_from_environment(env_path, "google")
+
+    assert isinstance(judge, GoogleGemmaJudge)
+    assert judge.api_key == "google-test"
+
+
 def test_run_judge_pack_records_call_failure(tmp_path) -> None:
-    class BrokenJudge:
+    class BrokenJudge(_FakeJudge):
         def evaluate(self, _case):
             raise JudgeRunError("synthetic failure")
 

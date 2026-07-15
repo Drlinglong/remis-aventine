@@ -22,6 +22,13 @@ PROMPT_REVISION = "translation-judge-v2"
 PROFILE = "deepseek-v4-pro-thinking-high"
 MAX_TOKENS = 4000
 PRICING_RMB_PER_MILLION = {"cache_hit_input": 0.025, "cache_miss_input": 3.0, "output": 6.0}
+XAI_MODEL_ID = "grok-4.5"
+XAI_PROFILE = "grok-4.5-reasoning-low-structured-v2"
+XAI_MAX_TOKENS = 4000
+XAI_PRICING_USD_PER_MILLION = {"cache_hit_input": 0.5, "cache_miss_input": 2.0, "output": 6.0}
+GOOGLE_MODEL_ID = "gemma-4-31b-it"
+GOOGLE_PROFILE = "gemma-4-31b-it-free-structured-v1"
+GOOGLE_MAX_TOKENS = 4000
 
 
 class JudgeRunError(RuntimeError):
@@ -83,6 +90,24 @@ def _usage(response: dict[str, Any]) -> dict[str, int]:
     return {"cache_hit_input_tokens": hit, "cache_miss_input_tokens": miss, "output_tokens": output}
 
 
+def _xai_usage(response: dict[str, Any]) -> dict[str, int]:
+    usage = response.get("usage") or {}
+    prompt = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+    output = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
+    input_details = usage.get("prompt_tokens_details") or usage.get("input_tokens_details") or {}
+    output_details = (
+        usage.get("completion_tokens_details") or usage.get("output_tokens_details") or {}
+    )
+    hit = int(input_details.get("cached_tokens") or 0)
+    return {
+        "cache_hit_input_tokens": hit,
+        "cache_miss_input_tokens": max(prompt - hit, 0),
+        "output_tokens": output,
+        "reasoning_tokens": int(output_details.get("reasoning_tokens") or 0),
+        "cost_in_usd_ticks": int(usage.get("cost_in_usd_ticks") or 0),
+    }
+
+
 def _cost(usage: dict[str, int]) -> float:
     value = (
         usage["cache_hit_input_tokens"] * PRICING_RMB_PER_MILLION["cache_hit_input"]
@@ -100,8 +125,100 @@ def _without_nulls(value: Any) -> Any:
     return value
 
 
+def _xai_response_schema(mode: str) -> dict[str, Any]:
+    pairwise = mode == "pairwise"
+    verdicts = (
+        ["candidate_a", "candidate_b", "tie", "neither", "uncertain"]
+        if pairwise
+        else ["pass", "fail", "uncertain"]
+    )
+    candidates = ["candidate_a", "candidate_b"] if pairwise else ["candidate"]
+    evaluation = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["mode", "verdict", "confidence", "errors", "rationale", "limitations"],
+        "properties": {
+            "mode": {"const": mode},
+            "verdict": {"type": "string", "enum": verdicts},
+            "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+            "errors": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "candidate",
+                        "category",
+                        "severity",
+                        "explanation",
+                        "source_excerpt",
+                        "candidate_excerpt",
+                    ],
+                    "properties": {
+                        "candidate": {"type": "string", "enum": candidates},
+                        "category": {
+                            "type": "string",
+                            "enum": [
+                                "accuracy",
+                                "terminology",
+                                "fluency",
+                                "style",
+                                "locale",
+                                "context",
+                                "over_editing",
+                                "other",
+                            ],
+                        },
+                        "severity": {"type": "string", "enum": ["minor", "major", "critical"]},
+                        "explanation": {"type": "string", "minLength": 1},
+                        "source_excerpt": {"type": ["string", "null"]},
+                        "candidate_excerpt": {"type": ["string", "null"]},
+                    },
+                },
+            },
+            "rationale": {"type": "string", "minLength": 1},
+            "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        },
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["evaluation"],
+        "properties": {"evaluation": evaluation},
+    }
+
+
+def _google_response_schema(mode: str) -> dict[str, Any]:
+    schema = deepcopy(_xai_response_schema(mode))
+
+    def simplify(value: Any) -> None:
+        if isinstance(value, dict):
+            value.pop("minLength", None)
+            if "const" in value:
+                value["type"] = "string"
+                value["enum"] = [value.pop("const")]
+            for child in value.values():
+                simplify(child)
+        elif isinstance(value, list):
+            for child in value:
+                simplify(child)
+
+    simplify(schema)
+    return schema
+
+
 class DeepSeekJudge:
-    """Minimal OpenAI-compatible client that never persists credentials or reasoning."""
+    """OpenAI-compatible judge with bounded requests and no reasoning persistence."""
+
+    provider = "deepseek"
+    provider_label = "DeepSeek"
+    credential_name = "DEEPSEEK_API_KEY"
+    model_id = MODEL_ID
+    profile = PROFILE
+    prompt_revision = PROMPT_REVISION
+    max_tokens = MAX_TOKENS
+    thinking = "enabled"
+    reasoning_effort = "high"
 
     def __init__(
         self,
@@ -112,22 +229,63 @@ class DeepSeekJudge:
         retries: int = 2,
         opener: Callable[..., Any] = urllib.request.urlopen,
         sleeper: Callable[[float], None] = time.sleep,
+        extra_headers: dict[str, str] | None = None,
     ) -> None:
         if not api_key:
-            raise JudgeRunError("DEEPSEEK_API_KEY is required.")
+            raise JudgeRunError(f"{self.credential_name} is required.")
         self.api_key = api_key
         self.endpoint = endpoint
         self.timeout_seconds = timeout_seconds
         self.retries = retries
         self.opener = opener
         self.sleeper = sleeper
+        self.extra_headers = extra_headers or {}
         self.request_count = 0
         self.request_limit: int | None = None
         self._state_lock = Lock()
-        self.total_usage = {
+        self.total_usage = self.empty_usage()
+
+    def empty_usage(self) -> dict[str, int]:
+        return {
             "cache_hit_input_tokens": 0,
             "cache_miss_input_tokens": 0,
             "output_tokens": 0,
+        }
+
+    def request_body(self, case: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "model": self.model_id,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": _prompt(case)},
+            ],
+            "response_format": {"type": "json_object"},
+            "thinking": {"type": "enabled"},
+            "reasoning_effort": self.reasoning_effort,
+            "max_tokens": self.max_tokens,
+        }
+
+    def parse_usage(self, response: dict[str, Any]) -> dict[str, int]:
+        return _usage(response)
+
+    def request_headers(self) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            **self.extra_headers,
+        }
+
+    def extract_content(self, response: dict[str, Any]) -> str:
+        return str(response["choices"][0]["message"]["content"])
+
+    def cost_fields(self, usage: dict[str, int], prior_run: dict[str, Any]) -> dict[str, Any]:
+        current = _cost(usage)
+        prior = float(prior_run.get("estimated_cost_rmb", 0.0))
+        return {
+            "pricing_rmb_per_million_tokens": PRICING_RMB_PER_MILLION,
+            "estimated_cost_rmb": current,
+            "prior_estimated_cost_rmb": prior,
+            "cumulative_estimated_cost_rmb": round(prior + current, 6),
         }
 
     def set_request_limit(self, limit: int) -> None:
@@ -145,49 +303,34 @@ class DeepSeekJudge:
             self.request_count += 1
 
     def evaluate(self, case: dict[str, Any]) -> tuple[dict[str, Any], dict[str, int]]:
-        body = {
-            "model": MODEL_ID,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": _prompt(case)},
-            ],
-            "response_format": {"type": "json_object"},
-            "thinking": {"type": "enabled"},
-            "reasoning_effort": "high",
-            "max_tokens": MAX_TOKENS,
-        }
         request = urllib.request.Request(
             self.endpoint,
-            data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
-            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+            data=json.dumps(self.request_body(case), ensure_ascii=False).encode("utf-8"),
+            headers=self.request_headers(),
             method="POST",
         )
         last_error: JudgeRunError | None = None
-        call_usage = {
-            "cache_hit_input_tokens": 0,
-            "cache_miss_input_tokens": 0,
-            "output_tokens": 0,
-        }
+        call_usage = self.empty_usage()
         for attempt in range(self.retries + 1):
             try:
                 self._reserve_request()
                 with self.opener(request, timeout=self.timeout_seconds) as stream:
                     response = json.loads(stream.read().decode("utf-8"))
-                response_usage = _usage(response)
+                response_usage = self.parse_usage(response)
                 with self._state_lock:
                     for key, value in response_usage.items():
                         call_usage[key] += value
                         self.total_usage[key] += value
-                content = response["choices"][0]["message"]["content"]
+                content = self.extract_content(response)
                 model_payload = json.loads(content)
                 evaluation = _without_nulls(model_payload["evaluation"])
                 result = {
                     "schema_version": 1,
                     "case_id": case["id"],
                     "judge": {
-                        "profile": PROFILE,
-                        "model": MODEL_ID,
-                        "prompt_revision": PROMPT_REVISION,
+                        "profile": self.profile,
+                        "model": self.model_id,
+                        "prompt_revision": self.prompt_revision,
                         "calibration_revision": case.get("pack_revision", "multilingual-48-v1"),
                     },
                     "evaluation": evaluation,
@@ -197,17 +340,21 @@ class DeepSeekJudge:
             except urllib.error.HTTPError as exc:
                 retryable = exc.code == 429 or 500 <= exc.code < 600
                 if not retryable:
-                    raise JudgeRunError(f"DeepSeek HTTP failure: status {exc.code}") from exc
-                last_error = JudgeRunError(f"DeepSeek HTTP failure: status {exc.code}")
+                    raise JudgeRunError(
+                        f"{self.provider_label} HTTP failure: status {exc.code}"
+                    ) from exc
+                last_error = JudgeRunError(f"{self.provider_label} HTTP failure: status {exc.code}")
             except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
                 last_error = JudgeRunError(
-                    f"DeepSeek returned malformed data: {type(exc).__name__}"
+                    f"{self.provider_label} returned malformed data: {type(exc).__name__}"
                 )
             except (KeyError, IndexError, TypeError):
-                last_error = JudgeRunError("DeepSeek returned empty or malformed JSON content.")
+                last_error = JudgeRunError(
+                    f"{self.provider_label} returned empty or malformed JSON content."
+                )
             except DocumentValidationError as exc:
                 last_error = JudgeRunError(
-                    f"DeepSeek JSON failed judge schema: {'; '.join(exc.issues)}"
+                    f"{self.provider_label} JSON failed judge schema: {'; '.join(exc.issues)}"
                 )
             except JudgeRunError:
                 raise
@@ -217,6 +364,176 @@ class DeepSeekJudge:
             self.sleeper(float(2**attempt))
 
         raise AssertionError("unreachable")  # pragma: no cover
+
+
+class XAIJudge(DeepSeekJudge):
+    """xAI Grok judge using low reasoning and strict structured output."""
+
+    provider = "xai"
+    provider_label = "xAI"
+    credential_name = "XAI_API_KEY"
+    model_id = XAI_MODEL_ID
+    profile = XAI_PROFILE
+    max_tokens = XAI_MAX_TOKENS
+    thinking = "required"
+    reasoning_effort = "low"
+
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        endpoint: str = "https://api.x.ai/v1/chat/completions",
+        timeout_seconds: float = 120,
+        retries: int = 2,
+        opener: Callable[..., Any] = urllib.request.urlopen,
+        sleeper: Callable[[float], None] = time.sleep,
+    ) -> None:
+        super().__init__(
+            api_key,
+            endpoint=endpoint,
+            timeout_seconds=timeout_seconds,
+            retries=retries,
+            opener=opener,
+            sleeper=sleeper,
+            extra_headers={"x-grok-conv-id": "aventine-translation-judge-v2"},
+        )
+
+    def empty_usage(self) -> dict[str, int]:
+        return {
+            "cache_hit_input_tokens": 0,
+            "cache_miss_input_tokens": 0,
+            "output_tokens": 0,
+            "reasoning_tokens": 0,
+            "cost_in_usd_ticks": 0,
+        }
+
+    def request_body(self, case: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "model": self.model_id,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": _prompt(case)},
+            ],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "translation_judge_evaluation",
+                    "strict": True,
+                    "schema": _xai_response_schema(case["gold"]["mode"]),
+                },
+            },
+            "reasoning_effort": self.reasoning_effort,
+            "max_tokens": self.max_tokens,
+        }
+
+    def parse_usage(self, response: dict[str, Any]) -> dict[str, int]:
+        return _xai_usage(response)
+
+    def cost_fields(self, usage: dict[str, int], prior_run: dict[str, Any]) -> dict[str, Any]:
+        estimated = round(
+            (
+                usage["cache_hit_input_tokens"] * XAI_PRICING_USD_PER_MILLION["cache_hit_input"]
+                + usage["cache_miss_input_tokens"] * XAI_PRICING_USD_PER_MILLION["cache_miss_input"]
+                + (usage["output_tokens"] + usage["reasoning_tokens"])
+                * XAI_PRICING_USD_PER_MILLION["output"]
+            )
+            / 1_000_000,
+            6,
+        )
+        exact = round(usage["cost_in_usd_ticks"] / 10_000_000_000, 10)
+        current = exact or estimated
+        prior = float(prior_run.get("exact_cost_usd", 0.0))
+        return {
+            "pricing_usd_per_million_tokens": XAI_PRICING_USD_PER_MILLION,
+            "estimated_cost_usd": estimated,
+            "exact_cost_usd": current,
+            "prior_exact_cost_usd": prior,
+            "cumulative_exact_cost_usd": round(prior + current, 10),
+            "cost_source": "api_ticks" if exact else "token_estimate",
+        }
+
+
+class GoogleGemmaJudge(DeepSeekJudge):
+    """Google-hosted full-precision Gemma 4 judge on the Gemini API free tier."""
+
+    provider = "google"
+    provider_label = "Google Gemini API"
+    credential_name = "GEMINI_API_KEY"
+    model_id = GOOGLE_MODEL_ID
+    profile = GOOGLE_PROFILE
+    max_tokens = GOOGLE_MAX_TOKENS
+    thinking = "not_configurable"
+    reasoning_effort = "none"
+
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        endpoint: str = (
+            "https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent"
+        ),
+        timeout_seconds: float = 120,
+        retries: int = 2,
+        opener: Callable[..., Any] = urllib.request.urlopen,
+        sleeper: Callable[[float], None] = time.sleep,
+    ) -> None:
+        super().__init__(
+            api_key,
+            endpoint=endpoint,
+            timeout_seconds=timeout_seconds,
+            retries=retries,
+            opener=opener,
+            sleeper=sleeper,
+        )
+
+    def request_headers(self) -> dict[str, str]:
+        return {"x-goog-api-key": self.api_key, "Content-Type": "application/json"}
+
+    def request_body(self, case: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": f"{SYSTEM_PROMPT}\n\n{_prompt(case)}"}],
+                }
+            ],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseJsonSchema": _google_response_schema(case["gold"]["mode"]),
+                "maxOutputTokens": self.max_tokens,
+            },
+        }
+
+    def extract_content(self, response: dict[str, Any]) -> str:
+        return str(response["candidates"][0]["content"]["parts"][0]["text"])
+
+    def parse_usage(self, response: dict[str, Any]) -> dict[str, int]:
+        usage = response.get("usageMetadata") or {}
+        prompt = int(usage.get("promptTokenCount") or 0)
+        cached = int(usage.get("cachedContentTokenCount") or 0)
+        return {
+            "cache_hit_input_tokens": cached,
+            "cache_miss_input_tokens": max(prompt - cached, 0),
+            "output_tokens": int(usage.get("candidatesTokenCount") or 0),
+            "reasoning_tokens": int(usage.get("thoughtsTokenCount") or 0),
+        }
+
+    def empty_usage(self) -> dict[str, int]:
+        return {
+            "cache_hit_input_tokens": 0,
+            "cache_miss_input_tokens": 0,
+            "output_tokens": 0,
+            "reasoning_tokens": 0,
+        }
+
+    def cost_fields(self, usage: dict[str, int], prior_run: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "pricing": "Gemma 4 Gemini API free tier",
+            "exact_cost_usd": 0.0,
+            "prior_exact_cost_usd": 0.0,
+            "cumulative_exact_cost_usd": 0.0,
+            "cost_source": "official_free_tier",
+        }
 
 
 def _swapped_case(case: dict[str, Any]) -> dict[str, Any]:
@@ -272,9 +589,11 @@ def run_judge_pack(
         prior = load_calibration_fixture(resume_from)
         prior_run = prior.get("run") or {}
         expected = {
-            "model": MODEL_ID,
-            "prompt_revision": PROMPT_REVISION,
-            "max_tokens": MAX_TOKENS,
+            "model": judge.model_id,
+            "profile": judge.profile,
+            "prompt_revision": judge.prompt_revision,
+            "max_tokens": judge.max_tokens,
+            "reasoning_effort": judge.reasoning_effort,
         }
         mismatches = [key for key, value in expected.items() if prior_run.get(key) != value]
         if mismatches:
@@ -294,7 +613,7 @@ def run_judge_pack(
         budget_setter(max_calls)
     starting_usage = deepcopy(getattr(judge, "total_usage", None))
 
-    totals = {"cache_hit_input_tokens": 0, "cache_miss_input_tokens": 0, "output_tokens": 0}
+    totals = judge.empty_usage()
     tasks: list[tuple[int, str, dict[str, Any]]] = []
     for case_index, case in enumerate(cases):
         case["pack_revision"] = fixture["id"]
@@ -337,16 +656,17 @@ def run_judge_pack(
 
     result = {
         "schema_version": 1,
-        "id": f"{fixture['id']}.{MODEL_ID}",
+        "id": f"{fixture['id']}.{judge.model_id}",
         "suite": fixture["suite"],
-        "description": "Schema-bound DeepSeek calibration results; not human gold.",
+        "description": f"Schema-bound {judge.provider_label} calibration results; not human gold.",
         "run": {
-            "model": MODEL_ID,
-            "profile": PROFILE,
-            "prompt_revision": PROMPT_REVISION,
-            "thinking": "enabled",
-            "reasoning_effort": "high",
-            "max_tokens": MAX_TOKENS,
+            "provider": judge.provider,
+            "model": judge.model_id,
+            "profile": judge.profile,
+            "prompt_revision": judge.prompt_revision,
+            "thinking": judge.thinking,
+            "reasoning_effort": judge.reasoning_effort,
+            "max_tokens": judge.max_tokens,
             "workers": workers,
             "planned_call_count": planned_calls,
             "logical_result_count": planned_calls + reused_result_count,
@@ -354,12 +674,7 @@ def run_judge_pack(
             "http_request_count": getattr(judge, "request_count", planned_calls),
             "failure_count": failures,
             "usage": totals,
-            "pricing_rmb_per_million_tokens": PRICING_RMB_PER_MILLION,
-            "estimated_cost_rmb": _cost(totals),
-            "prior_estimated_cost_rmb": prior_run.get("estimated_cost_rmb", 0.0),
-            "cumulative_estimated_cost_rmb": round(
-                float(prior_run.get("estimated_cost_rmb", 0.0)) + _cost(totals), 6
-            ),
+            **judge.cost_fields(totals, prior_run),
             "resume_from": str(resume_from) if resume_from is not None else None,
             "reasoning_persisted": False,
             "credentials_persisted": False,
@@ -387,9 +702,18 @@ def _project_env_value(path: Path, name: str) -> str:
     return ""
 
 
-def judge_from_environment(env_path: Path = Path(".env")) -> DeepSeekJudge:
-    """Create the production client from process env or a Git-ignored project .env."""
-    api_key = os.environ.get("DEEPSEEK_API_KEY", "") or _project_env_value(
-        env_path, "DEEPSEEK_API_KEY"
-    )
-    return DeepSeekJudge(api_key)
+def judge_from_environment(
+    env_path: Path = Path(".env"), provider: str = "deepseek"
+) -> DeepSeekJudge:
+    """Create a provider judge from process env or a Git-ignored project .env."""
+    clients: dict[str, tuple[str, type[DeepSeekJudge]]] = {
+        "deepseek": ("DEEPSEEK_API_KEY", DeepSeekJudge),
+        "xai": ("XAI_API_KEY", XAIJudge),
+        "google": ("GEMINI_API_KEY", GoogleGemmaJudge),
+    }
+    try:
+        credential_name, client_type = clients[provider]
+    except KeyError as exc:
+        raise JudgeRunError(f"Unsupported judge provider: {provider}") from exc
+    api_key = os.environ.get(credential_name, "") or _project_env_value(env_path, credential_name)
+    return client_type(api_key)

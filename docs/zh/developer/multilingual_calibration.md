@@ -1,4 +1,4 @@
-# 多语言小样本与 DeepSeek V4 Pro Judge
+# 多语言小样本与远程 Judge
 
 ## 目的
 
@@ -44,19 +44,21 @@ aventine build-calibration-pack `
 构建前会逐个校验固定 SHA-256。缺文件或 hash 漂移会直接失败，不会从“最新 upstream”静默抽取
 另一批样本。
 
-## DeepSeek 配置与运行
+## Provider 配置与运行
 
 复制 `.env.example` 为 `.env`，设置：
 
 ```dotenv
 DEEPSEEK_API_KEY=your-key
+XAI_API_KEY=your-key
+GEMINI_API_KEY=your-key
 ```
 
 `.env` 已被 Git 忽略。命令行不接受密钥参数，避免进入 shell history。runner 使用：
 
-- model：`deepseek-v4-pro`；
-- thinking：enabled；`reasoning_effort=high`；
-- JSON Output；
+- DeepSeek：`deepseek-v4-pro`、thinking enabled、`reasoning_effort=high`、JSON Output；
+- xAI：`grok-4.5`、`reasoning_effort=low`、严格 mode-specific JSON Schema；
+- Google：`gemma-4-31b-it`、免费层、原生 `generateContent` + response JSON schema；
 - prompt revision：`translation-judge-v2`；
 - `max_tokens=4000`；
 - server-owned case/model/prompt/calibration metadata；
@@ -67,6 +69,7 @@ DEEPSEEK_API_KEY=your-key
 aventine run-judge `
   "$env:USERPROFILE\.cache\aventine\packs\multilingual-48-v1.json" `
   "$env:USERPROFILE\.cache\aventine\results\deepseek-v4-pro-multilingual-48-v1.json" `
+  --provider deepseek `
   --workers 4 `
   --max-calls 100 `
   --json
@@ -75,6 +78,39 @@ aventine run-judge `
 4 workers 只并发远程 HTTP；不会加载本地模型或长期占用 GPU。runner 不保存 API key、Authorization
 header 或 `reasoning_content`。可选字段返回 `null` 时会规范化为缺省；必填字段仍需通过
 `judge-result.schema.json`。
+
+xAI 对照运行只需改 provider 与输出路径：
+
+```powershell
+aventine run-judge `
+  "$env:USERPROFILE\.cache\aventine\packs\multilingual-48-v1.json" `
+  "$env:USERPROFILE\.cache\aventine\results\grok-4.5-low-multilingual-48-v1.json" `
+  --provider xai `
+  --workers 4 `
+  --max-calls 90 `
+  --json
+```
+
+xAI adapter 记录 API 返回的 `reasoning_tokens` 与 `cost_in_usd_ticks`。后者是实际扣费，优先级高于
+根据公开 token 单价计算的估算。Grok 4.5 不能关闭 reasoning，但支持 `low | medium | high`；校准对照
+默认使用 `low`，避免简单样本消耗不必要的思考 token。
+
+Google-hosted Gemma 4 对照：
+
+```powershell
+aventine run-judge `
+  "$env:USERPROFILE\.cache\aventine\packs\multilingual-48-v1.json" `
+  "$env:USERPROFILE\.cache\aventine\results\gemma-4-31b-it-multilingual-48-v1.json" `
+  --provider google `
+  --workers 2 `
+  --max-calls 90 `
+  --json
+```
+
+Gemma 4 没有可调 reasoning effort；该 adapter 记录为 `reasoning_effort=none`，表示 API 没有独立的
+思考预算参数，而不是证明模型内部没有推理。Gemma 4 Gemini API 当前只有免费层，输入、输出和缓存
+均免费。Google 的免费层条款注明数据可能用于改进产品，因此这里只发送公开 MQM/ACES 与仓库原创
+synthetic calibration case；未经明确批准，不应把用户私有 mod 内容路由到该 provider。
 
 ## 失败与断点续跑
 
@@ -93,8 +129,9 @@ aventine run-judge `
   --json
 ```
 
-续跑只复用 schema-valid 且 case id 一致的结果，并强制 model、prompt revision 与 max tokens 完全
-一致。run metadata 同时记录新一段与累计成本。
+续跑只复用 schema-valid 且 case id 一致的结果，并强制 model、profile、prompt revision、reasoning
+effort 与 max tokens 完全一致。run metadata 同时记录新一段与累计成本。不同 provider 或不同结构化
+输出 profile 不能混合续跑。
 
 ## 解读边界
 
