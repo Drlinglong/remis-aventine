@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Aventine high-ground beacon mark</title>
+  <desc id="desc">A charcoal abstract hill with a small beacon at its summit.</desc>
+  <g fill="#2A2E35">
+    <path d="M486 238 512 212 538 238 512 264Z"/>
+    <path d="M502 258H522V374H502Z"/>
+    <path d="M214 742 482 402Q512 364 542 402L810 742 764 779 512 461 260 779Z"/>
+    <path d="M417 747 512 629 607 747Z"/>
+  </g>
+</svg>

@@ -1,4 +1,8 @@
-# Aventine
+<p align="center">
+  <img src="docs/assets/brand/aventine-logo-on-light.svg" width="180" alt="Aventine evaluation logo">
+</p>
+
+<h1 align="center">Aventine</h1>
 
 [![CI](https://github.com/Drlinglong/remis-aventine/actions/workflows/ci.yml/badge.svg)](https://github.com/Drlinglong/remis-aventine/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
