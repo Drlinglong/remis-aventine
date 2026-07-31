@@ -12,7 +12,7 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
-from enum import Enum
+from enum import Enum, StrEnum
 from types import MappingProxyType
 from typing import Any, TypeAlias
 
@@ -45,7 +45,7 @@ class ScoringInputError(ValueError):
     """Raised when a scoring input violates the published policy contract."""
 
 
-class Stage(str, Enum):
+class Stage(StrEnum):
     """Evaluation stage to which a failure multiplier is applied."""
 
     TRANSLATION = "translation"
@@ -53,7 +53,7 @@ class Stage(str, Enum):
     REPAIR = "repair"
 
 
-class StageOutcome(str, Enum):
+class StageOutcome(StrEnum):
     """Normalized outcome labels consumed by the stage policy."""
 
     PASS = "pass"
@@ -67,7 +67,7 @@ class StageOutcome(str, Enum):
     EXECUTION_FAILURE = "execution_failure"
 
 
-class CoverageDenominator(str, Enum):
+class CoverageDenominator(StrEnum):
     """The planned-decision population used as a coverage denominator."""
 
     PLANNED = "planned"
