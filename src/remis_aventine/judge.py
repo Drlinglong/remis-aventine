@@ -946,8 +946,11 @@ def run_judge_pack(
         if logical_budget is not None and len(tasks) > logical_budget:
             raise JudgeRunError(f"Planned {len(tasks)} calls exceeds max_calls={logical_budget}.")
     else:
-        logical_budget = logical_result_budget if logical_result_budget is not None else max_calls
-        http_budget = http_attempt_budget if http_attempt_budget is not None else max_calls
+        default_budget = max_calls if max_calls is not None else 100
+        logical_budget = (
+            logical_result_budget if logical_result_budget is not None else default_budget
+        )
+        http_budget = http_attempt_budget if http_attempt_budget is not None else default_budget
         budget_mode = "separate"
 
     scheduled_tasks = tasks if logical_budget is None else tasks[:logical_budget]
@@ -1108,6 +1111,7 @@ def run_judge_pack(
             state["retries"] += 1
             state["status"] = "retrying"
             state["failure_type"] = failure_type
+            state["retry_delay_seconds"] = float(2 ** (state["retries"] - 1))
             active.append(task)
             notify(
                 {
@@ -1150,15 +1154,23 @@ def run_judge_pack(
                     )
                 break
             batch: list[tuple[int, str, dict[str, Any]]] = []
+            retry_delay_seconds = 0.0
             while active and len(batch) < workers:
                 if http_budget is not None and attempts_used + len(batch) >= http_budget:
                     break
                 task = active.popleft()
                 case_index, field, _evaluation_case = task
-                states[_task_key(cases[case_index]["id"], field)]["attempts"] += 1
+                state = states[_task_key(cases[case_index]["id"], field)]
+                state["attempts"] += 1
+                retry_delay_seconds = max(
+                    retry_delay_seconds,
+                    float(state.pop("retry_delay_seconds", 0.0)),
+                )
                 batch.append(task)
             if not batch:
                 continue
+            if retry_delay_seconds:
+                getattr(judge, "sleeper", time.sleep)(retry_delay_seconds)
             attempts_used += len(batch)
             with ThreadPoolExecutor(max_workers=len(batch)) as executor:
                 futures = {executor.submit(invoke_once, task): task for task in batch}

@@ -223,6 +223,8 @@ class _FakeJudge:
 class _CountingAttemptJudge(_FakeJudge):
     def __init__(self, *, fail_once: set[str] | None = None, interrupt_on: int | None = None):
         self.calls: list[str] = []
+        self.sleeps: list[float] = []
+        self.sleeper = self.sleeps.append
         self.fail_once = set(fail_once or set())
         self.interrupt_on = interrupt_on
 
@@ -534,9 +536,37 @@ def test_separate_budgets_fairly_share_attempts_before_retries(tmp_path) -> None
     )
 
     assert judge.calls == ["one", "two", "one"]
+    assert judge.sleeps == [1.0]
     assert result["run"]["planned_call_count"] == 2
     assert result["run"]["http_attempt_count"] == 3
     assert result["run"]["failure_count"] == 0
+
+
+def test_partial_separate_budgets_keep_default_cost_caps(tmp_path) -> None:
+    fixture = {
+        "schema_version": 1,
+        "id": "pack-v1",
+        "suite": "mixed",
+        "cases": [_case(f"case-{index}") for index in range(101)],
+    }
+    input_path = tmp_path / "input.json"
+    input_path.write_text(json.dumps(fixture), encoding="utf-8")
+    judge = _CountingAttemptJudge()
+
+    result = run_judge_pack(
+        input_path,
+        tmp_path / "output.json",
+        judge,
+        result_retry_budget=0,
+    )
+
+    assert result["run"]["budget_mode"] == "separate"
+    assert result["run"]["logical_result_budget"] == 100
+    assert result["run"]["http_attempt_budget"] == 100
+    assert result["run"]["scheduled_call_count"] == 100
+    assert result["run"]["budget_skipped_count"] == 1
+    assert result["run"]["status"] == "budget_exhausted"
+    assert len(judge.calls) == 100
 
 
 def test_interruption_checkpoint_resumes_without_repeating_valid_result(tmp_path) -> None:
