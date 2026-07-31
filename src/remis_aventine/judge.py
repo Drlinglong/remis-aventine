@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import hashlib
+import http.client
 import json
 import os
+import socket
+import tempfile
 import time
 import urllib.error
 import urllib.request
+from collections import deque
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import suppress
 from copy import deepcopy
 from pathlib import Path
 from threading import Lock
@@ -31,8 +37,73 @@ GOOGLE_PROFILE = "gemma-4-31b-it-free-structured-v1"
 GOOGLE_MAX_TOKENS = 4000
 
 
+FAILURE_TYPES = (
+    "timeout",
+    "rate_limit",
+    "provider",
+    "truncation",
+    "json",
+    "schema",
+    "budget",
+    "unknown",
+)
+
+
 class JudgeRunError(RuntimeError):
     """Raised when a bounded judge run cannot proceed safely."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        failure_type: str = "unknown",
+        retryable: bool = True,
+    ) -> None:
+        super().__init__(message)
+        self.failure_type = failure_type if failure_type in FAILURE_TYPES else "unknown"
+        self.retryable = retryable
+
+
+def _is_timeout(value: Any) -> bool:
+    text = str(value).lower()
+    return (
+        isinstance(value, (TimeoutError, socket.timeout))
+        or "timed out" in text
+        or "timeout" in text
+    )
+
+
+def _looks_truncated(text: str, error: json.JSONDecodeError) -> bool:
+    stripped = text.strip()
+    if not stripped:
+        return True
+    if "unterminated" in error.msg.lower():
+        return True
+    return error.pos >= max(len(stripped) - 2, 0) and stripped[-1] in '{[,:"'
+
+
+def _json_failure(context: str, text: str, error: json.JSONDecodeError) -> JudgeRunError:
+    failure_type = "truncation" if _looks_truncated(text, error) else "json"
+    return JudgeRunError(
+        f"{context} returned invalid JSON: {error.msg}",
+        failure_type=failure_type,
+    )
+
+
+def _failure_type(exc: BaseException) -> str:
+    if isinstance(exc, JudgeRunError):
+        return exc.failure_type
+    if isinstance(exc, (TimeoutError, socket.timeout)) or _is_timeout(exc):
+        return "timeout"
+    if isinstance(exc, json.JSONDecodeError):
+        return "json"
+    return "unknown"
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    if isinstance(exc, JudgeRunError):
+        return exc.retryable and exc.failure_type != "budget"
+    return _failure_type(exc) != "budget"
 
 
 SYSTEM_PROMPT = """You are a multilingual translation-quality evaluator. Judge meaning,
@@ -300,82 +371,144 @@ class DeepSeekJudge:
             "cumulative_estimated_cost_rmb": round(prior + current, 6),
         }
 
-    def set_request_limit(self, limit: int) -> None:
+    def set_request_limit(self, limit: int | None) -> None:
         """Reset and enforce a total HTTP-request budget for one run."""
         with self._state_lock:
             self.request_count = 0
             self.request_limit = limit
 
+    def set_retry_budget(self, retries: int) -> None:
+        """Set the retry count used by the compatibility ``evaluate`` method."""
+        if retries < 0:
+            raise JudgeRunError("result retry budget must be non-negative.", failure_type="budget")
+        self.retries = retries
+
     def _reserve_request(self) -> None:
         with self._state_lock:
             if self.request_limit is not None and self.request_count >= self.request_limit:
                 raise JudgeRunError(
-                    f"HTTP request budget exhausted at {self.request_limit} requests."
+                    f"HTTP request budget exhausted at {self.request_limit} requests.",
+                    failure_type="budget",
+                    retryable=False,
                 )
             self.request_count += 1
 
-    def evaluate(self, case: dict[str, Any]) -> tuple[dict[str, Any], dict[str, int]]:
+    def evaluate_once(self, case: dict[str, Any]) -> tuple[dict[str, Any], dict[str, int]]:
+        """Perform exactly one HTTP attempt for one logical result."""
         request = urllib.request.Request(
             self.endpoint,
             data=json.dumps(self.request_body(case), ensure_ascii=False).encode("utf-8"),
             headers=self.request_headers(),
             method="POST",
         )
-        last_error: JudgeRunError | None = None
         call_usage = self.empty_usage()
+        response_text = ""
+        content = ""
+        try:
+            self._reserve_request()
+            with self.opener(request, timeout=self.timeout_seconds) as stream:
+                raw_response = stream.read()
+            response_text = raw_response.decode("utf-8")
+            response = json.loads(response_text)
+            response_usage = self.parse_usage(response)
+            with self._state_lock:
+                for key, value in response_usage.items():
+                    call_usage[key] += value
+                    self.total_usage[key] += value
+            self._raise_if_truncated(response)
+            content = self.extract_content(response)
+            model_payload = json.loads(content)
+            evaluation = _without_nulls(model_payload["evaluation"])
+            result = {
+                "schema_version": 1,
+                "case_id": case["id"],
+                "judge": {
+                    "profile": self.profile,
+                    "model": self.model_id,
+                    "prompt_revision": self.prompt_revision,
+                    "calibration_revision": case.get("pack_revision", "multilingual-48-v1"),
+                },
+                "evaluation": evaluation,
+            }
+            validate_payload(result, "judge-result.schema.json")
+            return result, call_usage
+        except JudgeRunError:
+            raise
+        except urllib.error.HTTPError as exc:
+            failure_type = "rate_limit" if exc.code == 429 else "provider"
+            retryable = exc.code == 429 or 500 <= exc.code < 600
+            raise JudgeRunError(
+                f"{self.provider_label} HTTP failure: status {exc.code}",
+                failure_type=failure_type,
+                retryable=retryable,
+            ) from exc
+        except TimeoutError as exc:
+            raise JudgeRunError(
+                f"{self.provider_label} request timed out.",
+                failure_type="timeout",
+            ) from exc
+        except (http.client.IncompleteRead, urllib.error.ContentTooShortError) as exc:
+            raise JudgeRunError(
+                f"{self.provider_label} response was truncated.",
+                failure_type="truncation",
+            ) from exc
+        except urllib.error.URLError as exc:
+            failure_type = "timeout" if _is_timeout(exc.reason) else "provider"
+            raise JudgeRunError(
+                f"{self.provider_label} request failed: {exc.reason}",
+                failure_type=failure_type,
+            ) from exc
+        except json.JSONDecodeError as exc:
+            source = content or response_text
+            raise _json_failure(self.provider_label, source, exc) from exc
+        except UnicodeDecodeError as exc:
+            raise JudgeRunError(
+                f"{self.provider_label} returned non-UTF-8 JSON.",
+                failure_type="json",
+            ) from exc
+        except (AttributeError, KeyError, IndexError, TypeError) as exc:
+            raise JudgeRunError(
+                f"{self.provider_label} returned empty or malformed JSON content.",
+                failure_type="provider",
+            ) from exc
+        except DocumentValidationError as exc:
+            raise JudgeRunError(
+                f"{self.provider_label} JSON failed judge schema: {'; '.join(exc.issues)}",
+                failure_type="schema",
+            ) from exc
+
+    def _raise_if_truncated(self, response: dict[str, Any]) -> None:
+        choices = response.get("choices")
+        if isinstance(choices, list) and choices:
+            finish_reason = choices[0].get("finish_reason")
+            if finish_reason in {"length", "max_tokens", "MAX_TOKENS"}:
+                raise JudgeRunError(
+                    f"{self.provider_label} response reached the output token limit.",
+                    failure_type="truncation",
+                )
+        candidates = response.get("candidates")
+        if isinstance(candidates, list) and candidates:
+            finish_reason = candidates[0].get("finishReason")
+            if finish_reason in {"MAX_TOKENS", "length", "max_tokens"}:
+                raise JudgeRunError(
+                    f"{self.provider_label} response reached the output token limit.",
+                    failure_type="truncation",
+                )
+
+    def evaluate(self, case: dict[str, Any]) -> tuple[dict[str, Any], dict[str, int]]:
+        """Perform one logical result with the configured bounded retry policy."""
+        last_error: JudgeRunError | None = None
         for attempt in range(self.retries + 1):
             try:
-                self._reserve_request()
-                with self.opener(request, timeout=self.timeout_seconds) as stream:
-                    response = json.loads(stream.read().decode("utf-8"))
-                response_usage = self.parse_usage(response)
-                with self._state_lock:
-                    for key, value in response_usage.items():
-                        call_usage[key] += value
-                        self.total_usage[key] += value
-                content = self.extract_content(response)
-                model_payload = json.loads(content)
-                evaluation = _without_nulls(model_payload["evaluation"])
-                result = {
-                    "schema_version": 1,
-                    "case_id": case["id"],
-                    "judge": {
-                        "profile": self.profile,
-                        "model": self.model_id,
-                        "prompt_revision": self.prompt_revision,
-                        "calibration_revision": case.get("pack_revision", "multilingual-48-v1"),
-                    },
-                    "evaluation": evaluation,
-                }
-                validate_payload(result, "judge-result.schema.json")
-                return result, call_usage
-            except urllib.error.HTTPError as exc:
-                retryable = exc.code == 429 or 500 <= exc.code < 600
-                if not retryable:
-                    raise JudgeRunError(
-                        f"{self.provider_label} HTTP failure: status {exc.code}"
-                    ) from exc
-                last_error = JudgeRunError(f"{self.provider_label} HTTP failure: status {exc.code}")
-            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-                last_error = JudgeRunError(
-                    f"{self.provider_label} returned malformed data: {type(exc).__name__}"
-                )
-            except (KeyError, IndexError, TypeError):
-                last_error = JudgeRunError(
-                    f"{self.provider_label} returned empty or malformed JSON content."
-                )
-            except DocumentValidationError as exc:
-                last_error = JudgeRunError(
-                    f"{self.provider_label} JSON failed judge schema: {'; '.join(exc.issues)}"
-                )
-            except JudgeRunError:
-                raise
-            if attempt == self.retries:
-                assert last_error is not None
-                raise last_error
-            self.sleeper(float(2**attempt))
-
-        raise AssertionError("unreachable")  # pragma: no cover
+                return self.evaluate_once(case)
+            except JudgeRunError as exc:
+                if not exc.retryable or exc.failure_type == "budget":
+                    raise
+                last_error = exc
+            if attempt < self.retries:
+                self.sleeper(float(2**attempt))
+        assert last_error is not None
+        raise last_error
 
 
 class XAIJudge(DeepSeekJudge):
@@ -577,6 +710,126 @@ def _valid_prior_output(value: Any, case_id: str) -> bool:
     return output["case_id"] == case_id
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _sha256_json(value: Any) -> str:
+    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
+    """Write a JSON snapshot with replace-on-success semantics."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    )
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary_path, path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def _task_key(case_id: str, field: str) -> str:
+    return json.dumps([case_id, field], ensure_ascii=False, separators=(",", ":"))
+
+
+def _judge_configuration(
+    input_path: Path,
+    fixture: dict[str, Any],
+    cases: list[dict[str, Any]],
+    tasks: list[tuple[int, str, dict[str, Any]]],
+    judge: DeepSeekJudge,
+    *,
+    workers: int,
+    result_retry_budget: int,
+) -> dict[str, Any]:
+    configuration: dict[str, Any] = {
+        "version": 1,
+        "fixture_id": fixture["id"],
+        "fixture_sha256": _sha256_file(input_path),
+        "case_ids": [case["id"] for case in cases],
+        "logical_tasks": [[cases[index]["id"], field] for index, field, _ in tasks],
+        "provider": getattr(judge, "provider", "unknown"),
+        "model": getattr(judge, "model_id", "unknown"),
+        "profile": getattr(judge, "profile", "unknown"),
+        "prompt_revision": getattr(judge, "prompt_revision", "unknown"),
+        "max_tokens": getattr(judge, "max_tokens", None),
+        "thinking": getattr(judge, "thinking", None),
+        "reasoning_effort": getattr(judge, "reasoning_effort", None),
+        "workers": workers,
+        "result_retry_budget": result_retry_budget,
+    }
+    endpoint = getattr(judge, "endpoint", None)
+    if endpoint is not None:
+        configuration["endpoint"] = str(endpoint)
+    return configuration
+
+
+def _exception_failure_type(exc: BaseException) -> str:
+    if isinstance(exc, JudgeRunError):
+        return exc.failure_type
+    if isinstance(exc, (TimeoutError, socket.timeout)) or _is_timeout(exc):
+        return "timeout"
+    if isinstance(exc, json.JSONDecodeError):
+        return "json"
+    text = str(exc).lower()
+    if "429" in text or "rate limit" in text:
+        return "rate_limit"
+    if "schema" in text:
+        return "schema"
+    if "truncat" in text or "max token" in text:
+        return "truncation"
+    if "budget" in text:
+        return "budget"
+    return "unknown"
+
+
+def _failure_payload(
+    exc: BaseException,
+    *,
+    attempts: int,
+    retries: int,
+    budget_scope: str | None = None,
+) -> dict[str, Any]:
+    failure: dict[str, Any] = {
+        "kind": "judge_call_failure",
+        "failure_type": _exception_failure_type(exc),
+        "detail": str(exc),
+        "attempt_count": attempts,
+        "retry_count": retries,
+    }
+    if budget_scope is not None:
+        failure["budget_scope"] = budget_scope
+    return {"benchmark_failure": failure}
+
+
+def _failure_counts(cases: list[dict[str, Any]]) -> dict[str, int]:
+    counts = {failure_type: 0 for failure_type in FAILURE_TYPES}
+    for case in cases:
+        for field in ("judge_output", "swap_judge_output"):
+            value = case.get(field)
+            if not isinstance(value, dict) or "benchmark_failure" not in value:
+                continue
+            failure = value["benchmark_failure"]
+            failure_type = failure.get("failure_type") if isinstance(failure, dict) else None
+            if failure_type not in counts:
+                failure_type = "unknown"
+            counts[failure_type] += 1
+    return counts
+
+
 def run_judge_pack(
     input_path: Path,
     output_path: Path,
@@ -584,11 +837,16 @@ def run_judge_pack(
     *,
     limit: int | None = None,
     case_ids: list[str] | None = None,
-    max_calls: int = 100,
+    max_calls: int | None = None,
     workers: int = 1,
     resume_from: Path | None = None,
+    logical_result_budget: int | None = None,
+    http_attempt_budget: int | None = None,
+    result_retry_budget: int | None = None,
+    checkpoint_path: Path | None = None,
+    progress: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
-    """Run base cases plus ACES A/B swaps, recording failures without hiding them."""
+    """Run judge results with separate budgets, fair retries, and atomic snapshots."""
     fixture = load_calibration_fixture(input_path)
     selected = fixture["cases"]
     if case_ids:
@@ -601,114 +859,353 @@ def run_judge_pack(
     if workers < 1:
         raise JudgeRunError("workers must be at least 1.")
 
+    separate_budgets = any(
+        value is not None
+        for value in (logical_result_budget, http_attempt_budget, result_retry_budget)
+    )
+    if not separate_budgets and max_calls is None:
+        max_calls = 100
+    for name, value in (
+        ("max_calls", max_calls),
+        ("logical_result_budget", logical_result_budget),
+        ("http_attempt_budget", http_attempt_budget),
+        ("result_retry_budget", result_retry_budget),
+    ):
+        if value is not None and value < 0:
+            raise JudgeRunError(f"{name} must be non-negative.", failure_type="budget")
+
+    effective_retry_budget = (
+        result_retry_budget
+        if result_retry_budget is not None
+        else max(int(getattr(judge, "retries", 0)), 0)
+    )
+    retry_setter = getattr(judge, "set_retry_budget", None)
+    if callable(retry_setter) and result_retry_budget is not None:
+        retry_setter(effective_retry_budget)
+
+    for case in cases:
+        case["pack_revision"] = fixture["id"]
+    all_tasks: list[tuple[int, str, dict[str, Any]]] = []
+    for case_index, case in enumerate(cases):
+        all_tasks.append((case_index, "judge_output", case))
+        if case.get("origin_suite") == "aces" or case.get("ab_swap") is True:
+            all_tasks.append((case_index, "swap_judge_output", _swapped_case(case)))
+
     prior_run: dict[str, Any] = {}
     reused_result_count = 0
+    current_configuration = _judge_configuration(
+        input_path,
+        fixture,
+        cases,
+        all_tasks,
+        judge,
+        workers=workers,
+        result_retry_budget=effective_retry_budget,
+    )
+    config_fingerprint = _sha256_json(current_configuration)
     if resume_from is not None:
         prior = load_calibration_fixture(resume_from)
         prior_run = prior.get("run") or {}
-        expected = {
-            "model": judge.model_id,
-            "profile": judge.profile,
-            "prompt_revision": judge.prompt_revision,
-            "max_tokens": judge.max_tokens,
-            "reasoning_effort": judge.reasoning_effort,
-        }
-        mismatches = [key for key, value in expected.items() if prior_run.get(key) != value]
-        if mismatches:
-            raise JudgeRunError(
-                "Resume artifact has incompatible judge configuration: " + ", ".join(mismatches)
-            )
-        prior_cases = {case["id"]: case for case in prior["cases"]}
-        for case in cases:
+        prior_fingerprint = prior_run.get("config_fingerprint")
+        if prior_fingerprint is not None:
+            if prior_fingerprint != config_fingerprint:
+                raise JudgeRunError(
+                    "Resume artifact has incompatible judge configuration fingerprint: "
+                    f"expected {config_fingerprint}, received {prior_fingerprint}"
+                )
+        else:
+            expected = {
+                "model": getattr(judge, "model_id", None),
+                "profile": getattr(judge, "profile", None),
+                "prompt_revision": getattr(judge, "prompt_revision", None),
+                "max_tokens": getattr(judge, "max_tokens", None),
+                "reasoning_effort": getattr(judge, "reasoning_effort", None),
+            }
+            mismatches = [key for key, value in expected.items() if prior_run.get(key) != value]
+            if mismatches:
+                raise JudgeRunError(
+                    "Resume artifact has incompatible judge configuration: " + ", ".join(mismatches)
+                )
+        prior_cases = {case["id"]: case for case in prior.get("cases", [])}
+        for case_index, field, _evaluation_case in all_tasks:
+            case = cases[case_index]
             prior_case = prior_cases.get(case["id"], {})
-            for field in ("judge_output", "swap_judge_output"):
-                if field in prior_case and _valid_prior_output(prior_case[field], case["id"]):
-                    case[field] = deepcopy(prior_case[field])
-                    reused_result_count += 1
+            if field in prior_case and _valid_prior_output(prior_case[field], case["id"]):
+                case[field] = deepcopy(prior_case[field])
+                reused_result_count += 1
 
-    budget_setter = getattr(judge, "set_request_limit", None)
-    if callable(budget_setter):
-        budget_setter(max_calls)
+    tasks = [
+        (case_index, field, evaluation_case)
+        for case_index, field, evaluation_case in all_tasks
+        if field not in cases[case_index]
+    ]
+    if not separate_budgets:
+        logical_budget = max_calls
+        http_budget = max_calls
+        budget_mode = "max_calls_compat"
+        if logical_budget is not None and len(tasks) > logical_budget:
+            raise JudgeRunError(f"Planned {len(tasks)} calls exceeds max_calls={logical_budget}.")
+    else:
+        logical_budget = logical_result_budget if logical_result_budget is not None else max_calls
+        http_budget = http_attempt_budget if http_attempt_budget is not None else max_calls
+        budget_mode = "separate"
+
+    scheduled_tasks = tasks if logical_budget is None else tasks[:logical_budget]
+    skipped_tasks = tasks[len(scheduled_tasks) :]
+    budget_exhausted = bool(skipped_tasks)
+    states: dict[str, dict[str, Any]] = {}
+    for case_index, field, _evaluation_case in all_tasks:
+        key = _task_key(cases[case_index]["id"], field)
+        states[key] = {
+            "case_id": cases[case_index]["id"],
+            "field": field,
+            "attempts": 0,
+            "retries": 0,
+            "status": "reused" if field in cases[case_index] else "pending",
+        }
+
+    def notify(event: dict[str, Any]) -> None:
+        if progress is not None:
+            with suppress(Exception):
+                progress(event)
+
+    def mark_budget(task: tuple[int, str, dict[str, Any]], scope: str, detail: str) -> None:
+        case_index, field, _evaluation_case = task
+        state = states[_task_key(cases[case_index]["id"], field)]
+        cases[case_index][field] = _failure_payload(
+            JudgeRunError(detail, failure_type="budget", retryable=False),
+            attempts=state["attempts"],
+            retries=state["retries"],
+            budget_scope=scope,
+        )
+        state["status"] = "budget"
+        state["failure_type"] = "budget"
+
+    for task in skipped_tasks:
+        mark_budget(
+            task,
+            "logical_result",
+            "Logical result budget exhausted before this result was scheduled.",
+        )
+
+    request_limiter = getattr(judge, "set_request_limit", None)
+    if callable(request_limiter):
+        request_limiter(http_budget)
     starting_usage = deepcopy(getattr(judge, "total_usage", None))
-
     totals = judge.empty_usage()
-    tasks: list[tuple[int, str, dict[str, Any]]] = []
-    for case_index, case in enumerate(cases):
-        case["pack_revision"] = fixture["id"]
-        if "judge_output" not in case:
-            tasks.append((case_index, "judge_output", case))
-        wants_swap = case.get("origin_suite") == "aces" or case.get("ab_swap") is True
-        if wants_swap and "swap_judge_output" not in case:
-            tasks.append((case_index, "swap_judge_output", _swapped_case(case)))
+    attempts_used = 0
+    checkpoint_target = checkpoint_path or output_path
 
-    planned_calls = len(tasks)
-    if planned_calls > max_calls:
-        raise JudgeRunError(f"Planned {planned_calls} calls exceeds max_calls={max_calls}.")
+    def usage_snapshot() -> dict[str, int]:
+        judge_usage = getattr(judge, "total_usage", None)
+        if isinstance(judge_usage, dict) and isinstance(starting_usage, dict):
+            return {
+                key: judge_usage.get(key, 0) - starting_usage.get(key, 0) for key in judge_usage
+            }
+        return dict(totals)
 
-    failures = 0
+    def request_count() -> int:
+        value = getattr(judge, "request_count", None)
+        return int(value) if isinstance(value, int) else attempts_used
 
-    def execute(task: tuple[int, str, dict[str, Any]]) -> tuple[int, str, Any, Any]:
-        case_index, field, evaluation_case = task
-        try:
-            output, usage = judge.evaluate(evaluation_case)
-            return case_index, field, output, usage
-        except JudgeRunError as exc:
-            failure = {"benchmark_failure": {"kind": "judge_call_failure", "detail": str(exc)}}
-            return case_index, field, failure, None
-
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = [executor.submit(execute, task) for task in tasks]
-        for future in as_completed(futures):
-            case_index, field, output, usage = future.result()
-            if usage is None:
-                failures += 1
-            else:
-                for key, value in usage.items():
-                    totals[key] += value
-            if field == "swap_judge_output" and "case_id" in output:
-                output["case_id"] = cases[case_index]["id"]
-            cases[case_index][field] = output
-
-    judge_usage = getattr(judge, "total_usage", None)
-    if isinstance(judge_usage, dict) and isinstance(starting_usage, dict):
-        totals = {key: judge_usage[key] - starting_usage[key] for key in totals}
-
-    result = {
-        "schema_version": 1,
-        "id": f"{fixture['id']}.{judge.model_id}",
-        "suite": fixture["suite"],
-        "description": f"Schema-bound {judge.provider_label} calibration results; not human gold.",
-        "run": {
-            "provider": judge.provider,
-            "model": judge.model_id,
-            "profile": judge.profile,
-            "prompt_revision": judge.prompt_revision,
-            "thinking": judge.thinking,
-            "reasoning_effort": judge.reasoning_effort,
-            "max_tokens": judge.max_tokens,
+    def build_result(status: str) -> dict[str, Any]:
+        failure_counts = _failure_counts(cases)
+        completed_result_count = sum(
+            field in cases[case_index] for case_index, field, _evaluation_case in all_tasks
+        )
+        run: dict[str, Any] = {
+            "provider": getattr(judge, "provider", "unknown"),
+            "model": getattr(judge, "model_id", "unknown"),
+            "profile": getattr(judge, "profile", "unknown"),
+            "prompt_revision": getattr(judge, "prompt_revision", "unknown"),
+            "thinking": getattr(judge, "thinking", "unknown"),
+            "reasoning_effort": getattr(judge, "reasoning_effort", "unknown"),
+            "max_tokens": getattr(judge, "max_tokens", 0),
             "workers": workers,
-            "planned_call_count": planned_calls,
-            "logical_result_count": planned_calls + reused_result_count,
+            "budget_mode": budget_mode,
+            "max_calls": max_calls,
+            "logical_result_budget": logical_budget,
+            "http_attempt_budget": http_budget,
+            "result_retry_budget": effective_retry_budget,
+            "planned_call_count": len(tasks),
+            "scheduled_call_count": len(scheduled_tasks),
+            "logical_result_count": len(all_tasks),
             "reused_result_count": reused_result_count,
-            "http_request_count": getattr(judge, "request_count", planned_calls),
-            "failure_count": failures,
-            "usage": totals,
-            **judge.cost_fields(totals, prior_run),
+            "completed_result_count": completed_result_count,
+            "unfinished_result_count": len(all_tasks) - completed_result_count,
+            "budget_skipped_count": len(skipped_tasks),
+            "http_request_count": request_count(),
+            "http_attempt_count": attempts_used,
+            "failure_count": sum(failure_counts.values()),
+            "failure_counts": failure_counts,
+            "failure_taxonomy": list(FAILURE_TYPES),
+            "usage": usage_snapshot(),
             "resume_from": str(resume_from) if resume_from is not None else None,
+            "checkpoint_path": str(checkpoint_target),
+            "config_fingerprint": config_fingerprint,
+            "configuration": current_configuration,
+            "status": status,
+            "completed": status == "completed",
             "reasoning_persisted": False,
             "credentials_persisted": False,
-        },
-        "cases": cases,
-    }
-    for field in ("adapter", "recipes", "policy_cases", "repair_over_editing"):
-        if field in fixture:
-            result[field] = deepcopy(fixture[field])
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+            "task_state": {key: states[key] for key in sorted(states)},
+        }
+        run.update(judge.cost_fields(run["usage"], prior_run))
+        result: dict[str, Any] = {
+            "schema_version": 1,
+            "id": f"{fixture['id']}.{getattr(judge, 'model_id', 'unknown')}",
+            "suite": fixture["suite"],
+            "description": (
+                f"Schema-bound {getattr(judge, 'provider_label', 'judge')} calibration results; "
+                "not human gold."
+            ),
+            "run": run,
+            "cases": deepcopy(cases),
+        }
+        for field in ("adapter", "recipes", "policy_cases", "repair_over_editing"):
+            if field in fixture:
+                result[field] = deepcopy(fixture[field])
+        return result
+
+    def write_checkpoint(status: str) -> dict[str, Any]:
+        snapshot = build_result(status)
+        _atomic_write_json(checkpoint_target, snapshot)
+        return snapshot
+
+    notify(
+        {
+            "event": "started",
+            "logical_result_count": len(all_tasks),
+            "pending_result_count": len(tasks),
+            "reused_result_count": reused_result_count,
+            "logical_result_budget": logical_budget,
+            "http_attempt_budget": http_budget,
+        }
     )
-    return result
+    write_checkpoint("running")
+
+    def invoke_once(task: tuple[int, str, dict[str, Any]]) -> tuple[Any, Any]:
+        _case_index, _field, evaluation_case = task
+        evaluator = getattr(judge, "evaluate_once", None)
+        if callable(evaluator):
+            return evaluator(evaluation_case)
+        return judge.evaluate(evaluation_case)
+
+    active: deque[tuple[int, str, dict[str, Any]]] = deque(scheduled_tasks)
+
+    def handle_failure(task: tuple[int, str, dict[str, Any]], exc: BaseException) -> None:
+        nonlocal budget_exhausted
+        case_index, field, _evaluation_case = task
+        state = states[_task_key(cases[case_index]["id"], field)]
+        failure_type = _exception_failure_type(exc)
+        if failure_type == "budget":
+            budget_exhausted = True
+        if (
+            failure_type != "budget"
+            and _is_retryable(exc)
+            and state["retries"] < effective_retry_budget
+        ):
+            state["retries"] += 1
+            state["status"] = "retrying"
+            state["failure_type"] = failure_type
+            active.append(task)
+            notify(
+                {
+                    "event": "retry",
+                    "case_id": state["case_id"],
+                    "field": field,
+                    "failure_type": failure_type,
+                    "retry_count": state["retries"],
+                    "http_attempt_count": attempts_used,
+                }
+            )
+            return
+        cases[case_index][field] = _failure_payload(
+            exc,
+            attempts=state["attempts"],
+            retries=state["retries"],
+        )
+        state["status"] = "budget" if failure_type == "budget" else "failed"
+        state["failure_type"] = failure_type
+        notify(
+            {
+                "event": "result",
+                "case_id": state["case_id"],
+                "field": field,
+                "status": state["status"],
+                "failure_type": failure_type,
+                "http_attempt_count": attempts_used,
+            }
+        )
+
+    try:
+        while active:
+            if http_budget is not None and attempts_used >= http_budget:
+                budget_exhausted = True
+                while active:
+                    mark_budget(
+                        active.popleft(),
+                        "http_attempt",
+                        "HTTP attempt budget exhausted before this result was scheduled.",
+                    )
+                break
+            batch: list[tuple[int, str, dict[str, Any]]] = []
+            while active and len(batch) < workers:
+                if http_budget is not None and attempts_used + len(batch) >= http_budget:
+                    break
+                task = active.popleft()
+                case_index, field, _evaluation_case = task
+                states[_task_key(cases[case_index]["id"], field)]["attempts"] += 1
+                batch.append(task)
+            if not batch:
+                continue
+            attempts_used += len(batch)
+            with ThreadPoolExecutor(max_workers=len(batch)) as executor:
+                futures = {executor.submit(invoke_once, task): task for task in batch}
+                for future in as_completed(futures):
+                    task = futures[future]
+                    case_index, field, _evaluation_case = task
+                    key = _task_key(cases[case_index]["id"], field)
+                    try:
+                        output, usage = future.result()
+                    except Exception as exc:
+                        handle_failure(task, exc)
+                    else:
+                        if usage is not None:
+                            for usage_key, value in usage.items():
+                                totals[usage_key] = totals.get(usage_key, 0) + value
+                        if field == "swap_judge_output" and isinstance(output, dict):
+                            output["case_id"] = cases[case_index]["id"]
+                        cases[case_index][field] = output
+                        states[key]["status"] = "completed"
+                        notify(
+                            {
+                                "event": "result",
+                                "case_id": cases[case_index]["id"],
+                                "field": field,
+                                "status": "completed",
+                                "http_attempt_count": attempts_used,
+                            }
+                        )
+                    write_checkpoint("running")
+    except BaseException:
+        write_checkpoint("interrupted")
+        raise
+
+    status = "budget_exhausted" if budget_exhausted else "completed"
+    final_result = write_checkpoint(status)
+    if checkpoint_target != output_path:
+        _atomic_write_json(output_path, final_result)
+    notify(
+        {
+            "event": "finished",
+            "status": status,
+            "completed_result_count": final_result["run"]["completed_result_count"],
+            "failure_count": final_result["run"]["failure_count"],
+            "http_attempt_count": final_result["run"]["http_attempt_count"],
+        }
+    )
+    return final_result
 
 
 def _project_env_value(path: Path, name: str) -> str:

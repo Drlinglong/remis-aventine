@@ -450,6 +450,88 @@ def test_run_judge_cli(monkeypatch, tmp_path, capsys) -> None:
     assert selected["provider"] == "xai"
 
 
+def test_run_judge_cli_json_keeps_stdout_machine_readable(monkeypatch, tmp_path, capsys) -> None:
+    fixture = {
+        "schema_version": 1,
+        "id": "pack-v1",
+        "suite": "mixed",
+        "cases": [
+            {
+                "id": "case-1",
+                "input": {"language_pair": "en-zh", "source": "Hello", "candidate": "你好"},
+                "gold": {"mode": "single", "verdict": "pass"},
+            }
+        ],
+    }
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "output.json"
+    input_path.write_text(json.dumps(fixture), encoding="utf-8")
+
+    class FakeJudge:
+        provider = "fake"
+        provider_label = "Fake"
+        model_id = "fake"
+        profile = "fake"
+        prompt_revision = "fake"
+        max_tokens = 100
+        thinking = "disabled"
+        reasoning_effort = "none"
+
+        def empty_usage(self):
+            return {"cache_hit_input_tokens": 0, "cache_miss_input_tokens": 0, "output_tokens": 0}
+
+        def cost_fields(self, usage, prior_run):
+            return {
+                "estimated_cost_rmb": 0.0,
+                "prior_estimated_cost_rmb": float(prior_run.get("estimated_cost_rmb", 0.0)),
+                "cumulative_estimated_cost_rmb": 0.0,
+            }
+
+        def evaluate(self, case):
+            return {
+                "schema_version": 1,
+                "case_id": case["id"],
+                "judge": {
+                    "profile": "fake",
+                    "model": "fake",
+                    "prompt_revision": "fake",
+                    "calibration_revision": "pack-v1",
+                },
+                "evaluation": {
+                    "mode": "single",
+                    "verdict": "pass",
+                    "confidence": "high",
+                    "errors": [],
+                    "rationale": "ok",
+                    "limitations": [],
+                },
+            }, {"cache_hit_input_tokens": 0, "cache_miss_input_tokens": 0, "output_tokens": 0}
+
+    monkeypatch.setattr(cli, "judge_from_environment", lambda *_args: FakeJudge())
+
+    exit_code = main(
+        [
+            "run-judge",
+            str(input_path),
+            str(output_path),
+            "--logical-result-budget",
+            "1",
+            "--http-attempt-budget",
+            "1",
+            "--result-retry-budget",
+            "0",
+            "--json",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert exit_code == 0
+    assert payload["completed"] is True
+    assert "judge_progress" in captured.err
+    assert json.loads(output_path.read_text(encoding="utf-8"))["run"]["status"] == "completed"
+
+
 def test_run_metric_cli(monkeypatch, tmp_path, capsys) -> None:
     selected = {}
 

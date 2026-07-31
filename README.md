@@ -82,7 +82,9 @@ aventine build-mtme-mqm-pack TEST_SET LANGUAGE_PAIR RATING_SET DATASET_REVISION 
 aventine build-aces-pack INPUT OUTPUT --kind aces|span-aces --dataset-revision REVISION
   --expected-sha256 SHA256 [--limit N] [--language-pair PAIR] [--phenomenon NAME] [--json]
 aventine run-judge INPUT OUTPUT [--case-id ID] [--max-calls N] [--workers N]
-  [--provider deepseek|xai|google] [--resume-from PATH] [--env-file PATH] [--json]
+  [--logical-result-budget N] [--http-attempt-budget N] [--result-retry-budget N]
+  [--provider deepseek|xai|google] [--resume-from PATH] [--checkpoint PATH]
+  [--env-file PATH] [--json]
 aventine run-metric INPUT OUTPUT --metric metricx-24|xcomet --runtime-python PATH
   --model-path PATH --model-id ID --model-sha256 SHA256 [--mode qe|reference]
   [--tokenizer-path PATH] [--metricx-source PATH] [--hf-home PATH] [--json]
@@ -118,15 +120,14 @@ reporting reuses Remis's `valid_items_unchanged` and `reference_exact_match` evi
 The real multilingual pack is rebuilt from SHA-256-pinned external MQM/ACES files. Raw upstream
 text and generated judge results remain outside Git. `run-judge` reads the selected provider's
 `DEEPSEEK_API_KEY`, `XAI_API_KEY`, or `GEMINI_API_KEY` from the process environment or a Git-ignored
-project `.env`, enforces a total HTTP request budget, retries transient/empty JSON responses, strips
-reasoning content, and can resume only failed outputs from a configuration-compatible artifact. See the
+project `.env`, strips reasoning content, and records timeout, rate-limit, provider, truncation, JSON,
+schema, budget, and unknown failures without changing the aggregate schema. `--max-calls` retains its
+legacy meaning: it caps both planned logical results and total HTTP attempts. New runs can instead use
+`--logical-result-budget`, `--http-attempt-budget`, and `--result-retry-budget`; retries are scheduled
+fairly across logical results. Each result atomically updates the output (or `--checkpoint` path), and
+resume rejects a mismatched configuration fingerprint while reusing only schema-valid results. With
+`--json`, final JSON is emitted on stdout and progress/diagnostics are emitted on stderr. See the
 [multilingual calibration guide](docs/zh/developer/multilingual_calibration.md).
-
-Known limitation: `--max-calls` currently caps HTTP attempts, including retries, while the runner also
-uses it when checking planned logical outputs. Until these budgets are separated, leave retry headroom
-above the planned output count. Split budgets, incremental checkpoints, progress telemetry, and a more
-compact long-text judge profile are tracked in
-[issue #5](https://github.com/Drlinglong/remis-aventine/issues/5).
 
 `build-mtme-mqm-pack` reads an already-installed, already-downloaded `mt-metrics-eval` EvalSet. It
 never downloads the multi-gigabyte WMT bundle itself. The adapter skips unrated segments, preserves

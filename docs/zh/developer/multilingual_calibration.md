@@ -71,7 +71,10 @@ aventine run-judge `
   "$env:USERPROFILE\.cache\aventine\results\deepseek-v4-pro-multilingual-48-v1.json" `
   --provider deepseek `
   --workers 4 `
-  --max-calls 100 `
+  --logical-result-budget 48 `
+  --http-attempt-budget 100 `
+  --result-retry-budget 2 `
+  --checkpoint "$env:USERPROFILE\.cache\aventine\results\deepseek-v4-pro-multilingual-48-v1.checkpoint.json" `
   --json
 ```
 
@@ -87,7 +90,9 @@ aventine run-judge `
   "$env:USERPROFILE\.cache\aventine\results\grok-4.5-low-multilingual-48-v1.json" `
   --provider xai `
   --workers 4 `
-  --max-calls 90 `
+  --logical-result-budget 48 `
+  --http-attempt-budget 90 `
+  --result-retry-budget 2 `
   --json
 ```
 
@@ -103,7 +108,9 @@ aventine run-judge `
   "$env:USERPROFILE\.cache\aventine\results\gemma-4-31b-it-multilingual-48-v1.json" `
   --provider google `
   --workers 2 `
-  --max-calls 90 `
+  --logical-result-budget 48 `
+  --http-attempt-budget 90 `
+  --result-retry-budget 2 `
   --json
 ```
 
@@ -117,11 +124,15 @@ synthetic calibration case；未经明确批准，不应把用户私有 mod 内�
 空 JSON、截断、schema failure、HTTP failure 和请求预算耗尽都是显式 benchmark failure。不要把
 它们从准确率分母中静默删除。
 
-当前 `--max-calls` 同时参与逻辑输出规划检查并限制包含 retry 在内的 HTTP 请求总数。修复前，
-该值必须高于计划逻辑输出数并留出足够的重试余量。请求预算耗尽属于 judge 基础设施失败，
-不能记为候选翻译失败。首届 Remis pilot 的 40 个逻辑输出使用了 113 次 HTTP 请求，最终 32 个
-有效；预算拆分、逐项 checkpoint、实时进度与 failure taxonomy 统一由
-[issue #5](https://github.com/Drlinglong/remis-aventine/issues/5) 跟踪。
+`--max-calls` 保持旧语义：同时作为计划逻辑输出上限和包含 retry 在内的 HTTP attempt 上限。
+新运行可以分别指定 `--logical-result-budget`、`--http-attempt-budget` 和
+`--result-retry-budget`；runner 会先让各逻辑结果获得一次 attempt，再公平调度 retry，避免单个
+失败项连续消耗全部 HTTP 预算。失败 taxonomy 固定包括 `timeout`、`rate_limit`、`provider`、
+`truncation`、`json`、`schema`、`budget` 和 `unknown`。请求预算耗尽属于 judge 基础设施失败，
+不能记为候选翻译失败。每个结果完成后都会原子更新 checkpoint，checkpoint 记录配置指纹；resume
+会拒绝输入、judge profile、worker 或 retry 策略不兼容的配置，并只复用 schema-valid 结果。首届
+Remis pilot 的 40 个逻辑输出使用了 113 次 HTTP 请求，最终 32 个有效；当前实现仍不改变
+aggregate schema。使用 `--json` 时，stdout 只有最终 JSON，进度和诊断进入 stderr。
 
 如果外部计费或服务中断，可在恢复后只重试失败项：
 
@@ -131,7 +142,9 @@ aventine run-judge `
   "$env:USERPROFILE\.cache\aventine\results\deepseek-v4-pro-resumed.json" `
   --resume-from "$env:USERPROFILE\.cache\aventine\results\partial.json" `
   --workers 4 `
-  --max-calls 40 `
+  --logical-result-budget 48 `
+  --http-attempt-budget 40 `
+  --result-retry-budget 2 `
   --json
 ```
 

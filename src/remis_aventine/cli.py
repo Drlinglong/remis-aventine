@@ -164,12 +164,46 @@ def build_parser() -> argparse.ArgumentParser:
     judge_run_parser.add_argument("output", type=Path)
     judge_run_parser.add_argument("--limit", type=int)
     judge_run_parser.add_argument("--case-id", action="append", dest="case_ids")
-    judge_run_parser.add_argument("--max-calls", type=int, default=100)
+    judge_run_parser.add_argument(
+        "--max-calls",
+        type=int,
+        default=None,
+        help="Legacy cap for both logical results and HTTP attempts.",
+    )
+    judge_run_parser.add_argument(
+        "--logical-result-budget",
+        "--max-logical-results",
+        "--max-results",
+        dest="logical_result_budget",
+        type=int,
+        help="Maximum new logical results to schedule in this invocation.",
+    )
+    judge_run_parser.add_argument(
+        "--http-attempt-budget",
+        "--max-http-attempts",
+        dest="http_attempt_budget",
+        type=int,
+        help="Maximum HTTP attempts, including retries, in this invocation.",
+    )
+    judge_run_parser.add_argument(
+        "--result-retry-budget",
+        "--max-result-retries",
+        dest="result_retry_budget",
+        type=int,
+        help="Maximum retries for each logical result after its first attempt.",
+    )
     judge_run_parser.add_argument("--workers", type=int, default=1)
     judge_run_parser.add_argument(
         "--provider", choices=("deepseek", "xai", "google"), default="deepseek"
     )
     judge_run_parser.add_argument("--resume-from", type=Path)
+    judge_run_parser.add_argument(
+        "--checkpoint",
+        "--journal",
+        dest="checkpoint_path",
+        type=Path,
+        help="Atomic incremental checkpoint path; defaults to OUTPUT.",
+    )
     judge_run_parser.add_argument("--env-file", type=Path, default=Path(".env"))
     judge_run_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
@@ -452,6 +486,15 @@ def _build_aces_pack(args: argparse.Namespace) -> int:
 
 
 def _run_judge(args: argparse.Namespace) -> int:
+    def report_progress(event: dict[str, Any]) -> None:
+        if args.json:
+            print(
+                json.dumps({"judge_progress": event}, ensure_ascii=False, sort_keys=True),
+                file=sys.stderr,
+            )
+        else:
+            print(f"judge progress: {event}", file=sys.stderr)
+
     try:
         judge = judge_from_environment(args.env_file, args.provider)
         result = run_judge_pack(
@@ -463,11 +506,16 @@ def _run_judge(args: argparse.Namespace) -> int:
             max_calls=args.max_calls,
             workers=args.workers,
             resume_from=args.resume_from,
+            logical_result_budget=args.logical_result_budget,
+            http_attempt_budget=args.http_attempt_budget,
+            result_retry_budget=args.result_retry_budget,
+            checkpoint_path=args.checkpoint_path,
+            progress=report_progress,
         )
     except (CalibrationFixtureError, JudgeRunError, OSError) as exc:
         return _emit_command_error(exc, as_json=args.json)
     payload = {
-        "completed": True,
+        "completed": result["run"].get("completed", True),
         "output": str(args.output),
         "case_count": len(result["cases"]),
         **result["run"],
