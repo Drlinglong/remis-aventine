@@ -98,6 +98,12 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
         if recipe_id in recipe_to_profile:
             raise PilotAggregateError(f"Recipe id {recipe_id!r} maps to more than one profile.")
         recipe_to_profile[recipe_id] = profile_id
+        recipe_hashes = {str((run.get("recipe") or {}).get("sha256") or "") for run in runs}
+        if len(recipe_hashes) != 1 or "" in recipe_hashes:
+            raise PilotAggregateError(f"Profile {profile_id!r} runs do not share one recipe SHA.")
+        run_ids = {str(run.get("run_id") or "") for run in runs}
+        if "" in run_ids or len(run_ids) != len(runs):
+            raise PilotAggregateError(f"Profile {profile_id!r} runs require unique run ids.")
 
         all_cases = [case for run in runs for case in run.get("cases", [])]
         if len(all_cases) == 0:
@@ -111,6 +117,8 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
         states[profile_id] = {
             "definition": profile,
             "recipe_id": recipe_id,
+            "recipe_sha256": recipe_hashes.pop(),
+            "run_ids": run_ids,
             "runs": runs,
             "cases": all_cases,
             "hard_points": hard_points,
@@ -140,6 +148,15 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
             raise PilotAggregateError(
                 f"Report {report_path} references an unknown tournament recipe."
             ) from exc
+        for side_name, profile_id in (("left", left), ("right", right)):
+            reported = recipes.get(side_name) or {}
+            if (
+                reported.get("sha256") != states[profile_id]["recipe_sha256"]
+                or reported.get("run_id") not in states[profile_id]["run_ids"]
+            ):
+                raise PilotAggregateError(
+                    f"Report {report_path} {side_name} provenance does not match selected runs."
+                )
         pair = tuple(sorted((left, right)))
         if pair in seen_pairs:
             raise PilotAggregateError(f"Duplicate pairwise report for {pair}.")
@@ -167,15 +184,15 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
         for case in report.get("cases", []):
             source = str(case.get("decision_source") or "")
             winner = str(case.get("winner") or "")
+            if source == "hard_validation":
+                states[left]["soft"]["hard_veto"] += 1
+                states[right]["soft"]["hard_veto"] += 1
+                continue
             for profile_id in (left, right):
                 states[profile_id]["soft"]["planned"] += 1
             if source != "judge_position_consistent":
-                if source == "hard_validation":
-                    states[left]["soft"]["hard_veto"] += 1
-                    states[right]["soft"]["hard_veto"] += 1
-                else:
-                    states[left]["soft"]["unresolved"] += 1
-                    states[right]["soft"]["unresolved"] += 1
+                states[left]["soft"]["unresolved"] += 1
+                states[right]["soft"]["unresolved"] += 1
                 continue
             for profile_id in (left, right):
                 states[profile_id]["soft"]["eligible"] += 1

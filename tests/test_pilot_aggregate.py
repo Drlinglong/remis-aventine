@@ -26,8 +26,10 @@ def _run(path: Path, recipe: str, hard: list[tuple[str, bool]]) -> None:
         json.dumps(
             {
                 "suite": "remis",
+                "run_id": path.stem,
                 "recipe": {
                     "id": recipe,
+                    "sha256": recipe.rsplit(".", 1)[-1] * 64,
                     "snapshot": {"fixture_sha256": "frozen"},
                 },
                 "summary": {"elapsed_seconds": 2},
@@ -38,12 +40,15 @@ def _run(path: Path, recipe: str, hard: list[tuple[str, bool]]) -> None:
     )
 
 
-def _report(path: Path) -> None:
+def _report(path: Path, left_run_id: str = "a-0", right_run_id: str = "b-0") -> None:
     path.write_text(
         json.dumps(
             {
                 "suite": "remis-pairwise-report",
-                "recipes": {"left": {"id": "recipe.a"}, "right": {"id": "recipe.b"}},
+                "recipes": {
+                    "left": {"id": "recipe.a", "sha256": "a" * 64, "run_id": left_run_id},
+                    "right": {"id": "recipe.b", "sha256": "b" * 64, "run_id": right_run_id},
+                },
                 "judge_run": {
                     "config_fingerprint": "judge",
                     "configuration": {"provider": "deepseek-flash", "model": "deepseek-v4-flash"},
@@ -93,7 +98,7 @@ def test_builds_score_with_stage_policy_and_soft_coverage(tmp_path: Path) -> Non
     assert a["profile_id"] == "a"
     assert a["score"]["score"] == 70.0
     assert a["hard_reliability"]["sample_count"] == 6
-    assert a["soft_preference"]["coverage"]["coverage"] == 0.6
+    assert a["soft_preference"]["coverage"]["coverage"] == 0.75
     assert b["hard_reliability"]["value"] == pytest.approx(0.835)
     assert "PREVIEW aggregate" in (tmp_path / "out.md").read_text(encoding="utf-8")
 
@@ -139,7 +144,7 @@ def test_misaligned_translation_is_not_recoverable(tmp_path: Path) -> None:
 def _valid_manifest(tmp_path: Path) -> dict:
     _run(tmp_path / "a.json", "recipe.a", [("translation", True)])
     _run(tmp_path / "b.json", "recipe.b", [("translation", True)])
-    _report(tmp_path / "pair.json")
+    _report(tmp_path / "pair.json", "a", "b")
     return {
         "schema_version": 1,
         "expected_run_count": 1,
@@ -204,8 +209,18 @@ def test_manifest_shape_failures(tmp_path: Path, mutate, message: str) -> None:
     [
         ({"suite": "other"}, "non-Remis"),
         ({"recipe": {"id": ""}}, "one recipe id"),
+        ({"run_id": ""}, "unique run ids"),
         ({"cases": []}, "has no cases"),
-        ({"recipe": {"id": "recipe.a", "snapshot": {"fixture_sha256": "other"}}}, "fixture hash"),
+        (
+            {
+                "recipe": {
+                    "id": "recipe.a",
+                    "sha256": "a" * 64,
+                    "snapshot": {"fixture_sha256": "other"},
+                }
+            },
+            "fixture hash",
+        ),
     ],
 )
 def test_run_artifact_failures(tmp_path: Path, run_change: dict, message: str) -> None:
@@ -238,6 +253,15 @@ def test_duplicate_recipe_and_pairwise_report_failures(tmp_path: Path) -> None:
         (
             {"recipes": {"left": {"id": "unknown"}, "right": {"id": "recipe.b"}}},
             "unknown tournament recipe",
+        ),
+        (
+            {
+                "recipes": {
+                    "left": {"id": "recipe.a", "sha256": "c" * 64, "run_id": "a"},
+                    "right": {"id": "recipe.b", "sha256": "b" * 64, "run_id": "b"},
+                }
+            },
+            "provenance does not match",
         ),
         (
             {"cases": [{"decision_source": "judge_position_consistent", "winner": "unknown"}]},

@@ -49,6 +49,8 @@ CLI 输出。当前 adapter 没有客户端自动重试；一次 HTTP 请求就�
 
 正式榜单应从空输出路径开始连续运行三次，并让每次运行拥有独立 artifact。切换模型、effort、
 输出预算、Remis checkout/fixture 或 provider 后均形成新 recipe，不得混入同一三轮统计。
+adapter 会把 Remis checkout 的 Git commit 与关键执行源码内容哈希写入公开 artifact，并纳入
+recipe hash；即使 commit 未变但本地执行源码有改动，也不会被误认成同一 recipe。
 
 `--runtime-python` 必须指向能够运行该 Remis checkout 的 Python。Aventine 通过 stdin 传递不含
 秘密的 worker 配置，并用临时 `PYTHONPATH` 暴露双方源码；它不会要求 Aventine 的轻量环境安装

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 import os
@@ -22,6 +23,12 @@ from remis_aventine.adapters.remis import convert_remis_result
 ADAPTER_REVISION = "google-ai-studio-contestant-v1"
 API_ROOT = "https://generativelanguage.googleapis.com/v1beta/models"
 SUPPORTED_REASONING_EFFORTS = frozenset({"minimal", "low", "medium", "high"})
+REMIS_IDENTITY_PATHS = (
+    "scripts/developer_tools/evaluate_translation_quality.py",
+    "scripts/core/base_handler.py",
+    "scripts/core/glossary_manager.py",
+    "scripts/utils/post_process_validator.py",
+)
 
 
 class GoogleAIStudioAdapterError(RuntimeError):
@@ -190,6 +197,37 @@ def _read_env_key(path: Path, name: str) -> str | None:
     return None
 
 
+def _remis_checkout_provenance(remis_root: Path) -> dict[str, str]:
+    resolved = remis_root.resolve()
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(resolved), "rev-parse", "HEAD"],
+            text=True,
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise GoogleAIStudioAdapterError(
+            f"Unable to identify Remis checkout revision: {exc}"
+        ) from exc
+    revision = completed.stdout.strip()
+    if completed.returncode != 0 or len(revision) != 40:
+        detail = completed.stderr.strip() or "git rev-parse did not return a commit"
+        raise GoogleAIStudioAdapterError(f"Unable to identify Remis checkout revision: {detail}")
+
+    digest = hashlib.sha256()
+    for relative in REMIS_IDENTITY_PATHS:
+        path = resolved / relative
+        if not path.is_file():
+            raise GoogleAIStudioAdapterError(f"Remis identity source is missing: {path}")
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return {"revision": revision, "source_sha256": digest.hexdigest()}
+
+
 @contextmanager
 def _remis_imports(remis_root: Path) -> Iterator[dict[str, Any]]:
     resolved = remis_root.resolve()
@@ -248,6 +286,7 @@ def run_remis_google_ai_studio(
     if track not in {"all", "translation", "repair"}:
         raise GoogleAIStudioAdapterError(f"Unsupported Remis benchmark track: {track!r}.")
     profile = GoogleAIStudioProfile(model, reasoning_effort, max_output_tokens)
+    checkout = _remis_checkout_provenance(remis_root)
     with _remis_imports(remis_root) as modules:
         benchmark = modules["benchmark"]
         resolved_key = (
@@ -305,6 +344,7 @@ def run_remis_google_ai_studio(
             "model_id": model,
             "model_label": label or model,
             "track": track,
+            "remis_checkout": checkout,
             "request_profile": profile.request_profile(),
             "policy": {
                 "first_pass_format_failure": "measurement_not_execution_failure",

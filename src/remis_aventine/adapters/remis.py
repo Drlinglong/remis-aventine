@@ -288,6 +288,7 @@ def convert_remis_result(
         "track": track,
         "prompt_sha256": prompt_hashes,
         "fixture_sha256": fixture_sha256,
+        "remis_checkout": _public_value(document.get("remis_checkout", {})),
         "policy": _public_value(document.get("policy", {})),
         "request_profile": _public_value(request_profile),
     }
@@ -317,6 +318,7 @@ def convert_remis_result(
             "adapter_revision": ADAPTER_REVISION,
             "benchmark": benchmark,
             "fixture_sha256": fixture_sha256,
+            "remis_checkout": _public_value(document.get("remis_checkout", {})),
             "provider": provider,
             "model_id": model_id,
             "model_label": model_label,

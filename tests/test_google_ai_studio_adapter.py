@@ -250,6 +250,37 @@ def test_env_key_reader_handles_comments_quotes_and_missing_files(tmp_path: Path
     assert google_adapter._read_env_key(tmp_path / "absent", "GEMINI_API_KEY") is None
 
 
+def test_remis_checkout_provenance_pins_revision_and_source_hash(
+    monkeypatch, tmp_path: Path
+) -> None:
+    for relative in google_adapter.REMIS_IDENTITY_PATHS:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(relative, encoding="utf-8")
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess(
+            [], 0, stdout="a" * 40 + "\n", stderr=""
+        ),
+    )
+
+    first = google_adapter._remis_checkout_provenance(tmp_path)
+    assert first["revision"] == "a" * 40
+    assert len(first["source_sha256"]) == 64
+
+    changed = tmp_path / google_adapter.REMIS_IDENTITY_PATHS[0]
+    changed.write_text("changed", encoding="utf-8")
+    assert (
+        google_adapter._remis_checkout_provenance(tmp_path)["source_sha256"]
+        != first["source_sha256"]
+    )
+
+    changed.unlink()
+    with pytest.raises(GoogleAIStudioAdapterError, match="identity source is missing"):
+        google_adapter._remis_checkout_provenance(tmp_path)
+
+
 def test_remis_import_guard_and_import_failure(monkeypatch, tmp_path: Path) -> None:
     with (
         pytest.raises(GoogleAIStudioAdapterError, match="entrypoint is missing"),
@@ -329,6 +360,11 @@ def test_run_remis_google_adapter_writes_both_artifact_layers(monkeypatch, tmp_p
     monkeypatch.setattr(google_adapter, "_remis_imports", fake_imports)
     monkeypatch.setattr(
         google_adapter,
+        "_remis_checkout_provenance",
+        lambda _root: {"revision": "a" * 40, "source_sha256": "b" * 64},
+    )
+    monkeypatch.setattr(
+        google_adapter,
         "convert_remis_result",
         lambda report, recipe_id=None: {
             "run_id": recipe_id or "generated",
@@ -353,6 +389,7 @@ def test_run_remis_google_adapter_writes_both_artifact_layers(monkeypatch, tmp_p
     assert result["completed"] is True
     assert result["run_id"] == "recipe.google"
     assert json.loads(raw.read_text(encoding="utf-8"))["model_label"] == "Gemini Test"
+    assert json.loads(raw.read_text(encoding="utf-8"))["remis_checkout"]["revision"] == "a" * 40
     assert json.loads(run.read_text(encoding="utf-8"))["provider"] == "google-ai-studio"
     assert modules["glossary_manager"].in_memory_glossary == {"entries": [{"term": "old"}]}
     with pytest.raises(GoogleAIStudioAdapterError, match="Unsupported"):
