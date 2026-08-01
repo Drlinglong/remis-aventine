@@ -232,6 +232,8 @@ def _convert_case(result: dict[str, Any]) -> dict[str, Any]:
         ),
         "candidate_outputs": _public_value(result.get("outputs")),
         "source_inputs": _source_inputs(score),
+        "usage": _public_value(result.get("usage")),
+        "response_model": _public_value(result.get("response_model")),
     }
     repair_evidence = _repair_evidence(result)
     if repair_evidence is not None:
@@ -261,6 +263,9 @@ def convert_remis_result(
     source_summary = document.get("summary")
     if not isinstance(source_summary, dict):
         raise RemisCompatibilityError("Remis artifact summary must be an object.")
+    request_profile = document.get("request_profile", {})
+    if not isinstance(request_profile, dict):
+        raise RemisCompatibilityError("Remis artifact request_profile must be an object.")
     elapsed_seconds = source_summary.get("elapsed_seconds", 0)
     if not isinstance(elapsed_seconds, (int, float)) or elapsed_seconds < 0:
         raise RemisCompatibilityError("Remis summary elapsed_seconds must be non-negative.")
@@ -284,6 +289,7 @@ def convert_remis_result(
         "prompt_sha256": prompt_hashes,
         "fixture_sha256": fixture_sha256,
         "policy": _public_value(document.get("policy", {})),
+        "request_profile": _public_value(request_profile),
     }
     resolved_recipe_id = recipe_id or f"remis.{_slug(provider)}.{_slug(model_id)}.{_slug(track)}"
     converted_cases = [_convert_case(result) for result in results if isinstance(result, dict)]

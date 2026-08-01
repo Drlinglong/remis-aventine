@@ -193,6 +193,61 @@ def test_public_artifact_drops_sensitive_fields_before_snapshot_hash() -> None:
         assert marker not in serialized
 
 
+def test_openrouter_request_profile_and_usage_are_public_recipe_evidence() -> None:
+    artifact = _remis_artifact()
+    artifact.update(
+        provider="openrouter",
+        model_id="inclusionai/ling-3.0-flash:free",
+        model_label="Ling 3.0 Flash Free",
+        request_profile={
+            "revision": "openrouter-translation-v1",
+            "api_mode": "chat.completions",
+            "max_tokens": 4000,
+            "reasoning": {"enabled": False, "exclude": True},
+            "client_max_retries": 0,
+        },
+    )
+    artifact["results"][0].update(
+        usage={"input_tokens": 120, "output_tokens": 30, "total_tokens": 150},
+        response_model="inclusionai/ling-3.0-flash:free",
+    )
+
+    converted = convert_remis_result(artifact)
+    snapshot = converted["recipe"]["snapshot"]
+
+    assert snapshot["request_profile"] == {
+        "revision": "openrouter-translation-v1",
+        "api_mode": "chat.completions",
+        "max_tokens": 4000,
+        "reasoning": {"enabled": False, "exclude": True},
+        "client_max_retries": 0,
+    }
+    assert converted["cases"][0]["usage"] == {
+        "input_tokens": 120,
+        "output_tokens": 30,
+        "total_tokens": 150,
+    }
+    assert converted["cases"][0]["response_model"] == artifact["model_id"]
+
+    changed_reasoning = copy.deepcopy(artifact)
+    changed_reasoning["request_profile"]["reasoning"]["enabled"] = True
+    assert (
+        convert_remis_result(changed_reasoning)["recipe"]["sha256"]
+        != (converted["recipe"]["sha256"])
+    )
+
+    changed_api_mode = copy.deepcopy(artifact)
+    changed_api_mode["request_profile"]["api_mode"] = "responses"
+    assert (
+        convert_remis_result(changed_api_mode)["recipe"]["sha256"]
+        != (converted["recipe"]["sha256"])
+    )
+
+    changed_private_endpoint_only = copy.deepcopy(artifact)
+    changed_private_endpoint_only["request_profile"]["endpoint"] = "https://example.invalid"
+    assert convert_remis_result(changed_private_endpoint_only)["recipe"] == converted["recipe"]
+
+
 def test_adapter_preserves_safe_pairwise_and_repair_evidence() -> None:
     artifact = _remis_artifact()
     result = artifact["results"][0]
@@ -243,6 +298,7 @@ def test_adapter_reports_invalid_json(tmp_path) -> None:
         (lambda data: data.update(provider=""), "provider"),
         (lambda data: data.update(created_at_utc="yesterday"), "Invalid Remis"),
         (lambda data: data.update(summary=[]), "summary must be an object"),
+        (lambda data: data.update(request_profile=[]), "request_profile must be an object"),
         (
             lambda data: data["summary"].update(elapsed_seconds=-1),
             "elapsed_seconds must be non-negative",

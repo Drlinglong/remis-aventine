@@ -101,7 +101,8 @@ aventine adapt-remis-result `
 
 1. 区分 `completed`、`execution_failure` 和 `structured_output_failure`；
 2. 把 Remis hard check 和 findings 映射到 Aventine envelope；
-3. 保留候选输出与必要 hash/运行指标；
+3. 保留候选输出、逐题 token usage、实际响应模型，以及经过清洗的 request profile；reasoning、
+   max tokens 和 retry policy 会参与 recipe hash；
 4. 丢弃 `raw_response`、endpoint、base URL、credential、API key、authorization 等 provider
    传输/凭据字段，减少内部信息和无关 reasoning 泄漏；
 5. 用 provider/model/track/prompt/fixture 以及清洗后的公开 policy 生成稳定 compatibility
