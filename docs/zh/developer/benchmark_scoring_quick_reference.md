@@ -3,7 +3,8 @@
 这份文档回答一个问题：**每个数字究竟在评价模型、翻译 recipe，还是评测系统本身的什么能力？**
 
 > 当前原则：Aventine 排的是完整 recipe，不是脱离 prompt、推理强度、上下文、repair 和
-> validator 的裸模型。页面尚未拥有正式综合分；任何 PREVIEW 分数都不能冒充已落地结果。
+> validator 的裸模型。Aventine core 已能从真实 artifacts 生成版本化综合分，但在九模型首轮
+> 校准得到确认并替换网页前，页面上的手填 PREVIEW 分数仍不能冒充真实结果。
 
 ## 一分钟速记
 
@@ -177,24 +178,28 @@ instruction-following benchmark 的 10/10。
 英语通常作为源语言或控制语言；“模型擅长英语”不等于无需测试英译质量，尤其当目标是人物
 声音、历史 register 或游戏专有语境时。但区域榜单的主要区分度可以集中在非英语目标语言。
 
-## 综合分：现在还没有正式版本
+## 综合分：Pilot Score v0.1
 
-历史 Pilot 展示公式曾使用：
+冻结公式：
 
 `100 × (0.60 × Soft Preference + 0.40 × Hard Reliability)`
 
-它只能作为设计起点，不能直接替换网页 PREVIEW 数字。正式 aggregate 至少必须记录：
+`build-pilot-aggregate` 读取每个 recipe 的三轮 Aventine run artifact，以及 Repeat 01 的完整
+round-robin pairwise reports，输出 JSON aggregate 和中文 Markdown 排名。aggregate 记录：
 
 - `score_version`、测试包/hash、recipe/hash；
-- 分项分数、样本数、有效裁决覆盖率与置信区间；
+- 分项分数、样本数与有效裁决覆盖率；
 - 运行/结构化失败数和失败规则；
 - 区域分、稳定性和上下文预算元数据。
 
-当前讨论中的失败规则也仍是待版本化政策：
+`stage-policy-v0.1` 的失败规则：
 
 - 翻译阶段可恢复的硬校验/结构化失败：该题语言分乘 `0.67`；
 - 空响应、条目错位、不可恢复或执行失败：该题 `0` 分；
 - 校对/repair 阶段硬校验或结构化失败：该题 `0` 分。
 
-在 aggregate 实际产出并通过校准前，页面应继续标记 `PREVIEW`，成本、速度、术语发现和
-Cross-batch Drift 也应保持独立维度。
+Soft Preference 只计入 A/B 与 B/A 位置交换后结论一致的盲化裁决；硬校验直接判定不再混入
+语言偏好，未决样本只降低 coverage。这样可避免在 Hard Reliability 已经扣分后重复惩罚。
+
+首轮 aggregate 通过直觉校准前仍标记 `PREVIEW`。成本、速度、推理 token、术语发现和
+Cross-batch Drift 保持独立维度，不进入 `pilot-score-v0.1`。

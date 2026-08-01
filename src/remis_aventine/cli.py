@@ -34,6 +34,7 @@ from remis_aventine.metric_calibration import (
     build_metric_pack_from_calibration,
     write_metric_calibration_report,
 )
+from remis_aventine.pilot_aggregate import PilotAggregateError, write_pilot_aggregate
 from remis_aventine.remis_pairwise import (
     RemisPairwiseError,
     build_remis_pairwise_pack,
@@ -141,6 +142,15 @@ def build_parser() -> argparse.ArgumentParser:
     remis_report_parser.add_argument("output_json", type=Path)
     remis_report_parser.add_argument("output_markdown", type=Path)
     remis_report_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    pilot_parser = subparsers.add_parser(
+        "build-pilot-aggregate",
+        help="Build a versioned Pilot Score aggregate from real run and pairwise artifacts.",
+    )
+    pilot_parser.add_argument("manifest", type=Path)
+    pilot_parser.add_argument("output_json", type=Path)
+    pilot_parser.add_argument("output_markdown", type=Path)
+    pilot_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     pack_parser = subparsers.add_parser(
         "build-calibration-pack",
@@ -750,6 +760,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _build_remis_pairwise(args)
     if args.command == "report-remis-pairwise":
         return _report_remis_pairwise(args)
+    if args.command == "build-pilot-aggregate":
+        try:
+            aggregate = write_pilot_aggregate(
+                args.manifest, args.output_json, args.output_markdown
+            )
+        except (PilotAggregateError, OSError) as exc:
+            return _emit_command_error(exc, as_json=args.json)
+        payload = {
+            "built": True,
+            "output_json": str(args.output_json),
+            "output_markdown": str(args.output_markdown),
+            "score_version": aggregate["score_version"],
+            "profile_count": len(aggregate["entries"]),
+        }
+        _emit(payload, as_json=args.json)
+        return 0
     if args.command == "build-calibration-pack":
         return _build_pack(args)
     if args.command == "build-mtme-mqm-pack":
