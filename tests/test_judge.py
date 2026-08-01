@@ -8,9 +8,11 @@ import pytest
 
 from remis_aventine.calibration import summarize_calibration_fixture
 from remis_aventine.judge import (
+    DeepSeekFlashJudge,
     DeepSeekJudge,
     GoogleGemmaJudge,
     JudgeRunError,
+    OpenRouterJudge,
     XAIJudge,
     judge_from_environment,
     run_judge_pack,
@@ -80,7 +82,7 @@ def test_deepseek_judge_wraps_server_owned_metadata_and_usage() -> None:
     request_body = json.loads(requests[0].data)
     assert request_body["thinking"] == {"type": "enabled"}
     assert request_body["response_format"] == {"type": "json_object"}
-    assert request_body["max_tokens"] == 4000
+    assert request_body["max_tokens"] == 8000
 
 
 def test_resume_cost_fields_use_prior_cumulative_totals() -> None:
@@ -178,6 +180,46 @@ def test_judge_from_environment_reads_ignored_file(tmp_path, monkeypatch) -> Non
     assert judge.api_key == "from-file"
 
 
+def test_judge_from_environment_selects_deepseek_flash(tmp_path, monkeypatch) -> None:
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    env_path = tmp_path / ".env"
+    env_path.write_text("DEEPSEEK_API_KEY=flash-test\n", encoding="utf-8")
+
+    judge = judge_from_environment(env_path, "deepseek-flash")
+
+    assert isinstance(judge, DeepSeekFlashJudge)
+    assert judge.model_id == "deepseek-v4-flash"
+    assert judge.max_tokens == 8000
+    assert judge.reasoning_effort == "low"
+    assert judge.api_key == "flash-test"
+    request_body = judge.request_body(
+        {
+            "id": "pair-1",
+            "evaluation_mode": "pairwise",
+            "input": {
+                "language_pair": "en-zh",
+                "source": "Hello",
+                "candidate_a": "你好",
+                "candidate_b": "您好",
+            },
+            "gold": {"mode": "pairwise", "verdict": "tie"},
+        }
+    )
+    assert request_body["model"] == "deepseek-v4-flash"
+    assert request_body["thinking"] == {"type": "enabled"}
+    assert request_body["reasoning_effort"] == "low"
+    assert request_body["max_tokens"] == 8000
+    costs = judge.cost_fields(
+        {
+            "cache_hit_input_tokens": 1_000_000,
+            "cache_miss_input_tokens": 1_000_000,
+            "output_tokens": 1_000_000,
+        },
+        {},
+    )
+    assert costs["estimated_cost_rmb"] == 3.02
+
+
 class _FakeJudge:
     provider = "fake"
     provider_label = "Fake"
@@ -218,6 +260,24 @@ class _FakeJudge:
             },
             **_evaluation(mode, verdict),
         }, {"cache_hit_input_tokens": 1, "cache_miss_input_tokens": 2, "output_tokens": 3}
+
+
+class _CountingAttemptJudge(_FakeJudge):
+    def __init__(self, *, fail_once: set[str] | None = None, interrupt_on: int | None = None):
+        self.calls: list[str] = []
+        self.sleeps: list[float] = []
+        self.sleeper = self.sleeps.append
+        self.fail_once = set(fail_once or set())
+        self.interrupt_on = interrupt_on
+
+    def evaluate_once(self, case):
+        self.calls.append(case["id"])
+        if self.interrupt_on == len(self.calls):
+            raise KeyboardInterrupt("synthetic interruption")
+        if case["id"] in self.fail_once:
+            self.fail_once.remove(case["id"])
+            raise JudgeRunError("synthetic provider failure", failure_type="provider")
+        return self.evaluate(case)
 
 
 def test_run_judge_pack_adds_aces_swap_and_cost(tmp_path) -> None:
@@ -429,6 +489,51 @@ def test_judge_from_environment_selects_xai(tmp_path, monkeypatch) -> None:
     assert judge.api_key == "xai-test"
 
 
+def test_openrouter_judge_uses_v4_pro_structured_output_and_usd_pricing() -> None:
+    requests = []
+
+    def opener(request, **_kwargs):
+        requests.append(request)
+        return _api_response(_evaluation(mode="pairwise", verdict="candidate_a"), cached=0)
+
+    judge = OpenRouterJudge("test-key", opener=opener)
+    result, usage = judge.evaluate(
+        {
+            "id": "pair-1",
+            "evaluation_mode": "pairwise",
+            "input": {
+                "language_pair": "en-zh",
+                "source": "Hello",
+                "candidate_a": "你好",
+                "candidate_b": "您好",
+            },
+            "gold": {"mode": "pairwise", "verdict": "tie"},
+        }
+    )
+
+    assert result["judge"]["model"] == "deepseek/deepseek-v4-pro"
+    body = json.loads(requests[0].data)
+    assert body["reasoning_effort"] == "high"
+    assert body["max_tokens"] == 8000
+    assert "thinking" not in body
+    assert body["response_format"]["type"] == "json_schema"
+    assert requests[0].headers["Http-referer"] == ("https://drlinglong.github.io/Remis/aventine/")
+    costs = judge.cost_fields(usage, {})
+    assert costs["estimated_cost_usd"] > 0
+    assert costs["cost_source"] == "token_estimate"
+
+
+def test_judge_from_environment_selects_openrouter(tmp_path, monkeypatch) -> None:
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    env_path = tmp_path / ".env"
+    env_path.write_text("OPENROUTER_API_KEY=openrouter-test\n", encoding="utf-8")
+
+    judge = judge_from_environment(env_path, "openrouter")
+
+    assert isinstance(judge, OpenRouterJudge)
+    assert judge.api_key == "openrouter-test"
+
+
 def test_google_gemma_judge_uses_generate_content_schema_and_free_cost() -> None:
     requests = []
 
@@ -494,3 +599,215 @@ def test_run_judge_pack_records_call_failure(tmp_path) -> None:
 
     assert result["run"]["failure_count"] == 1
     assert result["cases"][0]["judge_output"]["benchmark_failure"]["kind"] == "judge_call_failure"
+
+
+def test_separate_budgets_fairly_share_attempts_before_retries(tmp_path) -> None:
+    fixture = {
+        "schema_version": 1,
+        "id": "pack-v1",
+        "suite": "mixed",
+        "cases": [_case("one"), _case("two")],
+    }
+    input_path = tmp_path / "input.json"
+    input_path.write_text(json.dumps(fixture), encoding="utf-8")
+    judge = _CountingAttemptJudge(fail_once={"one"})
+
+    result = run_judge_pack(
+        input_path,
+        tmp_path / "output.json",
+        judge,
+        workers=1,
+        logical_result_budget=2,
+        http_attempt_budget=3,
+        result_retry_budget=1,
+    )
+
+    assert judge.calls == ["one", "two", "one"]
+    assert judge.sleeps == [1.0]
+    assert result["run"]["planned_call_count"] == 2
+    assert result["run"]["http_attempt_count"] == 3
+    assert result["run"]["failure_count"] == 0
+
+
+def test_partial_separate_budgets_keep_default_cost_caps(tmp_path) -> None:
+    fixture = {
+        "schema_version": 1,
+        "id": "pack-v1",
+        "suite": "mixed",
+        "cases": [_case(f"case-{index}") for index in range(101)],
+    }
+    input_path = tmp_path / "input.json"
+    input_path.write_text(json.dumps(fixture), encoding="utf-8")
+    judge = _CountingAttemptJudge()
+
+    result = run_judge_pack(
+        input_path,
+        tmp_path / "output.json",
+        judge,
+        result_retry_budget=0,
+    )
+
+    assert result["run"]["budget_mode"] == "separate"
+    assert result["run"]["logical_result_budget"] == 100
+    assert result["run"]["http_attempt_budget"] == 100
+    assert result["run"]["scheduled_call_count"] == 100
+    assert result["run"]["budget_skipped_count"] == 1
+    assert result["run"]["status"] == "budget_exhausted"
+    assert len(judge.calls) == 100
+
+
+def test_interruption_checkpoint_resumes_without_repeating_valid_result(tmp_path) -> None:
+    fixture = {
+        "schema_version": 1,
+        "id": "pack-v1",
+        "suite": "mixed",
+        "cases": [_case("one"), _case("two")],
+    }
+    input_path = tmp_path / "input.json"
+    checkpoint = tmp_path / "checkpoint.json"
+    resumed_path = tmp_path / "resumed.json"
+    input_path.write_text(json.dumps(fixture), encoding="utf-8")
+    interrupted_judge = _CountingAttemptJudge(interrupt_on=2)
+
+    with pytest.raises(KeyboardInterrupt):
+        run_judge_pack(
+            input_path,
+            tmp_path / "interrupted.json",
+            interrupted_judge,
+            checkpoint_path=checkpoint,
+            logical_result_budget=2,
+            http_attempt_budget=2,
+            result_retry_budget=0,
+        )
+
+    partial = json.loads(checkpoint.read_text(encoding="utf-8"))
+    assert partial["run"]["status"] == "interrupted"
+    assert partial["cases"][0]["judge_output"]["case_id"] == "one"
+    assert "judge_output" not in partial["cases"][1]
+
+    resumed_judge = _CountingAttemptJudge()
+    result = run_judge_pack(
+        input_path,
+        resumed_path,
+        resumed_judge,
+        resume_from=checkpoint,
+        checkpoint_path=tmp_path / "resumed-checkpoint.json",
+        logical_result_budget=1,
+        http_attempt_budget=1,
+        result_retry_budget=0,
+    )
+
+    assert resumed_judge.calls == ["two"]
+    assert result["run"]["reused_result_count"] == 1
+    assert result["run"]["unfinished_result_count"] == 0
+
+
+def test_resume_skips_all_valid_results_without_duplicate_calls(tmp_path) -> None:
+    fixture = {
+        "schema_version": 1,
+        "id": "pack-v1",
+        "suite": "mixed",
+        "cases": [_case("one")],
+    }
+    input_path = tmp_path / "input.json"
+    prior_path = tmp_path / "prior.json"
+    resumed_path = tmp_path / "resumed.json"
+    input_path.write_text(json.dumps(fixture), encoding="utf-8")
+    first_judge = _CountingAttemptJudge()
+    run_judge_pack(input_path, prior_path, first_judge)
+
+    second_judge = _CountingAttemptJudge()
+    result = run_judge_pack(input_path, resumed_path, second_judge, resume_from=prior_path)
+
+    assert first_judge.calls == ["one"]
+    assert second_judge.calls == []
+    assert result["run"]["planned_call_count"] == 0
+    assert result["run"]["reused_result_count"] == 1
+
+
+def test_resume_rejects_configuration_fingerprint_mismatch(tmp_path) -> None:
+    fixture = {
+        "schema_version": 1,
+        "id": "pack-v1",
+        "suite": "mixed",
+        "cases": [_case("one")],
+    }
+    input_path = tmp_path / "input.json"
+    prior_path = tmp_path / "prior.json"
+    input_path.write_text(json.dumps(fixture), encoding="utf-8")
+    run_judge_pack(input_path, prior_path, _CountingAttemptJudge(), workers=1)
+
+    with pytest.raises(JudgeRunError, match="configuration fingerprint"):
+        run_judge_pack(
+            input_path,
+            tmp_path / "resumed.json",
+            _CountingAttemptJudge(),
+            workers=2,
+            resume_from=prior_path,
+        )
+
+
+def test_budget_exhaustion_is_explicit_and_does_not_call_skipped_result(tmp_path) -> None:
+    fixture = {
+        "schema_version": 1,
+        "id": "pack-v1",
+        "suite": "mixed",
+        "cases": [_case("one"), _case("two")],
+    }
+    input_path = tmp_path / "input.json"
+    input_path.write_text(json.dumps(fixture), encoding="utf-8")
+    judge = _CountingAttemptJudge()
+
+    result = run_judge_pack(
+        input_path,
+        tmp_path / "output.json",
+        judge,
+        logical_result_budget=1,
+        http_attempt_budget=1,
+        result_retry_budget=0,
+    )
+
+    assert judge.calls == ["one"]
+    assert result["run"]["status"] == "budget_exhausted"
+    assert result["run"]["failure_counts"]["budget"] == 1
+    assert result["cases"][1]["judge_output"]["benchmark_failure"]["failure_type"] == "budget"
+
+
+@pytest.mark.parametrize(
+    ("failure_type", "opener"),
+    [
+        ("timeout", lambda _request, **_kwargs: (_ for _ in ()).throw(TimeoutError("timeout"))),
+        (
+            "rate_limit",
+            lambda _request, **_kwargs: (_ for _ in ()).throw(
+                urllib.error.HTTPError("https://example.test", 429, "rate", {}, None)
+            ),
+        ),
+        (
+            "provider",
+            lambda _request, **_kwargs: (_ for _ in ()).throw(
+                urllib.error.HTTPError("https://example.test", 400, "bad", {}, None)
+            ),
+        ),
+    ],
+)
+def test_judge_failure_classification_for_transport_errors(failure_type, opener) -> None:
+    with pytest.raises(JudgeRunError) as exc_info:
+        DeepSeekJudge("test-key", opener=opener, retries=0).evaluate(_case())
+
+    assert exc_info.value.failure_type == failure_type
+
+
+@pytest.mark.parametrize(
+    ("content", "failure_type"),
+    [('{"evaluation":', "truncation"), ("not-json", "json"), ('{"evaluation": {}}', "schema")],
+)
+def test_judge_failure_classification_for_structured_output(content, failure_type) -> None:
+    def opener(_request, **_kwargs):
+        payload = {"choices": [{"message": {"content": content}}]}
+        return _Response(json.dumps(payload).encode())
+
+    with pytest.raises(JudgeRunError) as exc_info:
+        DeepSeekJudge("test-key", opener=opener, retries=0).evaluate(_case())
+
+    assert exc_info.value.failure_type == failure_type

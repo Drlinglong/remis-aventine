@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 
 import pytest
@@ -106,6 +107,147 @@ def test_recipe_snapshot_hash_is_stable_and_override_is_supported() -> None:
     assert first["recipe"]["id"] == "custom.recipe"
 
 
+def test_openrouter_model_id_is_safe_in_recipe_identity() -> None:
+    artifact = _remis_artifact()
+    artifact.update(
+        provider="openrouter",
+        model_id="nvidia/nemotron-3-ultra-550b-a55b:free",
+        model_label="Nemotron 3 Ultra",
+    )
+
+    first = convert_remis_result(artifact)
+    second = convert_remis_result(artifact)
+
+    assert first["recipe"]["id"] == ("remis.openrouter.nvidia-nemotron-3-ultra-550b-a55b-free.all")
+    assert first["recipe"]["snapshot"]["model_id"] == artifact["model_id"]
+    assert len(first["recipe"]["sha256"]) == 64
+    assert first["recipe"] == second["recipe"]
+
+
+def test_public_artifact_drops_sensitive_fields_before_snapshot_hash() -> None:
+    clean = _remis_artifact()
+    clean.update(
+        provider="openrouter",
+        model_id="nvidia/nemotron-3-ultra-550b-a55b:free",
+        model_label="Nemotron 3 Ultra",
+    )
+    with_sensitive_fields = copy.deepcopy(clean)
+    with_sensitive_fields["policy"].update(
+        {
+            "endpoint": "https://openrouter.example/v1/chat/completions",
+            "OPENROUTER_API_KEY": "sk-test-openrouter",
+            "raw_response": "provider payload",
+            "nested": {"authorization": "Bearer secret"},
+        }
+    )
+    with_sensitive_fields["summary"].update(
+        {
+            "endpoint": "https://summary.example",
+            "credentials": {"token": "secret-token"},
+            "raw_response": "summary payload",
+        }
+    )
+    with_sensitive_fields["results"][0]["outputs"] = [
+        {
+            "text": "candidate",
+            "endpoint": "https://output.example",
+            "api_key": "sk-test-output",
+            "raw_response": "output payload",
+        }
+    ]
+    with_sensitive_fields["results"][0]["score"].update(
+        {
+            "endpoint": "https://score.example",
+            "api_key": "sk-test-score",
+            "raw_response": "score payload",
+        }
+    )
+    with_sensitive_fields["results"][0]["score"]["items"][0]["validation"][0].update(
+        {
+            "endpoint": "https://finding.example",
+            "credential": "finding-secret",
+            "raw_response": "finding payload",
+        }
+    )
+
+    clean_converted = convert_remis_result(clean)
+    converted = convert_remis_result(with_sensitive_fields)
+    serialized = json.dumps(converted, ensure_ascii=False, sort_keys=True)
+
+    assert converted["recipe"] == clean_converted["recipe"]
+    assert converted["recipe"]["snapshot"]["policy"] == {"first_pass_format_failure": "measurement"}
+    assert converted["summary"]["source_summary"] == {
+        "case_count": 3,
+        "elapsed_seconds": 12.5,
+    }
+    assert converted["cases"][0]["candidate_outputs"] == [{"text": "candidate"}]
+    for marker in (
+        "openrouter.example",
+        "sk-test-openrouter",
+        "summary.example",
+        "secret-token",
+        "provider payload",
+        "output payload",
+        "finding-secret",
+    ):
+        assert marker not in serialized
+
+
+def test_openrouter_request_profile_and_usage_are_public_recipe_evidence() -> None:
+    artifact = _remis_artifact()
+    artifact.update(
+        provider="openrouter",
+        model_id="inclusionai/ling-3.0-flash:free",
+        model_label="Ling 3.0 Flash Free",
+        request_profile={
+            "revision": "openrouter-translation-v1",
+            "api_mode": "chat.completions",
+            "max_tokens": 4000,
+            "reasoning": {"enabled": False, "exclude": True},
+            "client_max_retries": 0,
+        },
+    )
+    artifact["results"][0].update(
+        usage={"input_tokens": 120, "output_tokens": 30, "total_tokens": 150},
+        response_model="inclusionai/ling-3.0-flash:free",
+    )
+
+    converted = convert_remis_result(artifact)
+    snapshot = converted["recipe"]["snapshot"]
+
+    assert snapshot["request_profile"] == {
+        "revision": "openrouter-translation-v1",
+        "api_mode": "chat.completions",
+        "max_tokens": 4000,
+        "reasoning": {"enabled": False, "exclude": True},
+        "client_max_retries": 0,
+    }
+    assert converted["cases"][0]["usage"] == {
+        "input_tokens": 120,
+        "output_tokens": 30,
+        "total_tokens": 150,
+    }
+    assert converted["cases"][0]["response_model"] == artifact["model_id"]
+
+    changed_reasoning = copy.deepcopy(artifact)
+    changed_reasoning["request_profile"]["reasoning"]["enabled"] = True
+    assert (
+        convert_remis_result(changed_reasoning)["recipe"]["sha256"]
+        != (converted["recipe"]["sha256"])
+    )
+
+    changed_api_mode = copy.deepcopy(artifact)
+    changed_api_mode["request_profile"]["api_mode"] = "responses"
+    assert (
+        convert_remis_result(changed_api_mode)["recipe"]["sha256"]
+        != (converted["recipe"]["sha256"])
+    )
+
+    changed_private_endpoint_only = copy.deepcopy(artifact)
+    changed_private_endpoint_only["request_profile"]["endpoint"] = "https://example.invalid"
+    assert convert_remis_result(changed_private_endpoint_only)["recipe"] == converted["recipe"]
+
+
 def test_adapter_preserves_safe_pairwise_and_repair_evidence() -> None:
     artifact = _remis_artifact()
     result = artifact["results"][0]
@@ -122,7 +264,7 @@ def test_adapter_preserves_safe_pairwise_and_repair_evidence() -> None:
     converted = convert_remis_result(artifact)
     case = converted["cases"][0]
 
-    assert converted["environment"]["adapter_revision"] == "remis-translation-quality-v2"
+    assert converted["environment"]["adapter_revision"] == "remis-translation-quality-v3"
     assert case["source_inputs"] == ["source"]
     assert case["repair_evidence"]["broken_translation"] == ["旧译"]
     assert case["repair_evidence"]["reference_translation"] == ["新译"]
@@ -156,6 +298,7 @@ def test_adapter_reports_invalid_json(tmp_path) -> None:
         (lambda data: data.update(provider=""), "provider"),
         (lambda data: data.update(created_at_utc="yesterday"), "Invalid Remis"),
         (lambda data: data.update(summary=[]), "summary must be an object"),
+        (lambda data: data.update(request_profile=[]), "request_profile must be an object"),
         (
             lambda data: data["summary"].update(elapsed_seconds=-1),
             "elapsed_seconds must be non-negative",

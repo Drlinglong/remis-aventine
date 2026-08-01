@@ -450,6 +450,140 @@ def test_run_judge_cli(monkeypatch, tmp_path, capsys) -> None:
     assert selected["provider"] == "xai"
 
 
+def test_run_remis_google_ai_studio_cli_preserves_explicit_recipe(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    selected = {}
+
+    def fake_run(*args, **kwargs):
+        selected["args"] = args
+        selected["kwargs"] = kwargs
+        return {
+            "completed": True,
+            "raw_output": str(args[3]),
+            "run_output": str(args[4]),
+            "run_id": "remis-google-run",
+            "case_count": 7,
+        }
+
+    monkeypatch.setattr(cli, "run_remis_google_ai_studio_isolated", fake_run)
+    raw_output = tmp_path / "raw.json"
+    run_output = tmp_path / "run.json"
+
+    exit_code = main(
+        [
+            "run-remis-google-ai-studio",
+            "fixture.json",
+            str(raw_output),
+            str(run_output),
+            "--remis-root",
+            "J:/Remis",
+            "--runtime-python",
+            "K:/MiniConda/python.exe",
+            "--model",
+            "gemini-3.6-flash",
+            "--reasoning-effort",
+            "high",
+            "--max-output-tokens",
+            "16000",
+            "--case-id",
+            "smoke-case",
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["run_id"] == "remis-google-run"
+    assert selected["args"][0] == Path("K:/MiniConda/python.exe")
+    assert selected["kwargs"]["model"] == "gemini-3.6-flash"
+    assert selected["kwargs"]["reasoning_effort"] == "high"
+    assert selected["kwargs"]["max_output_tokens"] == 16_000
+    assert selected["kwargs"]["case_ids"] == ("smoke-case",)
+
+
+def test_run_judge_cli_json_keeps_stdout_machine_readable(monkeypatch, tmp_path, capsys) -> None:
+    fixture = {
+        "schema_version": 1,
+        "id": "pack-v1",
+        "suite": "mixed",
+        "cases": [
+            {
+                "id": "case-1",
+                "input": {"language_pair": "en-zh", "source": "Hello", "candidate": "你好"},
+                "gold": {"mode": "single", "verdict": "pass"},
+            }
+        ],
+    }
+    input_path = tmp_path / "input.json"
+    output_path = tmp_path / "output.json"
+    input_path.write_text(json.dumps(fixture), encoding="utf-8")
+
+    class FakeJudge:
+        provider = "fake"
+        provider_label = "Fake"
+        model_id = "fake"
+        profile = "fake"
+        prompt_revision = "fake"
+        max_tokens = 100
+        thinking = "disabled"
+        reasoning_effort = "none"
+
+        def empty_usage(self):
+            return {"cache_hit_input_tokens": 0, "cache_miss_input_tokens": 0, "output_tokens": 0}
+
+        def cost_fields(self, usage, prior_run):
+            return {
+                "estimated_cost_rmb": 0.0,
+                "prior_estimated_cost_rmb": float(prior_run.get("estimated_cost_rmb", 0.0)),
+                "cumulative_estimated_cost_rmb": 0.0,
+            }
+
+        def evaluate(self, case):
+            return {
+                "schema_version": 1,
+                "case_id": case["id"],
+                "judge": {
+                    "profile": "fake",
+                    "model": "fake",
+                    "prompt_revision": "fake",
+                    "calibration_revision": "pack-v1",
+                },
+                "evaluation": {
+                    "mode": "single",
+                    "verdict": "pass",
+                    "confidence": "high",
+                    "errors": [],
+                    "rationale": "ok",
+                    "limitations": [],
+                },
+            }, {"cache_hit_input_tokens": 0, "cache_miss_input_tokens": 0, "output_tokens": 0}
+
+    monkeypatch.setattr(cli, "judge_from_environment", lambda *_args: FakeJudge())
+
+    exit_code = main(
+        [
+            "run-judge",
+            str(input_path),
+            str(output_path),
+            "--logical-result-budget",
+            "1",
+            "--http-attempt-budget",
+            "1",
+            "--result-retry-budget",
+            "0",
+            "--json",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert exit_code == 0
+    assert payload["completed"] is True
+    assert "judge_progress" in captured.err
+    assert json.loads(output_path.read_text(encoding="utf-8"))["run"]["status"] == "completed"
+
+
 def test_run_metric_cli(monkeypatch, tmp_path, capsys) -> None:
     selected = {}
 
@@ -673,3 +807,56 @@ def test_report_evidence_alignment_cli_reports_error(monkeypatch, capsys) -> Non
 
     assert exit_code == 2
     assert "bad join" in capsys.readouterr().err
+
+
+def test_build_pilot_aggregate_cli_emits_versioned_summary(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "write_pilot_aggregate",
+        lambda *_args: {
+            "score_version": "pilot-score-v0.1",
+            "entries": [{"profile_id": "a"}, {"profile_id": "b"}],
+        },
+    )
+    output_json = tmp_path / "aggregate.json"
+    output_markdown = tmp_path / "aggregate.md"
+    exit_code = main(
+        [
+            "build-pilot-aggregate",
+            "manifest.json",
+            str(output_json),
+            str(output_markdown),
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload == {
+        "built": True,
+        "output_json": str(output_json),
+        "output_markdown": str(output_markdown),
+        "score_version": "pilot-score-v0.1",
+        "profile_count": 2,
+    }
+
+
+def test_build_pilot_aggregate_cli_reports_error(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "write_pilot_aggregate",
+        lambda *_args: (_ for _ in ()).throw(cli.PilotAggregateError("bad tournament")),
+    )
+
+    assert (
+        main(
+            [
+                "build-pilot-aggregate",
+                "manifest.json",
+                "aggregate.json",
+                "aggregate.md",
+            ]
+        )
+        == 2
+    )
+    assert "bad tournament" in capsys.readouterr().err

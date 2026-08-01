@@ -11,6 +11,10 @@ from typing import Any
 
 from remis_aventine import __version__
 from remis_aventine.adapters.aces import ACESAdapterError, build_aces_pack
+from remis_aventine.adapters.google_ai_studio import (
+    GoogleAIStudioAdapterError,
+    run_remis_google_ai_studio_isolated,
+)
 from remis_aventine.adapters.mt_metrics_eval import (
     MTMetricsEvalAdapterError,
     build_mtme_mqm_pack,
@@ -30,6 +34,7 @@ from remis_aventine.metric_calibration import (
     build_metric_pack_from_calibration,
     write_metric_calibration_report,
 )
+from remis_aventine.pilot_aggregate import PilotAggregateError, write_pilot_aggregate
 from remis_aventine.remis_pairwise import (
     RemisPairwiseError,
     build_remis_pairwise_pack,
@@ -97,6 +102,29 @@ def build_parser() -> argparse.ArgumentParser:
     )
     adapter_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
+    google_parser = subparsers.add_parser(
+        "run-remis-google-ai-studio",
+        help="Run the frozen Remis benchmark through a versioned Google AI Studio adapter.",
+    )
+    google_parser.add_argument("fixture", type=Path)
+    google_parser.add_argument("raw_output", type=Path)
+    google_parser.add_argument("run_output", type=Path)
+    google_parser.add_argument("--remis-root", type=Path, required=True)
+    google_parser.add_argument("--runtime-python", type=Path, required=True)
+    google_parser.add_argument("--model", required=True)
+    google_parser.add_argument("--label")
+    google_parser.add_argument(
+        "--reasoning-effort",
+        choices=("minimal", "low", "medium", "high"),
+        default="high",
+    )
+    google_parser.add_argument("--max-output-tokens", type=int, default=16_000)
+    google_parser.add_argument("--track", choices=("all", "translation", "repair"), default="all")
+    google_parser.add_argument("--case-id", action="append", dest="case_ids")
+    google_parser.add_argument("--env-file", type=Path, default=Path(".env"))
+    google_parser.add_argument("--recipe-id")
+    google_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
     remis_pairwise_parser = subparsers.add_parser(
         "build-remis-pairwise-pack",
         help="Build a hard-veto-aware judge pack from two adapted Remis runs.",
@@ -114,6 +142,15 @@ def build_parser() -> argparse.ArgumentParser:
     remis_report_parser.add_argument("output_json", type=Path)
     remis_report_parser.add_argument("output_markdown", type=Path)
     remis_report_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    pilot_parser = subparsers.add_parser(
+        "build-pilot-aggregate",
+        help="Build a versioned Pilot Score aggregate from real run and pairwise artifacts.",
+    )
+    pilot_parser.add_argument("manifest", type=Path)
+    pilot_parser.add_argument("output_json", type=Path)
+    pilot_parser.add_argument("output_markdown", type=Path)
+    pilot_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     pack_parser = subparsers.add_parser(
         "build-calibration-pack",
@@ -164,12 +201,48 @@ def build_parser() -> argparse.ArgumentParser:
     judge_run_parser.add_argument("output", type=Path)
     judge_run_parser.add_argument("--limit", type=int)
     judge_run_parser.add_argument("--case-id", action="append", dest="case_ids")
-    judge_run_parser.add_argument("--max-calls", type=int, default=100)
+    judge_run_parser.add_argument(
+        "--max-calls",
+        type=int,
+        default=None,
+        help="Legacy cap for both logical results and HTTP attempts.",
+    )
+    judge_run_parser.add_argument(
+        "--logical-result-budget",
+        "--max-logical-results",
+        "--max-results",
+        dest="logical_result_budget",
+        type=int,
+        help="Maximum new logical results to schedule in this invocation.",
+    )
+    judge_run_parser.add_argument(
+        "--http-attempt-budget",
+        "--max-http-attempts",
+        dest="http_attempt_budget",
+        type=int,
+        help="Maximum HTTP attempts, including retries, in this invocation.",
+    )
+    judge_run_parser.add_argument(
+        "--result-retry-budget",
+        "--max-result-retries",
+        dest="result_retry_budget",
+        type=int,
+        help="Maximum retries for each logical result after its first attempt.",
+    )
     judge_run_parser.add_argument("--workers", type=int, default=1)
     judge_run_parser.add_argument(
-        "--provider", choices=("deepseek", "xai", "google"), default="deepseek"
+        "--provider",
+        choices=("deepseek", "deepseek-flash", "xai", "google", "openrouter"),
+        default="deepseek",
     )
     judge_run_parser.add_argument("--resume-from", type=Path)
+    judge_run_parser.add_argument(
+        "--checkpoint",
+        "--journal",
+        dest="checkpoint_path",
+        type=Path,
+        help="Atomic incremental checkpoint path; defaults to OUTPUT.",
+    )
     judge_run_parser.add_argument("--env-file", type=Path, default=Path(".env"))
     judge_run_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
@@ -325,6 +398,35 @@ def _adapt_remis(
     return 0
 
 
+def _run_remis_google(args: argparse.Namespace) -> int:
+    try:
+        payload = run_remis_google_ai_studio_isolated(
+            args.runtime_python,
+            args.remis_root,
+            args.fixture,
+            args.raw_output,
+            args.run_output,
+            model=args.model,
+            label=args.label,
+            reasoning_effort=args.reasoning_effort,
+            max_output_tokens=args.max_output_tokens,
+            track=args.track,
+            case_ids=tuple(args.case_ids or ()),
+            env_file=args.env_file,
+            recipe_id=args.recipe_id,
+        )
+    except (GoogleAIStudioAdapterError, DocumentValidationError, OSError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"Google AI Studio run: {payload['run_id']}")
+        print(f"- cases: {payload['case_count']}")
+        print(f"- raw: {payload['raw_output']}")
+        print(f"- Aventine: {payload['run_output']}")
+    return 0
+
+
 def _build_remis_pairwise(args: argparse.Namespace) -> int:
     try:
         pack = build_remis_pairwise_pack(args.left, args.right, args.output)
@@ -452,6 +554,15 @@ def _build_aces_pack(args: argparse.Namespace) -> int:
 
 
 def _run_judge(args: argparse.Namespace) -> int:
+    def report_progress(event: dict[str, Any]) -> None:
+        if args.json:
+            print(
+                json.dumps({"judge_progress": event}, ensure_ascii=False, sort_keys=True),
+                file=sys.stderr,
+            )
+        else:
+            print(f"judge progress: {event}", file=sys.stderr)
+
     try:
         judge = judge_from_environment(args.env_file, args.provider)
         result = run_judge_pack(
@@ -463,11 +574,16 @@ def _run_judge(args: argparse.Namespace) -> int:
             max_calls=args.max_calls,
             workers=args.workers,
             resume_from=args.resume_from,
+            logical_result_budget=args.logical_result_budget,
+            http_attempt_budget=args.http_attempt_budget,
+            result_retry_budget=args.result_retry_budget,
+            checkpoint_path=args.checkpoint_path,
+            progress=report_progress,
         )
     except (CalibrationFixtureError, JudgeRunError, OSError) as exc:
         return _emit_command_error(exc, as_json=args.json)
     payload = {
-        "completed": True,
+        "completed": result["run"].get("completed", True),
         "output": str(args.output),
         "case_count": len(result["cases"]),
         **result["run"],
@@ -638,10 +754,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             recipe_id=args.recipe_id,
             as_json=args.json,
         )
+    if args.command == "run-remis-google-ai-studio":
+        return _run_remis_google(args)
     if args.command == "build-remis-pairwise-pack":
         return _build_remis_pairwise(args)
     if args.command == "report-remis-pairwise":
         return _report_remis_pairwise(args)
+    if args.command == "build-pilot-aggregate":
+        try:
+            aggregate = write_pilot_aggregate(args.manifest, args.output_json, args.output_markdown)
+        except (PilotAggregateError, OSError) as exc:
+            return _emit_command_error(exc, as_json=args.json)
+        payload = {
+            "built": True,
+            "output_json": str(args.output_json),
+            "output_markdown": str(args.output_markdown),
+            "score_version": aggregate["score_version"],
+            "profile_count": len(aggregate["entries"]),
+        }
+        _emit(payload, as_json=args.json)
+        return 0
     if args.command == "build-calibration-pack":
         return _build_pack(args)
     if args.command == "build-mtme-mqm-pack":

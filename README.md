@@ -1,4 +1,8 @@
-# Aventine
+<p align="center">
+  <img src="docs/assets/brand/aventine-logo-on-light.svg" width="180" alt="Aventine evaluation logo">
+</p>
+
+<h1 align="center">Aventine</h1>
 
 [![CI](https://github.com/Drlinglong/remis-aventine/actions/workflows/ci.yml/badge.svg)](https://github.com/Drlinglong/remis-aventine/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
@@ -82,7 +86,9 @@ aventine build-mtme-mqm-pack TEST_SET LANGUAGE_PAIR RATING_SET DATASET_REVISION 
 aventine build-aces-pack INPUT OUTPUT --kind aces|span-aces --dataset-revision REVISION
   --expected-sha256 SHA256 [--limit N] [--language-pair PAIR] [--phenomenon NAME] [--json]
 aventine run-judge INPUT OUTPUT [--case-id ID] [--max-calls N] [--workers N]
-  [--provider deepseek|xai|google] [--resume-from PATH] [--env-file PATH] [--json]
+  [--logical-result-budget N] [--http-attempt-budget N] [--result-retry-budget N]
+  [--provider deepseek|deepseek-flash|xai|google|openrouter] [--resume-from PATH] [--checkpoint PATH]
+  [--env-file PATH] [--json]
 aventine run-metric INPUT OUTPUT --metric metricx-24|xcomet --runtime-python PATH
   --model-path PATH --model-id ID --model-sha256 SHA256 [--mode qe|reference]
   [--tokenizer-path PATH] [--metricx-source PATH] [--hf-home PATH] [--json]
@@ -111,22 +117,26 @@ aventine run-judge pairwise.json judged.json --provider deepseek --max-calls 100
 aventine report-remis-pairwise judged.json report.json report.md
 ```
 
+Google AI Studio contestant runs can reuse a pinned Remis checkout without routing Gemini through
+OpenRouter. The adapter requires an explicit model, reasoning effort, and output budget, then writes
+both the raw Remis artifact and a validated Aventine run result. See the
+[Chinese adapter guide](docs/zh/developer/google_ai_studio_contestant_adapter.md).
+
 Cases decided by execution status or hard-validator veto are excluded from judge calls. Eligible
 cases are evaluated in both A/B orders; position-inconsistent judgments remain unresolved. Repair
 reporting reuses Remis's `valid_items_unchanged` and `reference_exact_match` evidence.
 
 The real multilingual pack is rebuilt from SHA-256-pinned external MQM/ACES files. Raw upstream
 text and generated judge results remain outside Git. `run-judge` reads the selected provider's
-`DEEPSEEK_API_KEY`, `XAI_API_KEY`, or `GEMINI_API_KEY` from the process environment or a Git-ignored
-project `.env`, enforces a total HTTP request budget, retries transient/empty JSON responses, strips
-reasoning content, and can resume only failed outputs from a configuration-compatible artifact. See the
+`DEEPSEEK_API_KEY`, `XAI_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY` from the process environment or a Git-ignored
+project `.env`, strips reasoning content, and records timeout, rate-limit, provider, truncation, JSON,
+schema, budget, and unknown failures without changing the aggregate schema. `--max-calls` retains its
+legacy meaning: it caps both planned logical results and total HTTP attempts. New runs can instead use
+`--logical-result-budget`, `--http-attempt-budget`, and `--result-retry-budget`; retries are scheduled
+fairly across logical results. Each result atomically updates the output (or `--checkpoint` path), and
+resume rejects a mismatched configuration fingerprint while reusing only schema-valid results. With
+`--json`, final JSON is emitted on stdout and progress/diagnostics are emitted on stderr. See the
 [multilingual calibration guide](docs/zh/developer/multilingual_calibration.md).
-
-Known limitation: `--max-calls` currently caps HTTP attempts, including retries, while the runner also
-uses it when checking planned logical outputs. Until these budgets are separated, leave retry headroom
-above the planned output count. Split budgets, incremental checkpoints, progress telemetry, and a more
-compact long-text judge profile are tracked in
-[issue #5](https://github.com/Drlinglong/remis-aventine/issues/5).
 
 `build-mtme-mqm-pack` reads an already-installed, already-downloaded `mt-metrics-eval` EvalSet. It
 never downloads the multi-gigabyte WMT bundle itself. The adapter skips unrated segments, preserves
@@ -185,6 +195,7 @@ tool for regression testing translation recipes.**
 
 ## Documentation
 
+- [中文速查：各项评分标准在评价什么能力](docs/zh/developer/benchmark_scoring_quick_reference.md)
 - [中文开发者文档：愿景、边界与核心工作流](docs/zh/developer/vision_and_workflow.md)
 - [中文开发者文档：Judge 校准与 Remis 兼容层](docs/zh/developer/calibration_and_remis_compat.md)
 - [中文开发者文档：多语言小样本与远程 Judge](docs/zh/developer/multilingual_calibration.md)
