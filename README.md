@@ -83,7 +83,7 @@ aventine build-aces-pack INPUT OUTPUT --kind aces|span-aces --dataset-revision R
   --expected-sha256 SHA256 [--limit N] [--language-pair PAIR] [--phenomenon NAME] [--json]
 aventine run-judge INPUT OUTPUT [--case-id ID] [--max-calls N] [--workers N]
   [--logical-result-budget N] [--http-attempt-budget N] [--result-retry-budget N]
-  [--provider deepseek|xai|google] [--resume-from PATH] [--checkpoint PATH]
+  [--provider deepseek|deepseek-flash|xai|google|openrouter] [--resume-from PATH] [--checkpoint PATH]
   [--env-file PATH] [--json]
 aventine run-metric INPUT OUTPUT --metric metricx-24|xcomet --runtime-python PATH
   --model-path PATH --model-id ID --model-sha256 SHA256 [--mode qe|reference]
@@ -119,7 +119,7 @@ reporting reuses Remis's `valid_items_unchanged` and `reference_exact_match` evi
 
 The real multilingual pack is rebuilt from SHA-256-pinned external MQM/ACES files. Raw upstream
 text and generated judge results remain outside Git. `run-judge` reads the selected provider's
-`DEEPSEEK_API_KEY`, `XAI_API_KEY`, or `GEMINI_API_KEY` from the process environment or a Git-ignored
+`DEEPSEEK_API_KEY`, `XAI_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY` from the process environment or a Git-ignored
 project `.env`, strips reasoning content, and records timeout, rate-limit, provider, truncation, JSON,
 schema, budget, and unknown failures without changing the aggregate schema. `--max-calls` retains its
 legacy meaning: it caps both planned logical results and total HTTP attempts. New runs can instead use

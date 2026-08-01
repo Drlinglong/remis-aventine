@@ -25,9 +25,17 @@ from remis_aventine.validation import DocumentValidationError, validate_payload
 
 MODEL_ID = "deepseek-v4-pro"
 PROMPT_REVISION = "translation-judge-v2"
-PROFILE = "deepseek-v4-pro-thinking-high"
-MAX_TOKENS = 4000
+PROFILE = "deepseek-v4-pro-thinking-high-8k"
+MAX_TOKENS = 8000
 PRICING_RMB_PER_MILLION = {"cache_hit_input": 0.025, "cache_miss_input": 3.0, "output": 6.0}
+FLASH_MODEL_ID = "deepseek-v4-flash"
+FLASH_PROFILE = "deepseek-v4-flash-thinking-low-8k"
+FLASH_MAX_TOKENS = 8000
+FLASH_PRICING_RMB_PER_MILLION = {
+    "cache_hit_input": 0.02,
+    "cache_miss_input": 1.0,
+    "output": 2.0,
+}
 XAI_MODEL_ID = "grok-4.5"
 XAI_PROFILE = "grok-4.5-reasoning-low-structured-v2"
 XAI_MAX_TOKENS = 4000
@@ -35,6 +43,14 @@ XAI_PRICING_USD_PER_MILLION = {"cache_hit_input": 0.5, "cache_miss_input": 2.0, 
 GOOGLE_MODEL_ID = "gemma-4-31b-it"
 GOOGLE_PROFILE = "gemma-4-31b-it-free-structured-v1"
 GOOGLE_MAX_TOKENS = 4000
+OPENROUTER_MODEL_ID = "deepseek/deepseek-v4-pro"
+OPENROUTER_PROFILE = "openrouter-deepseek-v4-pro-reasoning-high-structured-8k-v1"
+OPENROUTER_MAX_TOKENS = 8000
+OPENROUTER_PRICING_USD_PER_MILLION = {
+    "cache_hit_input": 0.003625,
+    "cache_miss_input": 0.435,
+    "output": 0.87,
+}
 
 
 FAILURE_TYPES = (
@@ -511,6 +527,41 @@ class DeepSeekJudge:
         raise last_error
 
 
+class DeepSeekFlashJudge(DeepSeekJudge):
+    """Current DeepSeek V4 Flash judge for direct comparison with the Pro baseline."""
+
+    provider = "deepseek-flash"
+    provider_label = "DeepSeek Flash"
+    model_id = FLASH_MODEL_ID
+    profile = FLASH_PROFILE
+    max_tokens = FLASH_MAX_TOKENS
+    reasoning_effort = "low"
+
+    def cost_fields(self, usage: dict[str, int], prior_run: dict[str, Any]) -> dict[str, Any]:
+        current = round(
+            (
+                usage["cache_hit_input_tokens"] * FLASH_PRICING_RMB_PER_MILLION["cache_hit_input"]
+                + usage["cache_miss_input_tokens"]
+                * FLASH_PRICING_RMB_PER_MILLION["cache_miss_input"]
+                + usage["output_tokens"] * FLASH_PRICING_RMB_PER_MILLION["output"]
+            )
+            / 1_000_000,
+            6,
+        )
+        prior = float(
+            prior_run.get(
+                "cumulative_estimated_cost_rmb",
+                prior_run.get("estimated_cost_rmb", 0.0),
+            )
+        )
+        return {
+            "pricing_rmb_per_million_tokens": FLASH_PRICING_RMB_PER_MILLION,
+            "estimated_cost_rmb": current,
+            "prior_estimated_cost_rmb": prior,
+            "cumulative_estimated_cost_rmb": round(prior + current, 6),
+        }
+
+
 class XAIJudge(DeepSeekJudge):
     """xAI Grok judge using low reasoning and strict structured output."""
 
@@ -600,6 +651,87 @@ class XAIJudge(DeepSeekJudge):
             "prior_exact_cost_usd": prior,
             "cumulative_exact_cost_usd": round(prior + current, 10),
             "cost_source": "api_ticks" if exact else "token_estimate",
+        }
+
+
+class OpenRouterJudge(DeepSeekJudge):
+    """OpenRouter-hosted DeepSeek V4 Pro judge with bounded structured output."""
+
+    provider = "openrouter"
+    provider_label = "OpenRouter"
+    credential_name = "OPENROUTER_API_KEY"
+    model_id = OPENROUTER_MODEL_ID
+    profile = OPENROUTER_PROFILE
+    max_tokens = OPENROUTER_MAX_TOKENS
+    thinking = "enabled"
+    reasoning_effort = "high"
+
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        endpoint: str = "https://openrouter.ai/api/v1/chat/completions",
+        timeout_seconds: float = 120,
+        retries: int = 2,
+        opener: Callable[..., Any] = urllib.request.urlopen,
+        sleeper: Callable[[float], None] = time.sleep,
+    ) -> None:
+        super().__init__(
+            api_key,
+            endpoint=endpoint,
+            timeout_seconds=timeout_seconds,
+            retries=retries,
+            opener=opener,
+            sleeper=sleeper,
+            extra_headers={
+                "HTTP-Referer": "https://drlinglong.github.io/Remis/aventine/",
+                "X-Title": "Remis Aventine translation judge",
+            },
+        )
+
+    def request_body(self, case: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "model": self.model_id,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": _prompt(case)},
+            ],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "translation_judge_evaluation",
+                    "strict": True,
+                    "schema": _xai_response_schema(_case_mode(case)),
+                },
+            },
+            "reasoning_effort": self.reasoning_effort,
+            "max_tokens": self.max_tokens,
+        }
+
+    def cost_fields(self, usage: dict[str, int], prior_run: dict[str, Any]) -> dict[str, Any]:
+        current = round(
+            (
+                usage["cache_hit_input_tokens"]
+                * OPENROUTER_PRICING_USD_PER_MILLION["cache_hit_input"]
+                + usage["cache_miss_input_tokens"]
+                * OPENROUTER_PRICING_USD_PER_MILLION["cache_miss_input"]
+                + usage["output_tokens"] * OPENROUTER_PRICING_USD_PER_MILLION["output"]
+            )
+            / 1_000_000,
+            6,
+        )
+        prior = float(
+            prior_run.get(
+                "cumulative_estimated_cost_usd",
+                prior_run.get("estimated_cost_usd", 0.0),
+            )
+        )
+        return {
+            "pricing_usd_per_million_tokens": OPENROUTER_PRICING_USD_PER_MILLION,
+            "estimated_cost_usd": current,
+            "prior_estimated_cost_usd": prior,
+            "cumulative_estimated_cost_usd": round(prior + current, 6),
+            "cost_source": "token_estimate",
         }
 
 
@@ -1239,8 +1371,10 @@ def judge_from_environment(
     """Create a provider judge from process env or a Git-ignored project .env."""
     clients: dict[str, tuple[str, type[DeepSeekJudge]]] = {
         "deepseek": ("DEEPSEEK_API_KEY", DeepSeekJudge),
+        "deepseek-flash": ("DEEPSEEK_API_KEY", DeepSeekFlashJudge),
         "xai": ("XAI_API_KEY", XAIJudge),
         "google": ("GEMINI_API_KEY", GoogleGemmaJudge),
+        "openrouter": ("OPENROUTER_API_KEY", OpenRouterJudge),
     }
     try:
         credential_name, client_type = clients[provider]

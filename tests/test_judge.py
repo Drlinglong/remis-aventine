@@ -8,9 +8,11 @@ import pytest
 
 from remis_aventine.calibration import summarize_calibration_fixture
 from remis_aventine.judge import (
+    DeepSeekFlashJudge,
     DeepSeekJudge,
     GoogleGemmaJudge,
     JudgeRunError,
+    OpenRouterJudge,
     XAIJudge,
     judge_from_environment,
     run_judge_pack,
@@ -80,7 +82,7 @@ def test_deepseek_judge_wraps_server_owned_metadata_and_usage() -> None:
     request_body = json.loads(requests[0].data)
     assert request_body["thinking"] == {"type": "enabled"}
     assert request_body["response_format"] == {"type": "json_object"}
-    assert request_body["max_tokens"] == 4000
+    assert request_body["max_tokens"] == 8000
 
 
 def test_resume_cost_fields_use_prior_cumulative_totals() -> None:
@@ -176,6 +178,46 @@ def test_judge_from_environment_reads_ignored_file(tmp_path, monkeypatch) -> Non
     judge = judge_from_environment(env_path)
 
     assert judge.api_key == "from-file"
+
+
+def test_judge_from_environment_selects_deepseek_flash(tmp_path, monkeypatch) -> None:
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    env_path = tmp_path / ".env"
+    env_path.write_text("DEEPSEEK_API_KEY=flash-test\n", encoding="utf-8")
+
+    judge = judge_from_environment(env_path, "deepseek-flash")
+
+    assert isinstance(judge, DeepSeekFlashJudge)
+    assert judge.model_id == "deepseek-v4-flash"
+    assert judge.max_tokens == 8000
+    assert judge.reasoning_effort == "low"
+    assert judge.api_key == "flash-test"
+    request_body = judge.request_body(
+        {
+            "id": "pair-1",
+            "evaluation_mode": "pairwise",
+            "input": {
+                "language_pair": "en-zh",
+                "source": "Hello",
+                "candidate_a": "你好",
+                "candidate_b": "您好",
+            },
+            "gold": {"mode": "pairwise", "verdict": "tie"},
+        }
+    )
+    assert request_body["model"] == "deepseek-v4-flash"
+    assert request_body["thinking"] == {"type": "enabled"}
+    assert request_body["reasoning_effort"] == "low"
+    assert request_body["max_tokens"] == 8000
+    costs = judge.cost_fields(
+        {
+            "cache_hit_input_tokens": 1_000_000,
+            "cache_miss_input_tokens": 1_000_000,
+            "output_tokens": 1_000_000,
+        },
+        {},
+    )
+    assert costs["estimated_cost_rmb"] == 3.02
 
 
 class _FakeJudge:
@@ -445,6 +487,51 @@ def test_judge_from_environment_selects_xai(tmp_path, monkeypatch) -> None:
 
     assert isinstance(judge, XAIJudge)
     assert judge.api_key == "xai-test"
+
+
+def test_openrouter_judge_uses_v4_pro_structured_output_and_usd_pricing() -> None:
+    requests = []
+
+    def opener(request, **_kwargs):
+        requests.append(request)
+        return _api_response(_evaluation(mode="pairwise", verdict="candidate_a"), cached=0)
+
+    judge = OpenRouterJudge("test-key", opener=opener)
+    result, usage = judge.evaluate(
+        {
+            "id": "pair-1",
+            "evaluation_mode": "pairwise",
+            "input": {
+                "language_pair": "en-zh",
+                "source": "Hello",
+                "candidate_a": "你好",
+                "candidate_b": "您好",
+            },
+            "gold": {"mode": "pairwise", "verdict": "tie"},
+        }
+    )
+
+    assert result["judge"]["model"] == "deepseek/deepseek-v4-pro"
+    body = json.loads(requests[0].data)
+    assert body["reasoning_effort"] == "high"
+    assert body["max_tokens"] == 8000
+    assert "thinking" not in body
+    assert body["response_format"]["type"] == "json_schema"
+    assert requests[0].headers["Http-referer"] == ("https://drlinglong.github.io/Remis/aventine/")
+    costs = judge.cost_fields(usage, {})
+    assert costs["estimated_cost_usd"] > 0
+    assert costs["cost_source"] == "token_estimate"
+
+
+def test_judge_from_environment_selects_openrouter(tmp_path, monkeypatch) -> None:
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    env_path = tmp_path / ".env"
+    env_path.write_text("OPENROUTER_API_KEY=openrouter-test\n", encoding="utf-8")
+
+    judge = judge_from_environment(env_path, "openrouter")
+
+    assert isinstance(judge, OpenRouterJudge)
+    assert judge.api_key == "openrouter-test"
 
 
 def test_google_gemma_judge_uses_generate_content_schema_and_free_cost() -> None:

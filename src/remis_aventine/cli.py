@@ -194,7 +194,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     judge_run_parser.add_argument("--workers", type=int, default=1)
     judge_run_parser.add_argument(
-        "--provider", choices=("deepseek", "xai", "google"), default="deepseek"
+        "--provider",
+        choices=("deepseek", "deepseek-flash", "xai", "google", "openrouter"),
+        default="deepseek",
     )
     judge_run_parser.add_argument("--resume-from", type=Path)
     judge_run_parser.add_argument(
