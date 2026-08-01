@@ -36,12 +36,26 @@ def _case(case_id: str, *, track: str, passed: bool, unchanged: bool | None = No
     return case
 
 
-def _run(recipe: str, sha: str, cases: list[dict]) -> dict:
+def _run(
+    recipe: str,
+    sha: str,
+    cases: list[dict],
+    *,
+    reasoning_label: str | None = None,
+) -> dict:
+    recipe_payload = {"id": recipe, "sha256": sha}
+    if reasoning_label is not None:
+        recipe_payload["snapshot"] = {
+            "request_profile": {
+                "reasoning_label": reasoning_label,
+                "reasoning": {"effort": reasoning_label, "exclude": True},
+            }
+        }
     return {
         "schema_version": 1,
         "run_id": f"run-{recipe}",
         "suite": "remis",
-        "recipe": {"id": recipe, "sha256": sha},
+        "recipe": recipe_payload,
         "started_at": "2026-07-15T00:00:00Z",
         "finished_at": "2026-07-15T00:00:01Z",
         "environment": {"model_label": recipe},
@@ -130,6 +144,7 @@ def test_report_requires_position_consistency(tmp_path) -> None:
     assert report["summary"]["left_win_count"] == 1
     assert report["summary"]["unresolved_count"] == 0
     assert "Repair restraint" in render_remis_pairwise_markdown(report)
+    assert report["recipes"]["left"]["reasoning_label"] == "unknown"
 
     pack["cases"][0]["swap_judge_output"] = _judge("soft", "candidate_a")
     _write(pack_path, pack)
@@ -142,6 +157,31 @@ def test_report_requires_position_consistency(tmp_path) -> None:
     written = write_remis_pairwise_report(pack_path, json_path, markdown_path)
     assert json.loads(json_path.read_text(encoding="utf-8")) == written
     assert markdown_path.read_text(encoding="utf-8").startswith("# Remis recipe pairwise report")
+
+
+def test_pairwise_report_preserves_explicit_reasoning_label(tmp_path) -> None:
+    left = _run(
+        "left",
+        "a" * 64,
+        [_case("soft", track="translation", passed=True)],
+        reasoning_label="high",
+    )
+    right = _run(
+        "right",
+        "b" * 64,
+        [_case("soft", track="translation", passed=True)],
+        reasoning_label="reasoning",
+    )
+    left_path = tmp_path / "left.json"
+    right_path = tmp_path / "right.json"
+    pack_path = tmp_path / "pack.json"
+    _write(left_path, left)
+    _write(right_path, right)
+
+    pack = build_remis_pairwise_pack(left_path, right_path, pack_path)
+
+    assert pack["recipes"]["left"]["reasoning_label"] == "high"
+    assert pack["recipes"]["right"]["reasoning_label"] == "reasoning"
 
 
 def test_pairwise_rejects_mismatched_case_sets(tmp_path) -> None:

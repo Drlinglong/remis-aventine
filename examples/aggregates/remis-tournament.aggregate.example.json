@@ -24,6 +24,14 @@
       "name": "llama.cpp",
       "version": "b3800",
       "provider": "LM Studio"
+    },
+    "inference": {
+      "reasoning": {
+        "mode": "disabled",
+        "display_label": "none",
+        "effort": null
+      },
+      "max_output_tokens": 4096
     }
   },
   "overall": {

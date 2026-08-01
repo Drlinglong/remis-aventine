@@ -28,6 +28,11 @@ def test_example_tournament_aggregate_matches_schema() -> None:
     assert document["score_version"] == "tournament-score-v0.1"
     assert document["benchmark_pack"]["sha256"]
     assert document["recipe"]["sha256"]
+    assert document["recipe"]["inference"]["reasoning"] == {
+        "mode": "disabled",
+        "display_label": "none",
+        "effort": None,
+    }
     assert document["overall"]["sample_count"] == 7
     assert document["overall"]["coverage"] == 1
     assert document["regional_scores"]["european"]["language_scores"]["fr"]["score"] == 87
@@ -49,6 +54,29 @@ def test_missing_score_version_is_rejected(tmp_path: Path) -> None:
         validate_document(path, SCHEMA_NAME)
 
     assert any("score_version" in issue for issue in exc_info.value.issues)
+
+
+def test_recipe_must_publish_reasoning_configuration(tmp_path: Path) -> None:
+    path = _write_variant(
+        tmp_path,
+        lambda document: document["recipe"].pop("inference"),
+    )
+
+    with pytest.raises(DocumentValidationError) as exc_info:
+        validate_document(path, SCHEMA_NAME)
+
+    assert any("inference" in issue for issue in exc_info.value.issues)
+
+
+def test_ungraded_reasoning_uses_label_without_fake_effort(tmp_path: Path) -> None:
+    def enable_ungraded_reasoning(document: dict) -> None:
+        document["recipe"]["inference"]["reasoning"] = {
+            "mode": "enabled",
+            "display_label": "reasoning",
+            "effort": None,
+        }
+
+    validate_document(_write_variant(tmp_path, enable_ungraded_reasoning), SCHEMA_NAME)
 
 
 def test_invalid_benchmark_hash_is_rejected(tmp_path: Path) -> None:

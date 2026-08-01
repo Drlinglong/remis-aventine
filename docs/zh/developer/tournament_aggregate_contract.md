@@ -13,6 +13,10 @@
 - stage failure counts/multipliers、延迟与吞吐、token/cost、峰值 VRAM/RAM、context budget、
   batch size、glossary provenance 和生成环境属于结果证据的一部分。成本记录 source、effective_at
   以及 estimated/observed 状态；未测 telemetry 可使用 `null`；
+- recipe 必须显式记录 inference reasoning。关闭推理写 `disabled / none`；供应商只暴露推理开关
+  而不暴露档位时写 `enabled / reasoning`；只有模型或网关明确接受 effort 时才写
+  `effort / low|medium|high|...`。报告和网站不得省略该标签，也不得把 requested effort 冒充
+  无法验证的 effective effort；
 - 固定字段和嵌套对象拒绝未知属性。未来实验字段只能放进命名空间化的 `extensions.x-*`，稳定
   合同字段应通过新的 `schema_version` 演进。
 

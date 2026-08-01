@@ -118,7 +118,7 @@
     "recipe": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "sha256", "model", "quantization", "runtime"],
+      "required": ["id", "sha256", "model", "quantization", "runtime", "inference"],
       "properties": {
         "id": {"$ref": "#/$defs/identifier"},
         "sha256": {"$ref": "#/$defs/sha256"},
@@ -150,6 +150,40 @@
             "name": {"$ref": "#/$defs/identifier"},
             "version": {"$ref": "#/$defs/identifier"},
             "provider": {"$ref": "#/$defs/identifier"}
+          }
+        },
+        "inference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reasoning"],
+          "properties": {
+            "reasoning": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode", "display_label", "effort"],
+              "properties": {
+                "mode": {"enum": ["disabled", "enabled", "effort", "unknown"]},
+                "display_label": {"$ref": "#/$defs/identifier"},
+                "effort": {
+                  "type": ["string", "null"],
+                  "enum": ["minimal", "low", "medium", "high", "xhigh", "max", null]
+                }
+              },
+              "allOf": [
+                {
+                  "if": {"properties": {"mode": {"const": "effort"}}, "required": ["mode"]},
+                  "then": {"properties": {"effort": {"type": "string"}}}
+                },
+                {
+                  "if": {
+                    "properties": {"mode": {"enum": ["disabled", "enabled", "unknown"]}},
+                    "required": ["mode"]
+                  },
+                  "then": {"properties": {"effort": {"type": "null"}}}
+                }
+              ]
+            },
+            "max_output_tokens": {"type": ["integer", "null"], "minimum": 1}
           }
         }
       }

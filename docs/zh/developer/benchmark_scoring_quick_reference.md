@@ -131,6 +131,10 @@ instruction-following benchmark 的 10/10。
 模型、具体 revision、量化、prompt、测试集、语言方向、上下文策略、裁判与裁决规则都是
 复现条件，不是分数。任何一项变化都可能形成新的 recipe 条目。
 
+推理配置同样是强制 recipe 身份：关闭推理显示 `none`；供应商只有推理开关、没有公开档位时
+显示 `reasoning`；只有模型/网关明确接受档位时才显示 `low`、`medium`、`high` 等。报告和网站
+不得省略，也不能把 requested effort 写成未经验证的 effective effort。
+
 ## Remis 新词挖掘机指标
 
 “术语发现率”不是 Aventine 翻译器原生能力，但可以作为紧密绑定的 Remis workflow signal：
