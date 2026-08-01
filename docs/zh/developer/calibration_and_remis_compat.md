@@ -102,8 +102,10 @@ aventine adapt-remis-result `
 1. 区分 `completed`、`execution_failure` 和 `structured_output_failure`；
 2. 把 Remis hard check 和 findings 映射到 Aventine envelope；
 3. 保留候选输出与必要 hash/运行指标；
-4. 丢弃 `raw_response`，减少 provider 内部信息和无关 reasoning 泄漏；
-5. 用 provider/model/track/prompt/fixture/policy 生成稳定 compatibility snapshot hash；
+4. 丢弃 `raw_response`、endpoint、base URL、credential、API key、authorization 等 provider
+   传输/凭据字段，减少内部信息和无关 reasoning 泄漏；
+5. 用 provider/model/track/prompt/fixture 以及清洗后的公开 policy 生成稳定 compatibility
+   snapshot hash；敏感配置不会进入 artifact，也不会改变 recipe hash；
 6. 在写出前用 `run-result.schema.json` 验证结果。
 
 因为旧 Remis artifact 没有原生 Aventine recipe manifest，这个 hash 明确标记为
