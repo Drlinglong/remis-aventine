@@ -186,6 +186,7 @@ tool for regression testing translation recipes.**
 
 ## Documentation
 
+- [中文速查：各项评分标准在评价什么能力](docs/zh/developer/benchmark_scoring_quick_reference.md)
 - [中文开发者文档：愿景、边界与核心工作流](docs/zh/developer/vision_and_workflow.md)
 - [中文开发者文档：Judge 校准与 Remis 兼容层](docs/zh/developer/calibration_and_remis_compat.md)
 - [中文开发者文档：多语言小样本与远程 Judge](docs/zh/developer/multilingual_calibration.md)
