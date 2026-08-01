@@ -762,9 +762,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _report_remis_pairwise(args)
     if args.command == "build-pilot-aggregate":
         try:
-            aggregate = write_pilot_aggregate(
-                args.manifest, args.output_json, args.output_markdown
-            )
+            aggregate = write_pilot_aggregate(args.manifest, args.output_json, args.output_markdown)
         except (PilotAggregateError, OSError) as exc:
             return _emit_command_error(exc, as_json=args.json)
         payload = {

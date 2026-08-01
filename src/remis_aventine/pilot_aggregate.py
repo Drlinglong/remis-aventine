@@ -54,8 +54,7 @@ def _hard_case_value(case: dict[str, Any]) -> Decimal:
 def _sum_usage(cases: list[dict[str, Any]]) -> dict[str, int]:
     keys = ("input_tokens", "output_tokens", "reasoning_tokens", "total_tokens")
     return {
-        key: sum(int((case.get("usage") or {}).get(key) or 0) for case in cases)
-        for key in keys
+        key: sum(int((case.get("usage") or {}).get(key) or 0) for case in cases) for key in keys
     }
 
 
@@ -104,7 +103,7 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
         if len(all_cases) == 0:
             raise PilotAggregateError(f"Profile {profile_id!r} has no cases.")
         for run in runs:
-            snapshot = ((run.get("recipe") or {}).get("snapshot") or {})
+            snapshot = (run.get("recipe") or {}).get("snapshot") or {}
             if snapshot.get("fixture_sha256"):
                 fixture_hashes.add(str(snapshot["fixture_sha256"]))
         hard_points = sum((_hard_case_value(case) for case in all_cases), Decimal("0"))
@@ -150,9 +149,7 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
 
         judge_run = report.get("judge_run") or {}
         judge_telemetry["report_count"] += 1
-        judge_telemetry["http_attempt_count"] += int(
-            judge_run.get("http_attempt_count") or 0
-        )
+        judge_telemetry["http_attempt_count"] += int(judge_run.get("http_attempt_count") or 0)
         judge_telemetry["failure_count"] += int(judge_run.get("failure_count") or 0)
         judge_telemetry["estimated_cost_micrormb"] += round(
             float(judge_run.get("estimated_cost_rmb") or 0) * 1_000_000
@@ -303,9 +300,7 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
             "report_count": judge_telemetry["report_count"],
             "http_attempt_count": judge_telemetry["http_attempt_count"],
             "failure_count": judge_telemetry["failure_count"],
-            "estimated_cost_rmb": round(
-                judge_telemetry["estimated_cost_micrormb"] / 1_000_000, 6
-            ),
+            "estimated_cost_rmb": round(judge_telemetry["estimated_cost_micrormb"] / 1_000_000, 6),
         },
         "entries": entries,
     }
