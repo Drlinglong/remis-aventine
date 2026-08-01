@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from remis_aventine import pilot_aggregate
 from remis_aventine.pilot_aggregate import PilotAggregateError, write_pilot_aggregate
 
 
@@ -49,6 +50,7 @@ def _report(path: Path) -> None:
                 },
                 "cases": [
                     {"decision_source": "judge_position_consistent", "winner": "left"},
+                    {"decision_source": "judge_position_consistent", "winner": "right"},
                     {"decision_source": "judge_position_consistent", "winner": "tie"},
                     {"decision_source": "judge_position_inconsistent", "winner": "unresolved"},
                     {"decision_source": "hard_validation", "winner": "right"},
@@ -89,9 +91,9 @@ def test_builds_score_with_stage_policy_and_soft_coverage(tmp_path: Path) -> Non
 
     a, b = aggregate["entries"]
     assert a["profile_id"] == "a"
-    assert a["score"]["score"] == 85.0
+    assert a["score"]["score"] == 70.0
     assert a["hard_reliability"]["sample_count"] == 6
-    assert a["soft_preference"]["coverage"]["coverage"] == 0.5
+    assert a["soft_preference"]["coverage"]["coverage"] == 0.6
     assert b["hard_reliability"]["value"] == pytest.approx(0.835)
     assert "PREVIEW aggregate" in (tmp_path / "out.md").read_text(encoding="utf-8")
 
@@ -132,3 +134,134 @@ def test_misaligned_translation_is_not_recoverable(tmp_path: Path) -> None:
     }
 
     assert _hard_case_value(case) == 0
+
+
+def _valid_manifest(tmp_path: Path) -> dict:
+    _run(tmp_path / "a.json", "recipe.a", [("translation", True)])
+    _run(tmp_path / "b.json", "recipe.b", [("translation", True)])
+    _report(tmp_path / "pair.json")
+    return {
+        "schema_version": 1,
+        "expected_run_count": 1,
+        "profiles": [
+            {"id": "a", "runs": ["a.json"]},
+            {"id": "b", "runs": ["b.json"]},
+        ],
+        "pairwise_reports": ["pair.json"],
+    }
+
+
+def _write_manifest(tmp_path: Path, manifest: dict) -> Path:
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    return path
+
+
+def test_json_helpers_and_hard_case_branches(tmp_path: Path) -> None:
+    with pytest.raises(PilotAggregateError, match="Unable to read"):
+        pilot_aggregate._read_json(tmp_path / "missing.json")
+    array = tmp_path / "array.json"
+    array.write_text("[]", encoding="utf-8")
+    with pytest.raises(PilotAggregateError, match="JSON object"):
+        pilot_aggregate._read_json(array)
+
+    absolute = tmp_path.resolve() / "artifact.json"
+    assert pilot_aggregate._resolve(tmp_path / "other", str(absolute)) == absolute
+    assert pilot_aggregate._hard_case_value({"execution_status": "failed"}) == 0
+    assert (
+        pilot_aggregate._hard_case_value(
+            {
+                "execution_status": "completed",
+                "track": "translation",
+                "hard_validation": {"passed": False},
+                "automatic_metrics": {"parsed": False, "item_count_match": True},
+            }
+        )
+        == pilot_aggregate.RECOVERABLE_TRANSLATION_MULTIPLIER
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda manifest: manifest.update(schema_version=2), "schema_version"),
+        (lambda manifest: manifest.update(profiles=[]), "At least two"),
+        (lambda manifest: manifest.update(pairwise_reports=[]), "pairwise_reports"),
+        (lambda manifest: manifest["profiles"].__setitem__(0, "bad"), "profile entry"),
+        (lambda manifest: manifest["profiles"][0].update(id=""), "profile id"),
+        (lambda manifest: manifest["profiles"][0].update(runs=[]), "exactly 1 runs"),
+    ],
+)
+def test_manifest_shape_failures(tmp_path: Path, mutate, message: str) -> None:
+    manifest = _valid_manifest(tmp_path)
+    mutate(manifest)
+    with pytest.raises(PilotAggregateError, match=message):
+        pilot_aggregate.build_pilot_aggregate(_write_manifest(tmp_path, manifest))
+
+
+@pytest.mark.parametrize(
+    ("run_change", "message"),
+    [
+        ({"suite": "other"}, "non-Remis"),
+        ({"recipe": {"id": ""}}, "one recipe id"),
+        ({"cases": []}, "has no cases"),
+        ({"recipe": {"id": "recipe.a", "snapshot": {"fixture_sha256": "other"}}}, "fixture hash"),
+    ],
+)
+def test_run_artifact_failures(tmp_path: Path, run_change: dict, message: str) -> None:
+    manifest = _valid_manifest(tmp_path)
+    run = json.loads((tmp_path / "a.json").read_text(encoding="utf-8"))
+    run.update(run_change)
+    (tmp_path / "a.json").write_text(json.dumps(run), encoding="utf-8")
+    with pytest.raises(PilotAggregateError, match=message):
+        pilot_aggregate.build_pilot_aggregate(_write_manifest(tmp_path, manifest))
+
+
+def test_duplicate_recipe_and_pairwise_report_failures(tmp_path: Path) -> None:
+    manifest = _valid_manifest(tmp_path)
+    run = json.loads((tmp_path / "b.json").read_text(encoding="utf-8"))
+    run["recipe"]["id"] = "recipe.a"
+    (tmp_path / "b.json").write_text(json.dumps(run), encoding="utf-8")
+    with pytest.raises(PilotAggregateError, match="more than one profile"):
+        pilot_aggregate.build_pilot_aggregate(_write_manifest(tmp_path, manifest))
+
+    manifest = _valid_manifest(tmp_path)
+    manifest["pairwise_reports"].append("pair.json")
+    with pytest.raises(PilotAggregateError, match="Duplicate pairwise"):
+        pilot_aggregate.build_pilot_aggregate(_write_manifest(tmp_path, manifest))
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        ({"suite": "other"}, "Not a Remis"),
+        (
+            {"recipes": {"left": {"id": "unknown"}, "right": {"id": "recipe.b"}}},
+            "unknown tournament recipe",
+        ),
+        (
+            {"cases": [{"decision_source": "judge_position_consistent", "winner": "unknown"}]},
+            "has winner",
+        ),
+        (
+            {"cases": [{"decision_source": "judge_position_inconsistent", "winner": "unresolved"}]},
+            "no resolved soft decisions",
+        ),
+    ],
+)
+def test_pairwise_artifact_failures(tmp_path: Path, change: dict, message: str) -> None:
+    manifest = _valid_manifest(tmp_path)
+    report = json.loads((tmp_path / "pair.json").read_text(encoding="utf-8"))
+    report.update(change)
+    (tmp_path / "pair.json").write_text(json.dumps(report), encoding="utf-8")
+    with pytest.raises(PilotAggregateError, match=message):
+        pilot_aggregate.build_pilot_aggregate(_write_manifest(tmp_path, manifest))
+
+
+def test_profiles_require_equal_hard_case_counts(tmp_path: Path) -> None:
+    manifest = _valid_manifest(tmp_path)
+    run = json.loads((tmp_path / "b.json").read_text(encoding="utf-8"))
+    run["cases"].append(dict(run["cases"][0], id="extra"))
+    (tmp_path / "b.json").write_text(json.dumps(run), encoding="utf-8")
+    with pytest.raises(PilotAggregateError, match="same number of hard cases"):
+        pilot_aggregate.build_pilot_aggregate(_write_manifest(tmp_path, manifest))

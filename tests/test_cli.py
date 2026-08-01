@@ -807,3 +807,56 @@ def test_report_evidence_alignment_cli_reports_error(monkeypatch, capsys) -> Non
 
     assert exit_code == 2
     assert "bad join" in capsys.readouterr().err
+
+
+def test_build_pilot_aggregate_cli_emits_versioned_summary(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "write_pilot_aggregate",
+        lambda *_args: {
+            "score_version": "pilot-score-v0.1",
+            "entries": [{"profile_id": "a"}, {"profile_id": "b"}],
+        },
+    )
+    output_json = tmp_path / "aggregate.json"
+    output_markdown = tmp_path / "aggregate.md"
+    exit_code = main(
+        [
+            "build-pilot-aggregate",
+            "manifest.json",
+            str(output_json),
+            str(output_markdown),
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload == {
+        "built": True,
+        "output_json": str(output_json),
+        "output_markdown": str(output_markdown),
+        "score_version": "pilot-score-v0.1",
+        "profile_count": 2,
+    }
+
+
+def test_build_pilot_aggregate_cli_reports_error(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "write_pilot_aggregate",
+        lambda *_args: (_ for _ in ()).throw(cli.PilotAggregateError("bad tournament")),
+    )
+
+    assert (
+        main(
+            [
+                "build-pilot-aggregate",
+                "manifest.json",
+                "aggregate.json",
+                "aggregate.md",
+            ]
+        )
+        == 2
+    )
+    assert "bad tournament" in capsys.readouterr().err
