@@ -450,6 +450,58 @@ def test_run_judge_cli(monkeypatch, tmp_path, capsys) -> None:
     assert selected["provider"] == "xai"
 
 
+def test_run_remis_google_ai_studio_cli_preserves_explicit_recipe(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    selected = {}
+
+    def fake_run(*args, **kwargs):
+        selected["args"] = args
+        selected["kwargs"] = kwargs
+        return {
+            "completed": True,
+            "raw_output": str(args[3]),
+            "run_output": str(args[4]),
+            "run_id": "remis-google-run",
+            "case_count": 7,
+        }
+
+    monkeypatch.setattr(cli, "run_remis_google_ai_studio_isolated", fake_run)
+    raw_output = tmp_path / "raw.json"
+    run_output = tmp_path / "run.json"
+
+    exit_code = main(
+        [
+            "run-remis-google-ai-studio",
+            "fixture.json",
+            str(raw_output),
+            str(run_output),
+            "--remis-root",
+            "J:/Remis",
+            "--runtime-python",
+            "K:/MiniConda/python.exe",
+            "--model",
+            "gemini-3.6-flash",
+            "--reasoning-effort",
+            "high",
+            "--max-output-tokens",
+            "16000",
+            "--case-id",
+            "smoke-case",
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["run_id"] == "remis-google-run"
+    assert selected["args"][0] == Path("K:/MiniConda/python.exe")
+    assert selected["kwargs"]["model"] == "gemini-3.6-flash"
+    assert selected["kwargs"]["reasoning_effort"] == "high"
+    assert selected["kwargs"]["max_output_tokens"] == 16_000
+    assert selected["kwargs"]["case_ids"] == ("smoke-case",)
+
+
 def test_run_judge_cli_json_keeps_stdout_machine_readable(monkeypatch, tmp_path, capsys) -> None:
     fixture = {
         "schema_version": 1,

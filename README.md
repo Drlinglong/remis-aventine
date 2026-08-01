@@ -113,6 +113,11 @@ aventine run-judge pairwise.json judged.json --provider deepseek --max-calls 100
 aventine report-remis-pairwise judged.json report.json report.md
 ```
 
+Google AI Studio contestant runs can reuse a pinned Remis checkout without routing Gemini through
+OpenRouter. The adapter requires an explicit model, reasoning effort, and output budget, then writes
+both the raw Remis artifact and a validated Aventine run result. See the
+[Chinese adapter guide](docs/zh/developer/google_ai_studio_contestant_adapter.md).
+
 Cases decided by execution status or hard-validator veto are excluded from judge calls. Eligible
 cases are evaluated in both A/B orders; position-inconsistent judgments remain unresolved. Repair
 reporting reuses Remis's `valid_items_unchanged` and `reference_exact_match` evidence.

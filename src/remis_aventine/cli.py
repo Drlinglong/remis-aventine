@@ -11,6 +11,10 @@ from typing import Any
 
 from remis_aventine import __version__
 from remis_aventine.adapters.aces import ACESAdapterError, build_aces_pack
+from remis_aventine.adapters.google_ai_studio import (
+    GoogleAIStudioAdapterError,
+    run_remis_google_ai_studio_isolated,
+)
 from remis_aventine.adapters.mt_metrics_eval import (
     MTMetricsEvalAdapterError,
     build_mtme_mqm_pack,
@@ -96,6 +100,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Override the deterministic compatibility recipe id.",
     )
     adapter_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    google_parser = subparsers.add_parser(
+        "run-remis-google-ai-studio",
+        help="Run the frozen Remis benchmark through a versioned Google AI Studio adapter.",
+    )
+    google_parser.add_argument("fixture", type=Path)
+    google_parser.add_argument("raw_output", type=Path)
+    google_parser.add_argument("run_output", type=Path)
+    google_parser.add_argument("--remis-root", type=Path, required=True)
+    google_parser.add_argument("--runtime-python", type=Path, required=True)
+    google_parser.add_argument("--model", required=True)
+    google_parser.add_argument("--label")
+    google_parser.add_argument(
+        "--reasoning-effort",
+        choices=("minimal", "low", "medium", "high"),
+        default="high",
+    )
+    google_parser.add_argument("--max-output-tokens", type=int, default=16_000)
+    google_parser.add_argument("--track", choices=("all", "translation", "repair"), default="all")
+    google_parser.add_argument("--case-id", action="append", dest="case_ids")
+    google_parser.add_argument("--env-file", type=Path, default=Path(".env"))
+    google_parser.add_argument("--recipe-id")
+    google_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     remis_pairwise_parser = subparsers.add_parser(
         "build-remis-pairwise-pack",
@@ -358,6 +385,35 @@ def _adapt_remis(
         print(f"converted: {input_path} -> {output_path}")
         print(f"- run: {payload['run_id']}")
         print(f"- cases: {payload['case_count']}")
+    return 0
+
+
+def _run_remis_google(args: argparse.Namespace) -> int:
+    try:
+        payload = run_remis_google_ai_studio_isolated(
+            args.runtime_python,
+            args.remis_root,
+            args.fixture,
+            args.raw_output,
+            args.run_output,
+            model=args.model,
+            label=args.label,
+            reasoning_effort=args.reasoning_effort,
+            max_output_tokens=args.max_output_tokens,
+            track=args.track,
+            case_ids=tuple(args.case_ids or ()),
+            env_file=args.env_file,
+            recipe_id=args.recipe_id,
+        )
+    except (GoogleAIStudioAdapterError, DocumentValidationError, OSError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"Google AI Studio run: {payload['run_id']}")
+        print(f"- cases: {payload['case_count']}")
+        print(f"- raw: {payload['raw_output']}")
+        print(f"- Aventine: {payload['run_output']}")
     return 0
 
 
@@ -688,6 +744,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             recipe_id=args.recipe_id,
             as_json=args.json,
         )
+    if args.command == "run-remis-google-ai-studio":
+        return _run_remis_google(args)
     if args.command == "build-remis-pairwise-pack":
         return _build_remis_pairwise(args)
     if args.command == "report-remis-pairwise":
