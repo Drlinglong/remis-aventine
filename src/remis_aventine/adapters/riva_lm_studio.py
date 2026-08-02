@@ -3,29 +3,32 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import os
 import subprocess
+import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from remis_aventine.adapters.google_ai_studio import (
-    GoogleAIStudioAdapterError,
-    _remis_checkout_provenance,
-    _remis_imports,
-)
-from remis_aventine.adapters.remis import convert_remis_result
-
 ADAPTER_REVISION = "riva-translate-v2-lm-studio-v1"
+UTC = timezone.utc  # noqa: UP017 - worker must run under Remis's Python 3.10.
 DEFAULT_BASE_URL = "http://127.0.0.1:1234/v1"
 DEFAULT_MODEL = "auto"
 SUPPORTED_REPAIR_STRATEGY = "source_retranslation"
+REMIS_IDENTITY_PATHS = (
+    "scripts/developer_tools/evaluate_translation_quality.py",
+    "scripts/core/base_handler.py",
+    "scripts/core/glossary_manager.py",
+    "scripts/utils/post_process_validator.py",
+)
 
 _LANGUAGE_TAGS = {
     "ar": "ar",
@@ -77,8 +80,82 @@ class RivaLMStudioAdapterError(RuntimeError):
     """Raised when the bounded local Riva adapter cannot execute safely."""
 
 
+def _remis_checkout_provenance(remis_root: Path) -> dict[str, str]:
+    resolved = remis_root.resolve()
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(resolved), "rev-parse", "HEAD"],
+            text=True,
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RivaLMStudioAdapterError(
+            f"Unable to identify Remis checkout revision: {exc}"
+        ) from exc
+    revision = completed.stdout.strip()
+    if completed.returncode != 0 or len(revision) != 40:
+        detail = completed.stderr.strip() or "git rev-parse did not return a commit"
+        raise RivaLMStudioAdapterError(f"Unable to identify Remis checkout revision: {detail}")
+
+    digest = hashlib.sha256()
+    for relative in REMIS_IDENTITY_PATHS:
+        path = resolved / relative
+        if not path.is_file():
+            raise RivaLMStudioAdapterError(f"Remis identity source is missing: {path}")
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return {"revision": revision, "source_sha256": digest.hexdigest()}
+
+
+@contextmanager
+def _remis_imports(remis_root: Path) -> Iterator[dict[str, Any]]:
+    resolved = remis_root.resolve()
+    benchmark_path = resolved / "scripts/developer_tools/evaluate_translation_quality.py"
+    if not benchmark_path.is_file():
+        raise RivaLMStudioAdapterError(f"Remis benchmark entrypoint is missing: {benchmark_path}")
+    loaded_scripts = sys.modules.get("scripts")
+    loaded_path = getattr(loaded_scripts, "__path__", ()) if loaded_scripts else ()
+    matching_checkout_loaded = any(
+        Path(path).resolve() == (resolved / "scripts") for path in loaded_path
+    )
+    if loaded_path and not matching_checkout_loaded:
+        raise RivaLMStudioAdapterError(
+            "A different Remis checkout is already imported; start a fresh process."
+        )
+    sys.path.insert(0, str(resolved))
+    try:
+        yield {
+            "benchmark": importlib.import_module(
+                "scripts.developer_tools.evaluate_translation_quality"
+            ),
+            "base_handler": importlib.import_module("scripts.core.base_handler").BaseApiHandler,
+            "validator": importlib.import_module(
+                "scripts.utils.post_process_validator"
+            ).PostProcessValidator,
+            "glossary_manager": importlib.import_module(
+                "scripts.core.glossary_manager"
+            ).glossary_manager,
+        }
+    except (ImportError, OSError) as exc:
+        raise RivaLMStudioAdapterError(f"Unable to import Remis benchmark: {exc}") from exc
+    finally:
+        if sys.path and sys.path[0] == str(resolved):
+            sys.path.pop(0)
+
+
 def _canonical_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _convert_remis_result(report: dict[str, Any], recipe_id: str | None) -> dict[str, Any]:
+    """Load Aventine schema conversion only in the parent-capable runtime."""
+    from remis_aventine.adapters.remis import convert_remis_result
+
+    return convert_remis_result(report, recipe_id=recipe_id)
 
 
 def _sha256(value: Any) -> str:
@@ -440,6 +517,7 @@ def run_remis_riva_lm_studio(
     case_ids: tuple[str, ...] = (),
     recipe_id: str | None = None,
     opener: Callable[..., Any] = urllib.request.urlopen,
+    convert_artifact: bool = True,
 ) -> dict[str, Any]:
     """Run frozen Remis cases through native Riva prompts and emit both artifact layers."""
     if track not in {"all", "translation", "repair"}:
@@ -568,22 +646,26 @@ def run_remis_riva_lm_studio(
                 json.dumps(report, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8",
             )
-            converted = convert_remis_result(report, recipe_id=recipe_id)
-            run_output_path.parent.mkdir(parents=True, exist_ok=True)
-            run_output_path.write_text(
-                json.dumps(converted, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
-            return {
+            status = {
                 "completed": True,
                 "raw_output": str(raw_output_path),
-                "run_output": str(run_output_path),
-                "run_id": converted["run_id"],
                 "model_id": loaded_model.model_id,
                 **report["summary"],
             }
-    except GoogleAIStudioAdapterError as exc:
-        raise RivaLMStudioAdapterError(str(exc)) from exc
+            if convert_artifact:
+                converted = _convert_remis_result(report, recipe_id)
+                run_output_path.parent.mkdir(parents=True, exist_ok=True)
+                run_output_path.write_text(
+                    json.dumps(converted, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+                status.update(
+                    run_output=str(run_output_path),
+                    run_id=converted["run_id"],
+                )
+            return status
+    except RivaLMStudioAdapterError:
+        raise
 
 
 def run_remis_riva_lm_studio_isolated(
@@ -633,6 +715,11 @@ def run_remis_riva_lm_studio_isolated(
     environment["PYTHONPATH"] = os.pathsep.join(
         path for path in (str(package_root), str(remis_root.resolve()), prior_pythonpath) if path
     )
+    # The isolated Windows account may not own the user's checkout. Trust only this
+    # explicitly selected Remis root for provenance lookup without mutating Git config.
+    environment["GIT_CONFIG_COUNT"] = "1"
+    environment["GIT_CONFIG_KEY_0"] = "safe.directory"
+    environment["GIT_CONFIG_VALUE_0"] = str(remis_root.resolve())
     try:
         completed = subprocess.run(
             [str(runtime), "-m", "remis_aventine.riva_lm_studio_worker"],
@@ -660,6 +747,17 @@ def run_remis_riva_lm_studio_isolated(
         ) from exc
     if not isinstance(result, dict):
         raise RivaLMStudioAdapterError("Riva contestant worker status must be an object.")
+    try:
+        raw_report = json.loads(raw_output_path.read_text(encoding="utf-8"))
+        converted = _convert_remis_result(raw_report, recipe_id)
+        run_output_path.parent.mkdir(parents=True, exist_ok=True)
+        run_output_path.write_text(
+            json.dumps(converted, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    except (OSError, ValueError, TypeError) as exc:
+        raise RivaLMStudioAdapterError(f"Unable to convert isolated Riva artifact: {exc}") from exc
+    result.update(run_output=str(run_output_path), run_id=converted["run_id"])
     return result
 
 

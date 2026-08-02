@@ -40,6 +40,7 @@ def main() -> int:
             track=_required_string(request, "track"),
             case_ids=tuple(request.get("case_ids") or ()),
             recipe_id=request.get("recipe_id"),
+            convert_artifact=False,
         )
     except (RivaLMStudioAdapterError, OSError, ValueError, TypeError) as exc:
         print(str(exc), file=sys.stderr)

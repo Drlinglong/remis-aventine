@@ -341,7 +341,7 @@ def test_full_runner_writes_raw_and_adapted_artifacts(monkeypatch, tmp_path: Pat
     )
     monkeypatch.setattr(
         riva,
-        "convert_remis_result",
+        "_convert_remis_result",
         lambda report, recipe_id=None: {
             "run_id": recipe_id or "generated",
             "provider": report["provider"],
@@ -395,7 +395,7 @@ def test_runner_rejects_track_and_wraps_remis_import_error(monkeypatch, tmp_path
     monkeypatch.setattr(
         riva,
         "_remis_checkout_provenance",
-        lambda _root: (_ for _ in ()).throw(riva.GoogleAIStudioAdapterError("bad checkout")),
+        lambda _root: (_ for _ in ()).throw(RivaLMStudioAdapterError("bad checkout")),
     )
     with pytest.raises(RivaLMStudioAdapterError, match="bad checkout"):
         riva.run_remis_riva_lm_studio(tmp_path, Path("fixture"), Path("raw"), Path("run"))
@@ -409,17 +409,24 @@ def test_isolated_runner_uses_stdin_and_classifies_failures(monkeypatch, tmp_pat
     def fake_run(args, **kwargs):
         captured["args"] = args
         captured["kwargs"] = kwargs
+        request = json.loads(kwargs["input"])
+        Path(request["raw_output_path"]).write_text("{}", encoding="utf-8")
         return subprocess.CompletedProcess(
             args, 0, stdout='notice\n{"completed": true, "run_id": "run"}\n', stderr=""
         )
 
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        riva,
+        "_convert_remis_result",
+        lambda _report, _recipe_id: {"run_id": "run"},
+    )
     result = run_remis_riva_lm_studio_isolated(
         runtime,
         tmp_path,
         Path("fixture"),
-        Path("raw"),
-        Path("run"),
+        tmp_path / "raw",
+        tmp_path / "run",
         quantization="Q8_0",
     )
     assert result["run_id"] == "run"
@@ -431,6 +438,8 @@ def test_isolated_runner_uses_stdin_and_classifies_failures(monkeypatch, tmp_pat
     request = json.loads(captured["kwargs"]["input"])
     assert request["quantization"] == "Q8_0"
     assert "api_key" not in request
+    assert captured["kwargs"]["env"]["GIT_CONFIG_KEY_0"] == "safe.directory"
+    assert captured["kwargs"]["env"]["GIT_CONFIG_VALUE_0"] == str(tmp_path.resolve())
 
     failures = [
         (subprocess.CompletedProcess([], 1, "", "worker exploded"), "exploded"),
