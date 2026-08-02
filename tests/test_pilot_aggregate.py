@@ -40,18 +40,37 @@ def _run(path: Path, recipe: str, hard: list[tuple[str, bool]]) -> None:
     )
 
 
-def _report(path: Path, left_run_id: str = "a-0", right_run_id: str = "b-0") -> None:
+def _report(
+    path: Path,
+    left_run_id: str = "a-0",
+    right_run_id: str = "b-0",
+    *,
+    left_recipe: str = "recipe.a",
+    right_recipe: str = "recipe.b",
+) -> None:
     path.write_text(
         json.dumps(
             {
                 "suite": "remis-pairwise-report",
                 "recipes": {
-                    "left": {"id": "recipe.a", "sha256": "a" * 64, "run_id": left_run_id},
-                    "right": {"id": "recipe.b", "sha256": "b" * 64, "run_id": right_run_id},
+                    "left": {
+                        "id": left_recipe,
+                        "sha256": left_recipe.rsplit(".", 1)[-1] * 64,
+                        "run_id": left_run_id,
+                    },
+                    "right": {
+                        "id": right_recipe,
+                        "sha256": right_recipe.rsplit(".", 1)[-1] * 64,
+                        "run_id": right_run_id,
+                    },
                 },
                 "judge_run": {
                     "config_fingerprint": "judge",
                     "configuration": {"provider": "deepseek-flash", "model": "deepseek-v4-flash"},
+                    "estimated_cost_rmb": 0.1,
+                    "cumulative_estimated_cost_rmb": 0.25,
+                    "http_attempt_count": 1,
+                    "cumulative_http_attempt_count": 4,
                 },
                 "cases": [
                     {"decision_source": "judge_position_consistent", "winner": "left"},
@@ -126,6 +145,92 @@ def test_rejects_missing_round_robin_pair(tmp_path: Path) -> None:
         write_pilot_aggregate(
             tmp_path / "manifest.json", tmp_path / "out.json", tmp_path / "out.md"
         )
+
+
+def test_anchor_panel_scores_challenger_without_round_robin(tmp_path: Path) -> None:
+    profiles = ("high", "mid", "low", "challenger")
+    for profile in profiles:
+        for repeat in range(3):
+            _run(
+                tmp_path / f"{profile}-{repeat}.json",
+                f"recipe.{profile}",
+                [("translation", True), ("repair", True)],
+            )
+    for anchor in ("high", "mid", "low"):
+        _report(
+            tmp_path / f"challenger-vs-{anchor}.json",
+            "challenger-0",
+            f"{anchor}-0",
+            left_recipe="recipe.challenger",
+            right_recipe=f"recipe.{anchor}",
+        )
+    manifest = {
+        "schema_version": 1,
+        "aggregate_id": "anchored-test",
+        "selection_policy": {
+            "mode": "anchor-panel",
+            "revision": "three-tier-v1",
+            "anchors": ["high", "mid", "low"],
+        },
+        "profiles": [
+            {
+                "id": profile,
+                "label": profile.title(),
+                "runs": (
+                    [f"{profile}-0.json"]
+                    if profile in {"high", "mid", "low"}
+                    else [f"{profile}-{repeat}.json" for repeat in range(3)]
+                ),
+            }
+            for profile in profiles
+        ],
+        "pairwise_reports": [f"challenger-vs-{anchor}.json" for anchor in ("high", "mid", "low")],
+    }
+    aggregate = write_pilot_aggregate(
+        _write_manifest(tmp_path, manifest), tmp_path / "anchored.json", tmp_path / "anchored.md"
+    )
+
+    assert aggregate["score_version"] == "pilot-score-v0.2-anchored"
+    assert aggregate["selection_policy"]["anchors"][0]["profile_id"] == "high"
+    assert aggregate["sample_design"]["anchor_count"] == 3
+    assert [entry["profile_id"] for entry in aggregate["entries"]] == ["challenger"]
+    entry = aggregate["entries"][0]
+    assert entry["score"]["score_version"] == "pilot-score-v0.2-anchored"
+    assert entry["soft_preference"]["opponents"] == ["high", "low", "mid"]
+    assert entry["soft_preference"]["confidence_interval"]["sample_count"] == 9
+    assert aggregate["judge_telemetry"]["estimated_cost_rmb"] == 0.75
+    assert aggregate["judge_telemetry"]["http_attempt_count"] == 12
+
+
+def test_anchor_panel_requires_every_anchor_opponent(tmp_path: Path) -> None:
+    profiles = ("high", "mid", "low", "challenger")
+    for profile in profiles:
+        _run(tmp_path / f"{profile}.json", f"recipe.{profile}", [("translation", True)])
+    for anchor in ("high", "mid"):
+        _report(
+            tmp_path / f"challenger-vs-{anchor}.json",
+            "challenger",
+            anchor,
+            left_recipe="recipe.challenger",
+            right_recipe=f"recipe.{anchor}",
+        )
+    manifest = {
+        "schema_version": 1,
+        "expected_run_count": 1,
+        "selection_policy": {
+            "mode": "anchor-panel",
+            "revision": "three-tier-v1",
+            "anchors": ["high", "mid", "low"],
+        },
+        "profiles": [{"id": profile, "runs": [f"{profile}.json"]} for profile in profiles],
+        "pairwise_reports": [
+            "challenger-vs-high.json",
+            "challenger-vs-mid.json",
+        ],
+    }
+
+    with pytest.raises(PilotAggregateError, match="expected.*high.*low.*mid"):
+        pilot_aggregate.build_pilot_aggregate(_write_manifest(tmp_path, manifest))
 
 
 def test_misaligned_translation_is_not_recoverable(tmp_path: Path) -> None:

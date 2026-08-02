@@ -10,6 +10,7 @@
 - [MetricX / xCOMET 隔离 runtime](external_metric_runtimes.md)
 - [首届 Remis recipe pilot（2026-07-16）](first_remis_tournament_2026-07-16.md)
 - [Tournament aggregate contract](tournament_aggregate_contract.md)
+- [Anchored sparse tournament v0.2](anchored_tournament_v02.md)
 - [Judge provider 三方对照](judge_provider_comparison_2026-07-15.md)
 - [Gemini 3.7 Flash 裁判资格报告（2026-08-18）](gemini_3_7_flash_judge_qualification_2026_08_18.md)
 - [v0.3 多语言执行与裁判协议](evaluation_protocol_v0_3.md)

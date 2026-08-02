@@ -852,6 +852,9 @@ def test_interruption_checkpoint_resumes_without_repeating_valid_result(tmp_path
     assert resumed_judge.calls == ["two"]
     assert result["run"]["reused_result_count"] == 1
     assert result["run"]["unfinished_result_count"] == 0
+    assert result["run"]["prior_http_attempt_count"] == 2
+    assert result["run"]["http_attempt_count"] == 1
+    assert result["run"]["cumulative_http_attempt_count"] == 3
 
 
 def test_resume_skips_all_valid_results_without_duplicate_calls(tmp_path) -> None:

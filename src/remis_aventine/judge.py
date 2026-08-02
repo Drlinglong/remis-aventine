@@ -1333,6 +1333,9 @@ def run_judge_pack(
     starting_usage = deepcopy(getattr(judge, "total_usage", None))
     totals = judge.empty_usage()
     attempts_used = 0
+    prior_http_attempt_count = int(
+        prior_run.get("cumulative_http_attempt_count") or prior_run.get("http_attempt_count") or 0
+    )
     checkpoint_target = checkpoint_path or output_path
 
     def usage_snapshot() -> dict[str, int]:
@@ -1375,6 +1378,8 @@ def run_judge_pack(
             "budget_skipped_count": len(skipped_tasks),
             "http_request_count": request_count(),
             "http_attempt_count": attempts_used,
+            "prior_http_attempt_count": prior_http_attempt_count,
+            "cumulative_http_attempt_count": prior_http_attempt_count + attempts_used,
             "failure_count": sum(failure_counts.values()),
             "failure_counts": failure_counts,
             "failure_taxonomy": list(FAILURE_TYPES),

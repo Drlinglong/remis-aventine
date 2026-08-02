@@ -17,6 +17,10 @@ from remis_aventine.tournament_scoring import (
     compute_pilot_score,
 )
 
+ANCHORED_SCORE_VERSION = "pilot-score-v0.2-anchored"
+ANCHORED_SELECTION_MODE = "anchor-panel"
+ANCHORED_SOFT_POLICY_VERSION = "judge-position-consistent-anchor-panel-v0.2"
+
 
 class PilotAggregateError(ValueError):
     """Raised when aggregate inputs do not form a comparable tournament."""
@@ -58,6 +62,65 @@ def _sum_usage(cases: list[dict[str, Any]]) -> dict[str, int]:
     }
 
 
+def _wilson_interval(successes: Decimal, sample_count: int) -> dict[str, float | int]:
+    """Return a deterministic 95% Wilson interval for a fractional match score."""
+    if sample_count <= 0:
+        return {"confidence": 0.95, "sample_count": 0, "lower": 0.0, "upper": 1.0}
+    n = Decimal(sample_count)
+    p = successes / n
+    z = Decimal("1.96")
+    z2 = z * z
+    denominator = Decimal("1") + z2 / n
+    center = (p + z2 / (Decimal("2") * n)) / denominator
+    margin = z * (p * (Decimal("1") - p) / n + z2 / (Decimal("4") * n * n)).sqrt() / denominator
+    return {
+        "confidence": 0.95,
+        "sample_count": sample_count,
+        "lower": float(max(Decimal("0"), center - margin).quantize(Decimal("0.000001"))),
+        "upper": float(min(Decimal("1"), center + margin).quantize(Decimal("0.000001"))),
+    }
+
+
+def _selection(manifest: dict[str, Any], profile_ids: set[str]) -> dict[str, Any]:
+    policy = manifest.get("selection_policy")
+    if policy is None:
+        return {
+            "mode": "round-robin",
+            "revision": "round-robin-sha256-v1",
+            "anchors": [],
+            "challengers": sorted(profile_ids),
+            "score_version": PILOT_SCORE_VERSION,
+            "soft_policy": "judge-position-consistent-v0.1",
+        }
+    if not isinstance(policy, dict) or policy.get("mode") != ANCHORED_SELECTION_MODE:
+        raise PilotAggregateError(
+            f"selection_policy.mode must be {ANCHORED_SELECTION_MODE!r} when provided."
+        )
+    anchors = policy.get("anchors")
+    if not isinstance(anchors, list) or len(anchors) != 3:
+        raise PilotAggregateError("anchor-panel selection requires exactly three anchors.")
+    normalized_anchors = [str(value).strip() for value in anchors]
+    if "" in normalized_anchors or len(set(normalized_anchors)) != 3:
+        raise PilotAggregateError("anchor-panel anchors must be three unique profile ids.")
+    unknown = set(normalized_anchors) - profile_ids
+    if unknown:
+        raise PilotAggregateError(f"anchor-panel references unknown anchors: {sorted(unknown)}.")
+    challengers = sorted(profile_ids - set(normalized_anchors))
+    if not challengers:
+        raise PilotAggregateError("anchor-panel requires at least one challenger profile.")
+    revision = str(policy.get("revision") or "").strip()
+    if not revision:
+        raise PilotAggregateError("anchor-panel selection requires a non-empty revision.")
+    return {
+        "mode": ANCHORED_SELECTION_MODE,
+        "revision": revision,
+        "anchors": normalized_anchors,
+        "challengers": challengers,
+        "score_version": ANCHORED_SCORE_VERSION,
+        "soft_policy": ANCHORED_SOFT_POLICY_VERSION,
+    }
+
+
 def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
     """Consume three-run profiles and blinded pairwise reports."""
 
@@ -76,6 +139,12 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
     recipe_to_profile: dict[str, str] = {}
     fixture_hashes: set[str] = set()
     expected_run_count = int(manifest.get("expected_run_count", 3))
+    profile_ids = [
+        str(profile.get("id") or "").strip() for profile in profiles if isinstance(profile, dict)
+    ]
+    selection = _selection(manifest, set(profile_ids))
+    anchor_ids = set(selection["anchors"])
+    challenger_ids = set(selection["challengers"])
 
     for profile in profiles:
         if not isinstance(profile, dict):
@@ -84,9 +153,14 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
         run_values = profile.get("runs")
         if not profile_id or profile_id in states:
             raise PilotAggregateError(f"Invalid or duplicate profile id: {profile_id!r}.")
-        if not isinstance(run_values, list) or len(run_values) != expected_run_count:
+        required_run_count = (
+            1
+            if selection["mode"] == ANCHORED_SELECTION_MODE and profile_id in anchor_ids
+            else expected_run_count
+        )
+        if not isinstance(run_values, list) or len(run_values) != required_run_count:
             raise PilotAggregateError(
-                f"Profile {profile_id!r} must provide exactly {expected_run_count} runs."
+                f"Profile {profile_id!r} must provide exactly {required_run_count} runs."
             )
         runs = [_read_json(_resolve(base, str(value))) for value in run_values]
         if any(run.get("suite") != "remis" for run in runs):
@@ -161,15 +235,31 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
         if pair in seen_pairs:
             raise PilotAggregateError(f"Duplicate pairwise report for {pair}.")
         seen_pairs.add(pair)
+        if selection["mode"] == ANCHORED_SELECTION_MODE and not (
+            (left in anchor_ids and right in challenger_ids)
+            or (right in anchor_ids and left in challenger_ids)
+        ):
+            raise PilotAggregateError(
+                f"Anchor-panel report {report_path} must connect one anchor and one challenger."
+            )
         states[left]["opponents"].add(right)
         states[right]["opponents"].add(left)
 
         judge_run = report.get("judge_run") or {}
         judge_telemetry["report_count"] += 1
-        judge_telemetry["http_attempt_count"] += int(judge_run.get("http_attempt_count") or 0)
+        judge_telemetry["http_attempt_count"] += int(
+            judge_run.get("cumulative_http_attempt_count")
+            or judge_run.get("http_attempt_count")
+            or 0
+        )
         judge_telemetry["failure_count"] += int(judge_run.get("failure_count") or 0)
         judge_telemetry["estimated_cost_micrormb"] += round(
-            float(judge_run.get("estimated_cost_rmb") or 0) * 1_000_000
+            float(
+                judge_run.get("cumulative_estimated_cost_rmb")
+                or judge_run.get("estimated_cost_rmb")
+                or 0
+            )
+            * 1_000_000
         )
         config = judge_run.get("configuration") or {}
         judge_config = {
@@ -211,16 +301,22 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
                     f"Consistent judge decision in {report_path} has winner {winner!r}."
                 )
 
-    expected_opponents = len(states) - 1
-    hard_case_counts = {len(state["cases"]) for state in states.values()}
+    hard_case_counts = {len(states[profile_id]["cases"]) for profile_id in challenger_ids}
     if len(hard_case_counts) != 1:
         raise PilotAggregateError("All profiles must provide the same number of hard cases.")
     entries: list[dict[str, Any]] = []
-    for profile_id, state in states.items():
-        if len(state["opponents"]) != expected_opponents:
+    entry_ids = selection["challengers"]
+    for profile_id in entry_ids:
+        state = states[profile_id]
+        required_opponents = (
+            anchor_ids
+            if selection["mode"] == ANCHORED_SELECTION_MODE
+            else set(states) - {profile_id}
+        )
+        if state["opponents"] != required_opponents:
             raise PilotAggregateError(
-                f"Profile {profile_id!r} has {len(state['opponents'])}/{expected_opponents} "
-                "pairwise opponents."
+                f"Profile {profile_id!r} has pairwise opponents "
+                f"{sorted(state['opponents'])}; expected {sorted(required_opponents)}."
             )
         soft = state["soft"]
         resolved = soft["resolved"]
@@ -229,7 +325,11 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
         soft_preference = (
             Decimal(soft["wins"]) + Decimal("0.5") * Decimal(soft["ties"])
         ) / Decimal(resolved)
-        score = compute_pilot_score(soft_preference, state["hard_reliability"])
+        score = compute_pilot_score(
+            soft_preference,
+            state["hard_reliability"],
+            score_version=selection["score_version"],
+        )
         coverage = calculate_decision_coverage(
             planned_decisions=soft["planned"],
             eligible_decisions=soft["planned"],
@@ -244,6 +344,11 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
                 "provider": definition.get("provider"),
                 "model_id": definition.get("model_id"),
                 "reasoning_label": definition.get("reasoning_label"),
+                **(
+                    {"model_provenance": definition["model_provenance"]}
+                    if definition.get("model_provenance") is not None
+                    else {}
+                ),
                 "recipe_id": state["recipe_id"],
                 "run_artifacts": [
                     {
@@ -275,6 +380,20 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
                     "hard_veto_excluded_count": soft["hard_veto"],
                     "unresolved_count": soft["unresolved"],
                     "coverage": coverage.to_dict(),
+                    **(
+                        {
+                            "confidence_interval": _wilson_interval(
+                                Decimal(soft["wins"]) + Decimal("0.5") * Decimal(soft["ties"]),
+                                resolved,
+                            ),
+                            "status": (
+                                "complete" if coverage.coverage == Decimal("1") else "provisional"
+                            ),
+                            "opponents": sorted(state["opponents"]),
+                        }
+                        if selection["mode"] == ANCHORED_SELECTION_MODE
+                        else {}
+                    ),
                 },
                 "telemetry": {
                     "elapsed_seconds": round(
@@ -292,26 +411,37 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
     entries.sort(key=lambda item: (-item["score"]["score"], item["profile_id"]))
     for rank, entry in enumerate(entries, 1):
         entry["rank"] = rank
-    return {
+    sample_design = {
+        "runs_per_profile": expected_run_count,
+        "hard_cases_per_profile": hard_case_counts.pop(),
+        "pairwise_repeat": 1,
+        "profile_count": len(entries),
+    }
+    if selection["mode"] == ANCHORED_SELECTION_MODE:
+        sample_design.update(
+            {
+                "profile_count": len(states),
+                "scored_profile_count": len(entries),
+                "anchor_count": len(anchor_ids),
+                "challenger_count": len(challenger_ids),
+            }
+        )
+
+    aggregate = {
         "schema_version": 1,
         "suite": "remis-pilot-aggregate",
         "aggregate_id": manifest.get("aggregate_id") or manifest_path.stem,
-        "score_version": PILOT_SCORE_VERSION,
+        "score_version": selection["score_version"],
         "preview": True,
         "fixture_sha256": next(iter(fixture_hashes)),
         "policies": {
-            "score": PILOT_SCORE_VERSION,
+            "score": selection["score_version"],
             "stage": STAGE_POLICY_VERSION,
             "coverage": COVERAGE_POLICY_VERSION,
-            "soft_preference": "judge-position-consistent-v0.1",
+            "soft_preference": selection["soft_policy"],
             "translation_failure_multiplier": float(RECOVERABLE_TRANSLATION_MULTIPLIER),
         },
-        "sample_design": {
-            "runs_per_profile": expected_run_count,
-            "hard_cases_per_profile": hard_case_counts.pop(),
-            "pairwise_repeat": 1,
-            "profile_count": len(entries),
-        },
+        "sample_design": sample_design,
         "judge_configurations": list(judge_configs.values()),
         "judge_telemetry": {
             "report_count": judge_telemetry["report_count"],
@@ -321,9 +451,27 @@ def build_pilot_aggregate(manifest_path: Path) -> dict[str, Any]:
         },
         "entries": entries,
     }
+    if selection["mode"] == ANCHORED_SELECTION_MODE:
+        aggregate["selection_policy"] = {
+            "mode": selection["mode"],
+            "revision": selection["revision"],
+            "placement_scope": "challengers-only",
+            "anchors": [
+                {
+                    "profile_id": profile_id,
+                    "label": states[profile_id]["definition"].get("label") or profile_id,
+                    "recipe_id": states[profile_id]["recipe_id"],
+                    "recipe_sha256": states[profile_id]["recipe_sha256"],
+                }
+                for profile_id in selection["anchors"]
+            ],
+            "challengers": selection["challengers"],
+        }
+    return aggregate
 
 
 def render_pilot_markdown(aggregate: dict[str, Any]) -> str:
+    selection = aggregate.get("selection_policy") or {}
     lines = [
         f"# {aggregate['aggregate_id']}",
         "",
@@ -345,6 +493,15 @@ def render_pilot_markdown(aggregate: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
+            *(
+                [
+                    "Anchor panel："
+                    + "、".join(anchor["label"] for anchor in selection.get("anchors", [])),
+                    "Placement scope：本表排名只比较本批 challengers，不等同于全榜单名次。",
+                ]
+                if selection.get("mode") == ANCHORED_SELECTION_MODE
+                else []
+            ),
             "Soft Preference 只计入双顺序一致的盲化裁决；硬门槛直接判定与未决样本不混入语言偏好。",
             "Hard Reliability 使用三轮结果：翻译阶段可恢复的硬校验或结构化失败计 0.67，"
             "修复阶段失败计 0。",
