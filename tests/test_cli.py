@@ -502,6 +502,55 @@ def test_run_remis_google_ai_studio_cli_preserves_explicit_recipe(
     assert selected["kwargs"]["case_ids"] == ("smoke-case",)
 
 
+def test_run_remis_riva_lm_studio_cli_records_native_recipe(monkeypatch, tmp_path, capsys) -> None:
+    selected = {}
+
+    def fake_run(*args, **kwargs):
+        selected["args"] = args
+        selected["kwargs"] = kwargs
+        return {
+            "completed": True,
+            "raw_output": str(args[3]),
+            "run_output": str(args[4]),
+            "run_id": "remis-riva-run",
+            "model_id": "riva-v2-q8",
+            "case_count": 1,
+        }
+
+    monkeypatch.setattr(cli, "run_remis_riva_lm_studio_isolated", fake_run)
+    raw_output = tmp_path / "raw.json"
+    run_output = tmp_path / "run.json"
+
+    exit_code = main(
+        [
+            "run-remis-riva-lm-studio",
+            "fixture.json",
+            str(raw_output),
+            str(run_output),
+            "--remis-root",
+            "J:/Remis",
+            "--runtime-python",
+            "K:/MiniConda/python.exe",
+            "--model",
+            "auto",
+            "--quantization",
+            "Q8_0",
+            "--case-id",
+            "stellaris_proclamation_style",
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["run_id"] == "remis-riva-run"
+    assert selected["args"][0] == Path("K:/MiniConda/python.exe")
+    assert selected["kwargs"]["model"] == "auto"
+    assert selected["kwargs"]["quantization"] == "Q8_0"
+    assert selected["kwargs"]["temperature"] == 0.0
+    assert selected["kwargs"]["case_ids"] == ("stellaris_proclamation_style",)
+
+
 def test_run_judge_cli_json_keeps_stdout_machine_readable(monkeypatch, tmp_path, capsys) -> None:
     fixture = {
         "schema_version": 1,

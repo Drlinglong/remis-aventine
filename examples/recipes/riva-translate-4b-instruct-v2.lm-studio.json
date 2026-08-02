@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "id": "remis.lm-studio.riva-translate-4b-instruct-v2.native",
+  "display_name": "Riva Translate 4B Instruct v2 · LM Studio native",
+  "description": "Riva v2 native per-string translation with glossary few-shots, deterministic JSON wrapping, and source-retranslation repair.",
+  "source_language": "en",
+  "target_language": "zh-Hans",
+  "provider": {
+    "name": "lm_studio",
+    "endpoint": "http://127.0.0.1:1234/v1",
+    "settings": {
+      "api_mode": "openai_chat_completions",
+      "request_timeout_seconds": 300
+    }
+  },
+  "model": {
+    "id": "nvidia/Riva-Translate-4B-Instruct-v2",
+    "revision": "v2",
+    "settings": {
+      "temperature": 0.0,
+      "max_output_tokens_per_string": 2048,
+      "reasoning": "none"
+    }
+  },
+  "stages": [
+    {
+      "kind": "translate",
+      "implementation": "aventine.riva_lm_studio.native_per_string",
+      "prompt_revision": "riva-v2-language-pair-v1",
+      "settings": {
+        "system_prompt": "language_pair_tag",
+        "glossary_strategy": "few_shot_priority"
+      }
+    },
+    {
+      "kind": "repair",
+      "implementation": "aventine.riva_lm_studio.source_retranslation",
+      "prompt_revision": "riva-v2-source-retranslation-v1"
+    },
+    {
+      "kind": "post_process",
+      "implementation": "aventine.deterministic_json_wrapper"
+    }
+  ],
+  "validator_policy": {
+    "mode": "veto",
+    "profile": "remis.paradox-localization"
+  },
+  "reference_access": "judge_only",
+  "metadata": {
+    "origin": "Remis frozen translation benchmark",
+    "runtime_quantization": "Set the actual LM Studio quantization with --quantization.",
+    "comparison_note": "Structured output is adapter-wrapped; repair retranslates source text and remains subject to unchanged-item checks."
+  }
+}

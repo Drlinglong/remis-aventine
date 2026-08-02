@@ -122,6 +122,11 @@ OpenRouter. The adapter requires an explicit model, reasoning effort, and output
 both the raw Remis artifact and a validated Aventine run result. See the
 [Chinese adapter guide](docs/zh/developer/google_ai_studio_contestant_adapter.md).
 
+NVIDIA Riva Translate v2 can run locally through LM Studio with its model-native language-pair
+prompt, per-string requests, glossary few-shots, deterministic JSON wrapping, and explicitly labeled
+source-retranslation repair. See the
+[Chinese Riva adapter guide](docs/zh/developer/riva_translate_v2_lm_studio_adapter.md).
+
 Cases decided by execution status or hard-validator veto are excluded from judge calls. Eligible
 cases are evaluated in both A/B orders; position-inconsistent judgments remain unresolved. Repair
 reporting reuses Remis's `valid_items_unchanged` and `reference_exact_match` evidence.

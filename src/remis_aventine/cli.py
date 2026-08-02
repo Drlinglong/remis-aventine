@@ -20,6 +20,13 @@ from remis_aventine.adapters.mt_metrics_eval import (
     build_mtme_mqm_pack,
 )
 from remis_aventine.adapters.remis import RemisCompatibilityError, adapt_remis_result
+from remis_aventine.adapters.riva_lm_studio import (
+    DEFAULT_BASE_URL as RIVA_DEFAULT_BASE_URL,
+)
+from remis_aventine.adapters.riva_lm_studio import (
+    RivaLMStudioAdapterError,
+    run_remis_riva_lm_studio_isolated,
+)
 from remis_aventine.calibration import CalibrationFixtureError, summarize_calibration_fixture
 from remis_aventine.calibration_pack import CalibrationPackError, build_calibration_pack
 from remis_aventine.doctor import build_doctor_report
@@ -126,6 +133,27 @@ def build_parser() -> argparse.ArgumentParser:
     google_parser.add_argument("--env-file", type=Path, default=Path(".env"))
     google_parser.add_argument("--recipe-id")
     google_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    riva_parser = subparsers.add_parser(
+        "run-remis-riva-lm-studio",
+        help="Run the frozen Remis benchmark with native Riva Translate v2 prompts in LM Studio.",
+    )
+    riva_parser.add_argument("fixture", type=Path)
+    riva_parser.add_argument("raw_output", type=Path)
+    riva_parser.add_argument("run_output", type=Path)
+    riva_parser.add_argument("--remis-root", type=Path, required=True)
+    riva_parser.add_argument("--runtime-python", type=Path, required=True)
+    riva_parser.add_argument("--model", default="auto")
+    riva_parser.add_argument("--label", default="Riva Translate 4B Instruct v2")
+    riva_parser.add_argument("--base-url", default=RIVA_DEFAULT_BASE_URL)
+    riva_parser.add_argument("--max-output-tokens", type=int, default=2_048)
+    riva_parser.add_argument("--temperature", type=float, default=0.0)
+    riva_parser.add_argument("--request-timeout-seconds", type=int, default=300)
+    riva_parser.add_argument("--quantization", default="unknown")
+    riva_parser.add_argument("--track", choices=("all", "translation", "repair"), default="all")
+    riva_parser.add_argument("--case-id", action="append", dest="case_ids")
+    riva_parser.add_argument("--recipe-id")
+    riva_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     remis_pairwise_parser = subparsers.add_parser(
         "build-remis-pairwise-pack",
@@ -460,6 +488,38 @@ def _run_remis_google(args: argparse.Namespace) -> int:
         print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
     else:
         print(f"Google AI Studio run: {payload['run_id']}")
+        print(f"- cases: {payload['case_count']}")
+        print(f"- raw: {payload['raw_output']}")
+        print(f"- Aventine: {payload['run_output']}")
+    return 0
+
+
+def _run_remis_riva(args: argparse.Namespace) -> int:
+    try:
+        payload = run_remis_riva_lm_studio_isolated(
+            args.runtime_python,
+            args.remis_root,
+            args.fixture,
+            args.raw_output,
+            args.run_output,
+            model=args.model,
+            label=args.label,
+            base_url=args.base_url,
+            max_output_tokens=args.max_output_tokens,
+            temperature=args.temperature,
+            request_timeout_seconds=args.request_timeout_seconds,
+            quantization=args.quantization,
+            track=args.track,
+            case_ids=tuple(args.case_ids or ()),
+            recipe_id=args.recipe_id,
+        )
+    except (RivaLMStudioAdapterError, DocumentValidationError, OSError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    if args.json:
+        print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(f"Riva LM Studio run: {payload['run_id']}")
+        print(f"- model: {payload['model_id']}")
         print(f"- cases: {payload['case_count']}")
         print(f"- raw: {payload['raw_output']}")
         print(f"- Aventine: {payload['run_output']}")
@@ -838,6 +898,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     if args.command == "run-remis-google-ai-studio":
         return _run_remis_google(args)
+    if args.command == "run-remis-riva-lm-studio":
+        return _run_remis_riva(args)
     if args.command == "build-remis-pairwise-pack":
         return _build_remis_pairwise(args)
     if args.command == "report-remis-pairwise":

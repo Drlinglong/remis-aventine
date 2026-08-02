@@ -14,6 +14,7 @@ from remis_aventine.validation import (
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_RECIPE = PROJECT_ROOT / "examples" / "recipes" / "remis-lm-studio.example.json"
+RIVA_RECIPE = PROJECT_ROOT / "examples" / "recipes" / "riva-translate-4b-instruct-v2.lm-studio.json"
 
 
 def test_example_recipe_matches_schema() -> None:
@@ -21,6 +22,18 @@ def test_example_recipe_matches_schema() -> None:
 
     assert document["validator_policy"]["mode"] == "veto"
     assert [stage["kind"] for stage in document["stages"]] == ["translate", "repair"]
+
+
+def test_riva_native_recipe_matches_schema_and_declares_adapter_wrapping() -> None:
+    document = validate_document(RIVA_RECIPE, "recipe-manifest.schema.json")
+
+    assert document["model"]["settings"]["reasoning"] == "none"
+    assert [stage["kind"] for stage in document["stages"]] == [
+        "translate",
+        "repair",
+        "post_process",
+    ]
+    assert "adapter-wrapped" in document["metadata"]["comparison_note"].lower()
 
 
 def test_veto_policy_requires_validator_profile(tmp_path) -> None:

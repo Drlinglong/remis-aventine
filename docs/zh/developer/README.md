@@ -6,6 +6,7 @@
 - [mt-metrics-eval / WMT MQM adapter](mt_metrics_eval_adapter.md)
 - [ACES / SPAN-ACES adapter](aces_adapter.md)
 - [Google AI Studio contestant adapter](google_ai_studio_contestant_adapter.md)
+- [Riva Translate v2 · LM Studio adapter](riva_translate_v2_lm_studio_adapter.md)
 - [MetricX / xCOMET 隔离 runtime](external_metric_runtimes.md)
 - [首届 Remis recipe pilot（2026-07-16）](first_remis_tournament_2026-07-16.md)
 - [Tournament aggregate contract](tournament_aggregate_contract.md)
