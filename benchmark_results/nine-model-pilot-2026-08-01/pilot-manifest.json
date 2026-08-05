@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "aggregate_id": "remis-nine-model-pilot-2026-08-01",
+  "expected_run_count": 3,
+  "profiles": [
+    {
+      "id": "luna",
+      "label": "GPT-5.6 Luna (high)",
+      "provider": "OpenRouter",
+      "model_id": "openai/gpt-5.6-luna",
+      "reasoning_label": "high",
+      "runs": ["adapted/luna/repeat01.run.json", "adapted/luna/repeat02.run.json", "adapted/luna/repeat03.run.json"]
+    },
+    {
+      "id": "deepseek",
+      "label": "DeepSeek V4 Flash (high)",
+      "provider": "OpenRouter",
+      "model_id": "deepseek/deepseek-v4-flash-0731",
+      "reasoning_label": "high",
+      "runs": ["adapted/deepseek/repeat01.run.json", "adapted/deepseek/repeat02.run.json", "adapted/deepseek/repeat03.run.json"]
+    },
+    {
+      "id": "nemotron",
+      "label": "Nemotron 3 Ultra 550B A55B (high)",
+      "provider": "OpenRouter",
+      "model_id": "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "reasoning_label": "high",
+      "runs": ["adapted/nemotron/repeat01.run.json", "adapted/nemotron/repeat02.run.json", "adapted/nemotron/repeat03.run.json"]
+    },
+    {
+      "id": "ling",
+      "label": "Ling 3.0 Flash (reasoning)",
+      "provider": "OpenRouter",
+      "model_id": "inclusionai/ling-3.0-flash:free",
+      "reasoning_label": "reasoning",
+      "runs": ["adapted/ling/repeat01.run.json", "adapted/ling/repeat02.run.json", "adapted/ling/repeat03.run.json"]
+    },
+    {
+      "id": "mimo",
+      "label": "MiMo V2.5 (reasoning)",
+      "provider": "OpenRouter",
+      "model_id": "xiaomi/mimo-v2.5",
+      "reasoning_label": "reasoning",
+      "runs": ["adapted/mimo/repeat01.run.json", "adapted/mimo/repeat02.run.json", "adapted/mimo/repeat03.run.json"]
+    },
+    {
+      "id": "gemini35",
+      "label": "Gemini 3.5 Flash Lite (high)",
+      "provider": "Google AI Studio",
+      "model_id": "gemini-3.5-flash-lite",
+      "reasoning_label": "high",
+      "runs": ["raw/gemini35/repeat01.run.json", "raw/gemini35/repeat02.run.json", "raw/gemini35/repeat03.run.json"]
+    },
+    {
+      "id": "gemini36",
+      "label": "Gemini 3.6 Flash (high)",
+      "provider": "Google AI Studio",
+      "model_id": "gemini-3.6-flash",
+      "reasoning_label": "high",
+      "runs": ["raw/gemini36/repeat01.run.json", "raw/gemini36/repeat02.run.json", "raw/gemini36/repeat03.run.json"]
+    },
+    {
+      "id": "gemma4",
+      "label": "Gemma 4 31B (reasoning)",
+      "provider": "Google AI Studio",
+      "model_id": "gemma-4-31b-it",
+      "reasoning_label": "reasoning",
+      "runs": ["raw/gemma4-google/repeat01.run.json", "raw/gemma4-google/repeat02.run.json", "raw/gemma4-google/repeat03.run.json"]
+    },
+    {
+      "id": "hy3",
+      "label": "HY3 (high)",
+      "provider": "OpenRouter",
+      "model_id": "tencent/hy3",
+      "reasoning_label": "high",
+      "runs": ["adapted/hy3/repeat01.run.json", "adapted/hy3/repeat02.run.json", "adapted/hy3/repeat03.run.json"]
+    }
+  ],
+  "pairwise_reports": [
+    "../openrouter-high-reasoning-2026-08-01/reports/deepseek-flash-low-8k-repeat01/luna-vs-deepseek.json",
+    "../openrouter-high-reasoning-2026-08-01/reports/deepseek-flash-low-8k-repeat01/luna-vs-nemotron.json",
+    "../openrouter-high-reasoning-2026-08-01/reports/deepseek-flash-low-8k-repeat01/luna-vs-ling.json",
+    "../openrouter-high-reasoning-2026-08-01/reports/deepseek-flash-low-8k-repeat01/deepseek-vs-nemotron.json",
+    "../openrouter-high-reasoning-2026-08-01/reports/deepseek-flash-low-8k-repeat01/deepseek-vs-ling.json",
+    "../openrouter-high-reasoning-2026-08-01/reports/deepseek-flash-low-8k-repeat01/nemotron-vs-ling.json",
+    "reports/official-retry01/luna-vs-mimo.json",
+    "reports/official-retry01/luna-vs-gemini35.json",
+    "reports/official-retry01/luna-vs-gemini36.json",
+    "reports/official-retry01/deepseek-vs-mimo.json",
+    "reports/official-retry01/deepseek-vs-gemini35.json",
+    "reports/official-retry01/deepseek-vs-gemini36.json",
+    "reports/official-retry01/nemotron-vs-mimo.json",
+    "reports/official-retry01/nemotron-vs-gemini35.json",
+    "reports/official-retry01/nemotron-vs-gemini36.json",
+    "reports/official-retry01/ling-vs-mimo.json",
+    "reports/official-retry01/ling-vs-gemini35.json",
+    "reports/official-retry01/ling-vs-gemini36.json",
+    "reports/official-retry01/mimo-vs-gemini35.json",
+    "reports/official-retry01/mimo-vs-gemini36.json",
+    "reports/official-retry01/gemini35-vs-gemini36.json",
+    "reports/official-retry01/luna-vs-gemma4.json",
+    "reports/official-retry01/luna-vs-hy3.json",
+    "reports/official-retry01/deepseek-vs-gemma4.json",
+    "reports/official-retry01/deepseek-vs-hy3.json",
+    "reports/official-retry01/nemotron-vs-gemma4.json",
+    "reports/official-retry01/nemotron-vs-hy3.json",
+    "reports/official-retry01/ling-vs-gemma4.json",
+    "reports/official-retry01/ling-vs-hy3.json",
+    "reports/official-retry01/mimo-vs-gemma4.json",
+    "reports/official-retry01/mimo-vs-hy3.json",
+    "reports/official-retry01/gemini35-vs-gemma4.json",
+    "reports/official-retry01/gemini35-vs-hy3.json",
+    "reports/official-retry01/gemini36-vs-gemma4.json",
+    "reports/official-retry01/gemini36-vs-hy3.json",
+    "reports/official-retry01/gemma4-vs-hy3.json"
+  ]
+}
