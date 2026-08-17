@@ -48,6 +48,7 @@ class ExecutionPlan:
     exam_sha256: str
     repetitions: int
     directions: tuple[str, ...]
+    include_repairs: bool
     jobs: tuple[dict[str, Any], ...]
     sha256: str
 
@@ -57,6 +58,7 @@ class ExecutionPlan:
             "exam_sha256": self.exam_sha256,
             "repetitions": self.repetitions,
             "directions": list(self.directions),
+            "include_repairs": self.include_repairs,
             "jobs": deepcopy(list(self.jobs)),
             "sha256": self.sha256,
         }
@@ -105,25 +107,33 @@ def build_execution_plan(
     *,
     directions: Iterable[str] | None = None,
     repetitions: int | None = None,
+    include_repairs: bool = False,
 ) -> ExecutionPlan:
-    """Expand translation packs into stable, repeat-aware paid-call jobs."""
+    """Expand selected packs into stable, repeat-aware paid-call jobs."""
     selected = _selected_directions(exam, directions)
     configured_repetitions = exam.get("policy", {}).get("contestant_repetitions")
     repeats = configured_repetitions if repetitions is None else repetitions
     if not isinstance(repeats, int) or isinstance(repeats, bool) or repeats < 1:
         raise ExamExecutionError("repetitions must be a positive integer.")
 
-    tasks = {task.get("id"): task for task in exam["translation_tasks"]}
-    if None in tasks or len(tasks) != len(exam["translation_tasks"]):
-        raise ExamExecutionError("Translation task IDs must be non-empty and unique.")
+    all_tasks = [
+        *exam["translation_tasks"],
+        *(exam.get("repair_tasks", []) if include_repairs else []),
+    ]
+    tasks = {task.get("id"): task for task in all_tasks}
+    if None in tasks or len(tasks) != len(all_tasks):
+        raise ExamExecutionError("Selected task IDs must be non-empty and unique.")
 
     jobs: list[dict[str, Any]] = []
     for repeat in range(1, repeats + 1):
         for pack in exam["execution_packs"]:
-            if pack.get("mode") != "translation":
+            mode = pack.get("mode")
+            if mode == "repair" and not include_repairs:
+                continue
+            if mode not in {"translation", "repair"}:
                 continue
             direction = f"{pack.get('source_lang')}->{pack.get('target_lang')}"
-            if direction not in selected:
+            if mode == "translation" and direction not in selected:
                 continue
             task_ids = pack.get("task_ids")
             if not isinstance(task_ids, list) or not task_ids:
@@ -139,6 +149,7 @@ def build_execution_plan(
                     "id": f"{pack['id']}::repeat-{repeat}",
                     "pack_id": pack["id"],
                     "repeat": repeat,
+                    "mode": mode,
                     "direction": direction,
                     "source_lang": pack["source_lang"],
                     "target_lang": pack["target_lang"],
@@ -156,6 +167,7 @@ def build_execution_plan(
         "exam_sha256": exam_hash,
         "repetitions": repeats,
         "directions": list(selected),
+        "include_repairs": include_repairs,
         "jobs": jobs,
     }
     return ExecutionPlan(
@@ -163,6 +175,7 @@ def build_execution_plan(
         exam_sha256=exam_hash,
         repetitions=repeats,
         directions=selected,
+        include_repairs=include_repairs,
         jobs=tuple(jobs),
         sha256=canonical_sha256(plan_payload),
     )
@@ -213,6 +226,7 @@ def run_execution_plan(
             "exam_id": plan.exam_id,
             "exam_sha256": plan.exam_sha256,
             "directions": list(plan.directions),
+            "include_repairs": plan.include_repairs,
             "repetitions": plan.repetitions,
             "planned_call_count": len(plan.jobs),
             "max_cost_usd": max_cost_usd,

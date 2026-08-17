@@ -47,7 +47,26 @@ def _exam() -> dict:
         "directions": list(V03_DIRECTIONS),
         "policy": {"contestant_repetitions": 2},
         "translation_tasks": translation_tasks,
-        "execution_packs": packs,
+        "repair_tasks": [
+            {
+                "id": "repair-case",
+                "mode": "repair",
+                "source_lang": "en",
+                "target_lang": "zh-CN",
+                "source_items": [{"key": "event.f", "text": "Source"}],
+                "broken": ["broken"],
+            }
+        ],
+        "execution_packs": [
+            *packs,
+            {
+                "id": "repair-pack",
+                "mode": "repair",
+                "source_lang": "en",
+                "target_lang": "zh-CN",
+                "task_ids": ["repair-case"],
+            },
+        ],
     }
 
 
@@ -71,6 +90,21 @@ def test_selection_preserves_canonical_direction_order() -> None:
 
     assert plan.directions == ("zh-CN->en", "en->tr")
     assert [job["direction"] for job in plan.jobs] == ["zh-CN->en", "en->tr"]
+
+
+def test_repairs_are_explicit_and_not_direction_weighted() -> None:
+    plan = build_execution_plan(
+        _exam(), directions=["zh-CN->en"], repetitions=2, include_repairs=True
+    )
+
+    assert len(plan.jobs) == 4
+    assert [job["mode"] for job in plan.jobs] == [
+        "translation",
+        "repair",
+        "translation",
+        "repair",
+    ]
+    assert plan.include_repairs is True
 
 
 @pytest.mark.parametrize(
