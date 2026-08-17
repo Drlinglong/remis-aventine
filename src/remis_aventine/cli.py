@@ -232,7 +232,15 @@ def build_parser() -> argparse.ArgumentParser:
     judge_run_parser.add_argument("--workers", type=int, default=1)
     judge_run_parser.add_argument(
         "--provider",
-        choices=("deepseek", "deepseek-flash", "xai", "google", "openrouter"),
+        choices=(
+            "deepseek",
+            "deepseek-flash",
+            "xai",
+            "google",
+            "openrouter",
+            "openrouter-gemini",
+            "openrouter-gemini-high",
+        ),
         default="deepseek",
     )
     judge_run_parser.add_argument("--resume-from", type=Path)

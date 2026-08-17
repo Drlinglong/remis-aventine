@@ -51,6 +51,17 @@ OPENROUTER_PRICING_USD_PER_MILLION = {
     "cache_miss_input": 0.435,
     "output": 0.87,
 }
+OPENROUTER_GEMINI_MODEL_ID = "google/gemini-3.7-flash"
+OPENROUTER_GEMINI_CANONICAL_MODEL_ID = "google/gemini-3.7-flash-20260813"
+OPENROUTER_GEMINI_PROFILE = "openrouter-gemini-3.7-flash-reasoning-medium-structured-seeded-v2"
+OPENROUTER_GEMINI_HIGH_PROFILE = "openrouter-gemini-3.7-flash-reasoning-high-structured-seeded-v2"
+OPENROUTER_GEMINI_MAX_TOKENS = 8000
+OPENROUTER_GEMINI_SEED = 20260818
+OPENROUTER_GEMINI_PRICING_USD_PER_MILLION = {
+    "cache_hit_input": 0.0375,
+    "cache_miss_input": 0.375,
+    "output_including_reasoning": 1.875,
+}
 
 
 FAILURE_TYPES = (
@@ -199,6 +210,31 @@ def _xai_usage(response: dict[str, Any]) -> dict[str, int]:
         "output_tokens": output,
         "reasoning_tokens": int(output_details.get("reasoning_tokens") or 0),
         "cost_in_usd_ticks": int(usage.get("cost_in_usd_ticks") or 0),
+    }
+
+
+def _openrouter_usage(response: dict[str, Any]) -> dict[str, int]:
+    """Normalize OpenRouter usage without charging reasoning twice.
+
+    OpenRouter reports reasoning as a subset of completion tokens and bills it at the output
+    rate. ``cost_in_usd_ticks`` preserves the response's exact account charge as an integer so
+    concurrent aggregation remains lossless and deterministic.
+    """
+    usage = response.get("usage") or {}
+    prompt = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+    output = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
+    input_details = usage.get("prompt_tokens_details") or usage.get("input_tokens_details") or {}
+    output_details = (
+        usage.get("completion_tokens_details") or usage.get("output_tokens_details") or {}
+    )
+    hit = int(input_details.get("cached_tokens") or 0)
+    exact_cost = float(usage.get("cost") or 0.0)
+    return {
+        "cache_hit_input_tokens": hit,
+        "cache_miss_input_tokens": max(prompt - hit, 0),
+        "output_tokens": output,
+        "reasoning_tokens": int(output_details.get("reasoning_tokens") or 0),
+        "cost_in_usd_ticks": round(exact_cost * 10_000_000_000),
     }
 
 
@@ -372,6 +408,9 @@ class DeepSeekJudge:
     def extract_content(self, response: dict[str, Any]) -> str:
         return str(response["choices"][0]["message"]["content"])
 
+    def response_judge_metadata(self, response: dict[str, Any]) -> dict[str, str]:
+        return {}
+
     def cost_fields(self, usage: dict[str, int], prior_run: dict[str, Any]) -> dict[str, Any]:
         current = _cost(usage)
         prior = float(
@@ -443,6 +482,7 @@ class DeepSeekJudge:
                     "model": self.model_id,
                     "prompt_revision": self.prompt_revision,
                     "calibration_revision": case.get("pack_revision", "multilingual-48-v1"),
+                    **self.response_judge_metadata(response),
                 },
                 "evaluation": evaluation,
             }
@@ -735,6 +775,100 @@ class OpenRouterJudge(DeepSeekJudge):
         }
 
 
+class OpenRouterGeminiJudge(OpenRouterJudge):
+    """Gemini 3.7 Flash judge routed through OpenRouter with explicit reasoning."""
+
+    provider = "openrouter-gemini"
+    provider_label = "OpenRouter Gemini 3.7 Flash"
+    model_id = OPENROUTER_GEMINI_MODEL_ID
+    canonical_model_id = OPENROUTER_GEMINI_CANONICAL_MODEL_ID
+    profile = OPENROUTER_GEMINI_PROFILE
+    max_tokens = OPENROUTER_GEMINI_MAX_TOKENS
+    seed = OPENROUTER_GEMINI_SEED
+    reasoning_effort = "medium"
+
+    def empty_usage(self) -> dict[str, int]:
+        return {
+            "cache_hit_input_tokens": 0,
+            "cache_miss_input_tokens": 0,
+            "output_tokens": 0,
+            "reasoning_tokens": 0,
+            "cost_in_usd_ticks": 0,
+        }
+
+    def request_body(self, case: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "model": self.model_id,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": _prompt(case)},
+            ],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "translation_judge_evaluation",
+                    "strict": True,
+                    "schema": _xai_response_schema(_case_mode(case)),
+                },
+            },
+            "reasoning": {"effort": self.reasoning_effort, "exclude": True},
+            "provider": {"require_parameters": True, "allow_fallbacks": False},
+            "seed": self.seed,
+            "max_tokens": self.max_tokens,
+        }
+
+    def parse_usage(self, response: dict[str, Any]) -> dict[str, int]:
+        return _openrouter_usage(response)
+
+    def response_judge_metadata(self, response: dict[str, Any]) -> dict[str, str]:
+        metadata: dict[str, str] = {"canonical_model": self.canonical_model_id}
+        routed_provider = response.get("provider")
+        response_model = response.get("model")
+        if isinstance(routed_provider, str) and routed_provider:
+            metadata["routed_provider"] = routed_provider
+        if isinstance(response_model, str) and response_model:
+            metadata["response_model"] = response_model
+        return metadata
+
+    def cost_fields(self, usage: dict[str, int], prior_run: dict[str, Any]) -> dict[str, Any]:
+        estimated = round(
+            (
+                usage["cache_hit_input_tokens"]
+                * OPENROUTER_GEMINI_PRICING_USD_PER_MILLION["cache_hit_input"]
+                + usage["cache_miss_input_tokens"]
+                * OPENROUTER_GEMINI_PRICING_USD_PER_MILLION["cache_miss_input"]
+                + usage["output_tokens"]
+                * OPENROUTER_GEMINI_PRICING_USD_PER_MILLION["output_including_reasoning"]
+            )
+            / 1_000_000,
+            10,
+        )
+        exact = round(usage["cost_in_usd_ticks"] / 10_000_000_000, 10)
+        current = exact or estimated
+        prior = float(
+            prior_run.get(
+                "cumulative_exact_cost_usd",
+                prior_run.get("exact_cost_usd", 0.0),
+            )
+        )
+        return {
+            "pricing_usd_per_million_tokens": OPENROUTER_GEMINI_PRICING_USD_PER_MILLION,
+            "estimated_cost_usd": estimated,
+            "exact_cost_usd": current,
+            "prior_exact_cost_usd": prior,
+            "cumulative_exact_cost_usd": round(prior + current, 10),
+            "cost_source": "openrouter_usage" if exact else "token_estimate",
+        }
+
+
+class OpenRouterGeminiHighJudge(OpenRouterGeminiJudge):
+    """High-reasoning qualification profile; not the default production judge."""
+
+    provider = "openrouter-gemini-high"
+    profile = OPENROUTER_GEMINI_HIGH_PROFILE
+    reasoning_effort = "high"
+
+
 class GoogleGemmaJudge(DeepSeekJudge):
     """Google-hosted full-precision Gemma 4 judge on the Gemini API free tier."""
 
@@ -903,6 +1037,9 @@ def _judge_configuration(
         "workers": workers,
         "result_retry_budget": result_retry_budget,
     }
+    seed = getattr(judge, "seed", None)
+    if seed is not None:
+        configuration["seed"] = seed
     endpoint = getattr(judge, "endpoint", None)
     if endpoint is not None:
         configuration["endpoint"] = str(endpoint)
@@ -1375,6 +1512,8 @@ def judge_from_environment(
         "xai": ("XAI_API_KEY", XAIJudge),
         "google": ("GEMINI_API_KEY", GoogleGemmaJudge),
         "openrouter": ("OPENROUTER_API_KEY", OpenRouterJudge),
+        "openrouter-gemini": ("OPENROUTER_API_KEY", OpenRouterGeminiJudge),
+        "openrouter-gemini-high": ("OPENROUTER_API_KEY", OpenRouterGeminiHighJudge),
     }
     try:
         credential_name, client_type = clients[provider]

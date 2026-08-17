@@ -12,6 +12,8 @@ from remis_aventine.judge import (
     DeepSeekJudge,
     GoogleGemmaJudge,
     JudgeRunError,
+    OpenRouterGeminiHighJudge,
+    OpenRouterGeminiJudge,
     OpenRouterJudge,
     XAIJudge,
     judge_from_environment,
@@ -531,6 +533,94 @@ def test_judge_from_environment_selects_openrouter(tmp_path, monkeypatch) -> Non
     judge = judge_from_environment(env_path, "openrouter")
 
     assert isinstance(judge, OpenRouterJudge)
+    assert judge.api_key == "openrouter-test"
+
+
+def test_openrouter_gemini_uses_medium_reasoning_schema_and_exact_cost() -> None:
+    requests = []
+
+    def opener(request, **_kwargs):
+        requests.append(request)
+        payload = {
+            "model": "google/gemini-3.7-flash-20260813",
+            "provider": "Google Vertex",
+            "choices": [{"message": {"content": json.dumps(_evaluation())}}],
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 60,
+                "prompt_tokens_details": {"cached_tokens": 40},
+                "completion_tokens_details": {"reasoning_tokens": 45},
+                "cost": 0.000135,
+            },
+        }
+        return _Response(json.dumps(payload).encode())
+
+    judge = OpenRouterGeminiJudge("test-key", opener=opener)
+    result, usage = judge.evaluate(_case())
+
+    assert result["judge"] == {
+        "profile": "openrouter-gemini-3.7-flash-reasoning-medium-structured-seeded-v2",
+        "model": "google/gemini-3.7-flash",
+        "canonical_model": "google/gemini-3.7-flash-20260813",
+        "response_model": "google/gemini-3.7-flash-20260813",
+        "routed_provider": "Google Vertex",
+        "prompt_revision": "translation-judge-v2",
+        "calibration_revision": "multilingual-48-v1",
+    }
+    assert usage == {
+        "cache_hit_input_tokens": 40,
+        "cache_miss_input_tokens": 60,
+        "output_tokens": 60,
+        "reasoning_tokens": 45,
+        "cost_in_usd_ticks": 1_350_000,
+    }
+    body = json.loads(requests[0].data)
+    assert body["reasoning"] == {"effort": "medium", "exclude": True}
+    assert body["provider"] == {"require_parameters": True, "allow_fallbacks": False}
+    assert body["seed"] == 20260818
+    assert "reasoning_effort" not in body
+    assert body["response_format"]["json_schema"]["strict"] is True
+    costs = judge.cost_fields(usage, {})
+    assert costs["exact_cost_usd"] == 0.000135
+    assert costs["estimated_cost_usd"] == 0.0001365
+    assert costs["cost_source"] == "openrouter_usage"
+
+
+def test_openrouter_gemini_estimate_does_not_double_charge_reasoning() -> None:
+    judge = OpenRouterGeminiJudge("test-key")
+    usage = {
+        "cache_hit_input_tokens": 0,
+        "cache_miss_input_tokens": 1_000_000,
+        "output_tokens": 1_000_000,
+        "reasoning_tokens": 900_000,
+        "cost_in_usd_ticks": 0,
+    }
+
+    costs = judge.cost_fields(usage, {})
+
+    assert costs["estimated_cost_usd"] == 2.25
+    assert costs["exact_cost_usd"] == 2.25
+    assert costs["cost_source"] == "token_estimate"
+
+
+@pytest.mark.parametrize(
+    ("provider", "judge_type", "effort"),
+    [
+        ("openrouter-gemini", OpenRouterGeminiJudge, "medium"),
+        ("openrouter-gemini-high", OpenRouterGeminiHighJudge, "high"),
+    ],
+)
+def test_judge_from_environment_selects_openrouter_gemini_profiles(
+    tmp_path, monkeypatch, provider, judge_type, effort
+) -> None:
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    env_path = tmp_path / ".env"
+    env_path.write_text("OPENROUTER_API_KEY=openrouter-test\n", encoding="utf-8")
+
+    judge = judge_from_environment(env_path, provider)
+
+    assert isinstance(judge, judge_type)
+    assert judge.reasoning_effort == effort
     assert judge.api_key == "openrouter-test"
 
 
