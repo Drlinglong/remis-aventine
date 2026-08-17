@@ -1,0 +1,501 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Drlinglong/remis-aventine/schemas/tournament-aggregate.schema.json",
+  "title": "Aventine Tournament Aggregate",
+  "description": "A generated, versioned aggregate artifact for one recipe in a tournament. It is not hand-entered web presentation data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "score_version",
+    "benchmark_pack",
+    "recipe",
+    "overall",
+    "components",
+    "regional_scores",
+    "stage_failures",
+    "remis_workflow_signals",
+    "telemetry",
+    "context",
+    "generated_at",
+    "environment",
+    "hardware"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "score_version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "description": "The scoring policy version, independent from the artifact shape version."
+    },
+    "benchmark_pack": {"$ref": "#/$defs/benchmark_pack"},
+    "recipe": {"$ref": "#/$defs/recipe"},
+    "overall": {"$ref": "#/$defs/score_measure"},
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "soft_preference": {"$ref": "#/$defs/score_measure"},
+        "hard_reliability": {"$ref": "#/$defs/score_measure"},
+        "linguistic_quality": {"$ref": "#/$defs/score_measure"},
+        "terminology": {"$ref": "#/$defs/score_measure"},
+        "fluency": {"$ref": "#/$defs/score_measure"},
+        "repair_restraint": {"$ref": "#/$defs/score_measure"},
+        "stability": {"$ref": "#/$defs/score_measure"},
+        "semantic_fidelity": {"$ref": "#/$defs/score_measure"},
+        "constraint_integrity": {"$ref": "#/$defs/score_measure"},
+        "cross_context_consistency": {"$ref": "#/$defs/score_measure"},
+        "repair_precision": {"$ref": "#/$defs/score_measure"},
+        "style_voice": {"$ref": "#/$defs/score_measure"},
+        "repeatability": {"$ref": "#/$defs/score_measure"}
+      }
+    },
+    "regional_scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["european", "east_asian"],
+      "properties": {
+        "european": {"$ref": "#/$defs/regional_measure"},
+        "east_asian": {"$ref": "#/$defs/regional_measure"},
+        "multilingual": {"$ref": "#/$defs/regional_measure"}
+      }
+    },
+    "stage_failures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["translation", "proofreading"],
+      "description": "Failure counts and score multipliers are recorded per Remis stage; proofreading covers the repair/proofreading track.",
+      "properties": {
+        "translation": {"$ref": "#/$defs/stage_failure_summary"},
+        "proofreading": {"$ref": "#/$defs/stage_failure_summary"},
+        "repair": {"$ref": "#/$defs/stage_failure_summary"},
+        "post_process": {"$ref": "#/$defs/stage_failure_summary"}
+      }
+    },
+    "remis_workflow_signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "terminology_discovery_rate",
+        "same_batch_cohesion",
+        "cross_batch_drift",
+        "repair_over_editing_rate"
+      ],
+      "properties": {
+        "terminology_discovery_rate": {"$ref": "#/$defs/workflow_signal"},
+        "same_batch_cohesion": {"$ref": "#/$defs/workflow_signal"},
+        "cross_batch_drift": {"$ref": "#/$defs/workflow_signal"},
+        "repair_over_editing_rate": {"$ref": "#/$defs/workflow_signal"},
+        "reference_exact_match_rate": {"$ref": "#/$defs/workflow_signal"}
+      }
+    },
+    "telemetry": {"$ref": "#/$defs/telemetry"},
+    "context": {"$ref": "#/$defs/context"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "environment": {"$ref": "#/$defs/environment"},
+    "hardware": {"$ref": "#/$defs/hardware"},
+    "extensions": {"$ref": "#/$defs/extensions"}
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "A lowercase hexadecimal SHA-256 digest."
+    },
+    "identifier": {"type": "string", "minLength": 1},
+    "benchmark_pack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "sha256"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "version": {"$ref": "#/$defs/identifier"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "selection_revision": {"$ref": "#/$defs/identifier"}
+      }
+    },
+    "recipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sha256", "model", "quantization", "runtime", "inference"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id"],
+          "properties": {
+            "id": {"$ref": "#/$defs/identifier"},
+            "revision": {"$ref": "#/$defs/identifier"},
+            "parameter_count_billions": {"type": "number", "minimum": 0}
+          }
+        },
+        "quantization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scheme"],
+          "properties": {
+            "scheme": {"$ref": "#/$defs/identifier"},
+            "bits": {"type": "integer", "minimum": 1, "maximum": 32},
+            "group_size": {"type": "integer", "minimum": 1}
+          }
+        },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version"],
+          "properties": {
+            "name": {"$ref": "#/$defs/identifier"},
+            "version": {"$ref": "#/$defs/identifier"},
+            "provider": {"$ref": "#/$defs/identifier"}
+          }
+        },
+        "inference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reasoning"],
+          "properties": {
+            "reasoning": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["mode", "display_label", "effort"],
+              "properties": {
+                "mode": {"enum": ["disabled", "enabled", "effort", "unknown"]},
+                "display_label": {"$ref": "#/$defs/identifier"},
+                "effort": {
+                  "type": ["string", "null"],
+                  "enum": ["minimal", "low", "medium", "high", "xhigh", "max", null]
+                }
+              },
+              "allOf": [
+                {
+                  "if": {"properties": {"mode": {"const": "effort"}}, "required": ["mode"]},
+                  "then": {"properties": {"effort": {"type": "string"}}}
+                },
+                {
+                  "if": {
+                    "properties": {"mode": {"enum": ["disabled", "enabled", "unknown"]}},
+                    "required": ["mode"]
+                  },
+                  "then": {"properties": {"effort": {"type": "null"}}}
+                }
+              ]
+            },
+            "max_output_tokens": {"type": ["integer", "null"], "minimum": 1}
+          }
+        }
+      }
+    },
+    "score_measure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "sample_count", "decision_count", "coverage", "status"],
+      "properties": {
+        "score": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+        "sample_count": {"type": "integer", "minimum": 0},
+        "decision_count": {"type": "integer", "minimum": 0},
+        "coverage": {"type": "number", "minimum": 0, "maximum": 1},
+        "status": {"enum": ["complete", "partial", "insufficient_data", "failed"]}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"enum": ["complete", "partial"]}},
+            "required": ["status"]
+          },
+          "then": {"properties": {"score": {"type": "number"}}}
+        },
+        {
+          "if": {
+            "properties": {"status": {"enum": ["insufficient_data", "failed"]}},
+            "required": ["status"]
+          },
+          "then": {"properties": {"score": {"type": "null"}}}
+        }
+      ]
+    },
+    "regional_measure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "score",
+        "sample_count",
+        "decision_count",
+        "coverage",
+        "status",
+        "language_scores"
+      ],
+      "properties": {
+        "score": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+        "sample_count": {"type": "integer", "minimum": 0},
+        "decision_count": {"type": "integer", "minimum": 0},
+        "coverage": {"type": "number", "minimum": 0, "maximum": 1},
+        "status": {"enum": ["complete", "partial", "insufficient_data", "failed"]},
+        "language_scores": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$": {
+              "$ref": "#/$defs/score_measure"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"enum": ["complete", "partial"]}},
+            "required": ["status"]
+          },
+          "then": {"properties": {"score": {"type": "number"}}}
+        },
+        {
+          "if": {
+            "properties": {"status": {"enum": ["insufficient_data", "failed"]}},
+            "required": ["status"]
+          },
+          "then": {"properties": {"score": {"type": "null"}}}
+        }
+      ]
+    },
+    "stage_failure_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["failure_counts", "multipliers"],
+      "properties": {
+        "failure_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "recoverable_hard_failure",
+            "hard_validation_failure",
+            "empty_output",
+            "misaligned_output",
+            "unrecoverable_failure",
+            "execution_failure",
+            "structured_output_failure"
+          ],
+          "properties": {
+            "recoverable_hard_failure": {"type": "integer", "minimum": 0},
+            "hard_validation_failure": {"type": "integer", "minimum": 0},
+            "empty_output": {"type": "integer", "minimum": 0},
+            "misaligned_output": {"type": "integer", "minimum": 0},
+            "unrecoverable_failure": {"type": "integer", "minimum": 0},
+            "execution_failure": {"type": "integer", "minimum": 0},
+            "structured_output_failure": {"type": "integer", "minimum": 0}
+          }
+        },
+        "multipliers": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "recoverable_hard_failure",
+            "hard_validation_failure",
+            "empty_output",
+            "misaligned_output",
+            "unrecoverable_failure",
+            "execution_failure",
+            "structured_output_failure"
+          ],
+          "properties": {
+            "recoverable_hard_failure": {"type": "number", "minimum": 0, "maximum": 1},
+            "hard_validation_failure": {"type": "number", "minimum": 0, "maximum": 1},
+            "empty_output": {"type": "number", "minimum": 0, "maximum": 1},
+            "misaligned_output": {"type": "number", "minimum": 0, "maximum": 1},
+            "unrecoverable_failure": {"type": "number", "minimum": 0, "maximum": 1},
+            "execution_failure": {"type": "number", "minimum": 0, "maximum": 1},
+            "structured_output_failure": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        }
+      }
+    },
+    "workflow_signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "sample_count", "decision_count", "coverage", "status"],
+      "properties": {
+        "value": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "sample_count": {"type": "integer", "minimum": 0},
+        "decision_count": {"type": "integer", "minimum": 0},
+        "coverage": {"type": "number", "minimum": 0, "maximum": 1},
+        "status": {"enum": ["complete", "partial", "insufficient_data", "failed"]}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"enum": ["complete", "partial"]}},
+            "required": ["status"]
+          },
+          "then": {"properties": {"value": {"type": "number"}}}
+        },
+        {
+          "if": {
+            "properties": {"status": {"enum": ["insufficient_data", "failed"]}},
+            "required": ["status"]
+          },
+          "then": {"properties": {"value": {"type": "null"}}}
+        }
+      ]
+    },
+    "latency_distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "p50", "p95"],
+      "properties": {
+        "status": {"enum": ["complete", "partial", "insufficient_data", "failed"]},
+        "p50": {"type": ["number", "null"], "minimum": 0},
+        "p95": {"type": ["number", "null"], "minimum": 0}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"enum": ["complete", "partial"]}},
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "p50": {"type": "number"},
+              "p95": {"type": "number"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"status": {"enum": ["insufficient_data", "failed"]}},
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "p50": {"type": "null"},
+              "p95": {"type": "null"}
+            }
+          }
+        }
+      ]
+    },
+    "cost_measure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amount", "currency", "source", "effective_at", "status"],
+      "properties": {
+        "amount": {"type": "number", "minimum": 0},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+        "source": {"$ref": "#/$defs/identifier"},
+        "effective_at": {"type": "string", "format": "date-time"},
+        "status": {"enum": ["estimated", "observed"]}
+      }
+    },
+    "telemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "elapsed_seconds",
+        "ttft_ms",
+        "latency_ms",
+        "throughput_tokens_per_second",
+        "tokens",
+        "cost",
+        "peak_vram_mb",
+        "peak_ram_mb"
+      ],
+      "properties": {
+        "elapsed_seconds": {"type": ["number", "null"], "minimum": 0},
+        "ttft_ms": {
+          "anyOf": [{"$ref": "#/$defs/latency_distribution"}, {"type": "null"}]
+        },
+        "latency_ms": {
+          "anyOf": [{"$ref": "#/$defs/latency_distribution"}, {"type": "null"}]
+        },
+        "throughput_tokens_per_second": {"type": ["number", "null"], "minimum": 0},
+        "tokens": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["input", "output", "total"],
+              "properties": {
+                "input": {"type": "integer", "minimum": 0},
+                "output": {"type": "integer", "minimum": 0},
+                "total": {"type": "integer", "minimum": 0}
+              }
+            },
+            {"type": "null"}
+          ]
+        },
+        "cost": {
+          "anyOf": [{"$ref": "#/$defs/cost_measure"}, {"type": "null"}]
+        },
+        "peak_vram_mb": {"type": ["number", "null"], "minimum": 0},
+        "peak_ram_mb": {"type": ["number", "null"], "minimum": 0}
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["context_budget_tokens", "batch_size", "glossary"],
+      "properties": {
+        "context_budget_tokens": {"type": "integer", "minimum": 1},
+        "batch_size": {"type": "integer", "minimum": 1},
+        "glossary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "provenance"],
+          "properties": {
+            "mode": {"enum": ["disabled", "static", "retrieved", "hybrid"]},
+            "provenance": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["source"],
+              "properties": {
+                "source": {"$ref": "#/$defs/identifier"},
+                "id": {"$ref": "#/$defs/identifier"},
+                "revision": {"$ref": "#/$defs/identifier"},
+                "sha256": {"$ref": "#/$defs/sha256"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "python", "package_version"],
+      "properties": {
+        "os": {"$ref": "#/$defs/identifier"},
+        "python": {"$ref": "#/$defs/identifier"},
+        "package_version": {"$ref": "#/$defs/identifier"},
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device", "cpu", "accelerator"],
+      "properties": {
+        "device": {"enum": ["cpu", "cuda", "rocm", "mps", "other"]},
+        "cpu": {"$ref": "#/$defs/identifier"},
+        "accelerator": {"$ref": "#/$defs/identifier"},
+        "ram_gb": {"type": "number", "minimum": 0},
+        "vram_gb": {"type": "number", "minimum": 0},
+        "driver": {"$ref": "#/$defs/identifier"}
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Reserved namespaced extension payloads. Stable contract fields require a schema version change.",
+      "patternProperties": {
+        "^x-[a-z0-9][a-z0-9._-]*$": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -35,11 +35,26 @@ def _load_run(path: Path) -> dict[str, Any]:
 
 
 def _recipe(run: dict[str, Any]) -> dict[str, str]:
+    request_profile = run.get("recipe", {}).get("snapshot", {}).get("request_profile", {})
+    reasoning = request_profile.get("reasoning", {}) if isinstance(request_profile, dict) else {}
+    label = request_profile.get("reasoning_label") if isinstance(request_profile, dict) else None
+    if not isinstance(label, str) or not label:
+        effort = reasoning.get("effort") if isinstance(reasoning, dict) else None
+        enabled = reasoning.get("enabled") if isinstance(reasoning, dict) else None
+        if isinstance(effort, str) and effort:
+            label = effort
+        elif enabled is True:
+            label = "reasoning"
+        elif enabled is False:
+            label = "none"
+        else:
+            label = "unknown"
     return {
         "id": run["recipe"]["id"],
         "sha256": run["recipe"]["sha256"],
         "run_id": run["run_id"],
         "model_label": str(run.get("environment", {}).get("model_label") or run["recipe"]["id"]),
+        "reasoning_label": label,
     }
 
 
@@ -279,7 +294,9 @@ def render_remis_pairwise_markdown(report: dict[str, Any]) -> str:
         "# Remis recipe pairwise report",
         "",
         f"- Left: `{left['id']}` (`{left['sha256'][:12]}`)",
+        f"- Left reasoning: `{left['reasoning_label']}`",
         f"- Right: `{right['id']}` (`{right['sha256'][:12]}`)",
+        f"- Right reasoning: `{right['reasoning_label']}`",
         f"- Cases: {summary['case_count']}",
         f"- Wins: left {summary['left_win_count']}, right {summary['right_win_count']}",
         "- Tie / neither / unresolved: "

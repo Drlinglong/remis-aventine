@@ -11,7 +11,53 @@ from typing import Any
 
 from remis_aventine.validation import validate_payload
 
-ADAPTER_REVISION = "remis-translation-quality-v2"
+ADAPTER_REVISION = "remis-translation-quality-v3"
+
+_PRIVATE_FIELD_NAMES = frozenset(
+    {
+        "api_base",
+        "api_base_url",
+        "api_endpoint",
+        "api_key",
+        "api_key_env",
+        "api_token",
+        "auth",
+        "auth_header",
+        "authorization",
+        "base_url",
+        "client_secret",
+        "credential",
+        "credential_name",
+        "credentials",
+        "endpoint",
+        "headers",
+        "password",
+        "raw_response",
+        "request_headers",
+        "response_headers",
+        "response_raw",
+        "secret",
+        "token",
+    }
+)
+_PRIVATE_FIELD_SUFFIXES = (
+    "_access_token",
+    "_api_key",
+    "_api_token",
+    "_auth_token",
+    "_base_url",
+    "_bearer_token",
+    "_client_secret",
+    "_endpoint",
+    "_id_token",
+    "_password",
+    "_raw_response",
+    "_refresh_token",
+    "_secret",
+    "_secret_token",
+    "_session_token",
+)
+_DROPPED = object()
 
 
 class RemisCompatibilityError(ValueError):
@@ -21,6 +67,40 @@ class RemisCompatibilityError(ValueError):
 def _slug(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
     return slug or "unknown"
+
+
+def _is_private_field(key: object) -> bool:
+    if not isinstance(key, str):
+        return False
+    camel_case = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", key)
+    normalized = re.sub(r"[^a-z0-9]+", "_", camel_case.lower()).strip("_")
+    return normalized in _PRIVATE_FIELD_NAMES or normalized.endswith(_PRIVATE_FIELD_SUFFIXES)
+
+
+def _public_value(value: Any) -> Any:
+    """Copy JSON-compatible evidence without provider secrets or transport details."""
+    public_value = _public_value_or_dropped(value)
+    return {} if public_value is _DROPPED else public_value
+
+
+def _public_value_or_dropped(value: Any) -> Any:
+    if isinstance(value, dict):
+        public: dict[Any, Any] = {}
+        for key, nested in value.items():
+            if _is_private_field(key):
+                continue
+            public_nested = _public_value_or_dropped(nested)
+            if public_nested is not _DROPPED:
+                public[key] = public_nested
+        return _DROPPED if value and not public else public
+    if isinstance(value, list):
+        public_list = [
+            public_item
+            for item in value
+            if (public_item := _public_value_or_dropped(item)) is not _DROPPED
+        ]
+        return public_list
+    return value
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -69,7 +149,7 @@ def _findings(score: dict[str, Any]) -> list[dict[str, Any]]:
                 for validation in validations:
                     finding = {"source": "remis_validation", "key": key}
                     if isinstance(validation, dict):
-                        finding.update(validation)
+                        finding.update(_public_value(validation))
                     else:
                         finding["detail"] = str(validation)
                     findings.append(finding)
@@ -79,8 +159,8 @@ def _findings(score: dict[str, Any]) -> list[dict[str, Any]]:
                     {
                         "source": "remis_token_parity",
                         "key": key,
-                        "missing": parity.get("missing", []),
-                        "extra": parity.get("extra", []),
+                        "missing": _public_value(parity.get("missing", [])),
+                        "extra": _public_value(parity.get("extra", [])),
                     }
                 )
     if score.get("hard_pass") is False and not findings:
@@ -101,8 +181,8 @@ def _automatic_metrics(result: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(score, dict):
         return metrics
     for key, value in score.items():
-        if key != "items":
-            metrics[key] = value
+        if key != "items" and not _is_private_field(key):
+            metrics[key] = _public_value(value)
     return metrics
 
 
@@ -110,17 +190,17 @@ def _source_inputs(score: dict[str, Any]) -> list[Any]:
     items = score.get("items")
     if not isinstance(items, list):
         return []
-    return [item.get("source") for item in items if isinstance(item, dict)]
+    return [_public_value(item.get("source")) for item in items if isinstance(item, dict)]
 
 
 def _repair_evidence(result: dict[str, Any]) -> dict[str, Any] | None:
     if result.get("track") != "repair":
         return None
     return {
-        "injected_errors": result.get("injected_errors", []),
-        "broken_translation": result.get("broken_translation"),
-        "reference_translation": result.get("reference_translation"),
-        "broken_validation": result.get("broken_validation"),
+        "injected_errors": _public_value(result.get("injected_errors", [])),
+        "broken_translation": _public_value(result.get("broken_translation")),
+        "reference_translation": _public_value(result.get("reference_translation")),
+        "broken_validation": _public_value(result.get("broken_validation")),
     }
 
 
@@ -139,17 +219,21 @@ def _convert_case(result: dict[str, Any]) -> dict[str, Any]:
         },
         "automatic_metrics": _automatic_metrics(result),
         "judge": None,
-        "track": result.get("track"),
-        "source_metadata": {
-            "source_file": result.get("source_file"),
-            "source_sha256": result.get("source_sha256"),
-            "prompt_sha256": result.get("prompt_sha256"),
-            "source_language": result.get("source_lang"),
-            "target_language": result.get("target_lang"),
-            "focus": result.get("focus", []),
-        },
-        "candidate_outputs": result.get("outputs"),
+        "track": _public_value(result.get("track")),
+        "source_metadata": _public_value(
+            {
+                "source_file": result.get("source_file"),
+                "source_sha256": result.get("source_sha256"),
+                "prompt_sha256": result.get("prompt_sha256"),
+                "source_language": result.get("source_lang"),
+                "target_language": result.get("target_lang"),
+                "focus": result.get("focus", []),
+            }
+        ),
+        "candidate_outputs": _public_value(result.get("outputs")),
         "source_inputs": _source_inputs(score),
+        "usage": _public_value(result.get("usage")),
+        "response_model": _public_value(result.get("response_model")),
     }
     repair_evidence = _repair_evidence(result)
     if repair_evidence is not None:
@@ -179,6 +263,9 @@ def convert_remis_result(
     source_summary = document.get("summary")
     if not isinstance(source_summary, dict):
         raise RemisCompatibilityError("Remis artifact summary must be an object.")
+    request_profile = document.get("request_profile", {})
+    if not isinstance(request_profile, dict):
+        raise RemisCompatibilityError("Remis artifact request_profile must be an object.")
     elapsed_seconds = source_summary.get("elapsed_seconds", 0)
     if not isinstance(elapsed_seconds, (int, float)) or elapsed_seconds < 0:
         raise RemisCompatibilityError("Remis summary elapsed_seconds must be non-negative.")
@@ -201,7 +288,9 @@ def convert_remis_result(
         "track": track,
         "prompt_sha256": prompt_hashes,
         "fixture_sha256": fixture_sha256,
-        "policy": document.get("policy", {}),
+        "remis_checkout": _public_value(document.get("remis_checkout", {})),
+        "policy": _public_value(document.get("policy", {})),
+        "request_profile": _public_value(request_profile),
     }
     resolved_recipe_id = recipe_id or f"remis.{_slug(provider)}.{_slug(model_id)}.{_slug(track)}"
     converted_cases = [_convert_case(result) for result in results if isinstance(result, dict)]
@@ -229,6 +318,7 @@ def convert_remis_result(
             "adapter_revision": ADAPTER_REVISION,
             "benchmark": benchmark,
             "fixture_sha256": fixture_sha256,
+            "remis_checkout": _public_value(document.get("remis_checkout", {})),
             "provider": provider,
             "model_id": model_id,
             "model_label": model_label,
@@ -244,7 +334,7 @@ def convert_remis_result(
                 case["hard_validation"]["passed"] is True for case in converted_cases
             ),
             "elapsed_seconds": float(elapsed_seconds),
-            "source_summary": source_summary,
+            "source_summary": _public_value(source_summary),
         },
     }
     return validate_payload(converted, "run-result.schema.json")

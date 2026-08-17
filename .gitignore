@@ -227,3 +227,4 @@ benchmark_results/
 
 # Project-local test scratch
 .pytest-basetemp/
+.pytest-basetemp-*/
