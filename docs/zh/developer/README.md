@@ -11,5 +11,6 @@
 - [Tournament aggregate contract](tournament_aggregate_contract.md)
 - [Judge provider 三方对照](judge_provider_comparison_2026-07-15.md)
 - [Gemini 3.7 Flash 裁判资格报告（2026-08-18）](gemini_3_7_flash_judge_qualification_2026_08_18.md)
+- [v0.3 多语言执行与裁判协议](evaluation_protocol_v0_3.md)
 
 当前文档面向 Aventine 的开发者、评测维护者和研究使用者。用户侧图形界面不在近期范围内。

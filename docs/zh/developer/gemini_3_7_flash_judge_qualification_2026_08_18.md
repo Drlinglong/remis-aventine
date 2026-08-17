@@ -140,3 +140,19 @@ high 漏掉了：
 
 路径：`%USERPROFILE%/.cache/aventine/results/gemini-3.7-flash-qualification-2026-08-18/`。
 产物不保存 API key、Authorization header 或 reasoning 正文。
+
+## 与 v0.3 完整评测的衔接状态
+
+资格结论已经进入可执行协议，而不再只是报告建议：
+
+- 冻结卷按 18 个方向等权，不存在小语种之间互译；
+- Gemini high 与另一个非 Google 家族裁判各做一次相反顺序的初裁；
+- 两者分歧时，各自补看另一个顺序；固定 20% 分层样本无条件做完整四裁审计；
+- 只有跨裁判且跨顺序一致的决定才计入 resolved，其他结果降低 coverage，不伪装成模型失败；
+- 输出同时公开 judge agreement、position consistency、resolved coverage、unresolved 和每个有效裁决
+  的 observed cost；
+- 参赛 recipe 的任一模型家族不得参与该 case 的裁判。
+
+公共代码还冻结了 raw/final 双层 contract 与结构路由：语法损坏直接 hard fail；语法合法但变量数量
+变化进入两名结构裁判；parser 成功恢复只降低 raw contract，不否定最终 recipe 交付；可疑引号只记
+punctuation warning。完整付费评测尚未启动，下一步只需用户指定首批参赛 recipe 和另一位裁判。
