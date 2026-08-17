@@ -1,0 +1,56 @@
+import type { CalibrationItem } from '../types/benchmark';
+
+export const CALIBRATION_DATA: CalibrationItem[] = [
+  {
+    id: 'mqm-wmt-en-de',
+    name: 'WMT MQM Ground Truth (EN → DE)',
+    type: 'mqm',
+    target_measure: 'Severe Error Detection & False-Good Control',
+    judge_accuracy: 91.8,
+    severe_error_recall: 94.4,
+    false_good_rate: 5.6,
+    sample_size: 48,
+    provenance: 'WMT23 Professional MQM Annotations (Pinned SHA-256: 7f8a12e)',
+    phenomena_breakdown: [
+      { name: 'Critical Hallucination', samples: 12, judge_accuracy: 95.8, gold_agreement: 97.2 },
+      { name: 'Major Mistranslation', samples: 14, judge_accuracy: 92.9, gold_agreement: 94.0 },
+      { name: 'Minor Terminology Drift', samples: 10, judge_accuracy: 88.0, gold_agreement: 90.0 },
+      { name: 'Untranslated Tokens', samples: 6, judge_accuracy: 96.7, gold_agreement: 98.0 },
+      { name: 'Fluency / Naturalness', samples: 6, judge_accuracy: 85.0, gold_agreement: 87.5 },
+    ],
+  },
+  {
+    id: 'aces-contrastive-global',
+    name: 'ACES / SPAN-ACES Challenge Suite',
+    type: 'aces',
+    target_measure: 'Fluent-but-Wrong & Contrastive Pair Discrimination',
+    judge_accuracy: 88.6,
+    severe_error_recall: 91.2,
+    false_good_rate: 8.8,
+    sample_size: 50,
+    provenance: 'ACES Contrastive Perturbations Benchmark (SHA-256: c398ab4)',
+    phenomena_breakdown: [
+      { name: 'Negation Inversion', samples: 10, judge_accuracy: 94.0, gold_agreement: 96.0 },
+      { name: 'Numerical Quantity Alteration', samples: 10, judge_accuracy: 92.5, gold_agreement: 95.0 },
+      { name: 'Named Entity Substitution', samples: 10, judge_accuracy: 89.0, gold_agreement: 91.0 },
+      { name: 'Critical Omission', samples: 10, judge_accuracy: 86.5, gold_agreement: 88.0 },
+      { name: 'Discourse Context Conflict', samples: 10, judge_accuracy: 81.0, gold_agreement: 83.5 },
+    ],
+  },
+  {
+    id: 'xcomet-metricx-alignment',
+    name: 'MetricX-24 & xCOMET Baseline Alignment',
+    type: 'xcomet',
+    target_measure: 'Judge Verdict Agreement with Modern QE & Neural Baselines',
+    judge_accuracy: 87.4,
+    severe_error_recall: 90.5,
+    false_good_rate: 7.2,
+    sample_size: 96,
+    provenance: 'MetricX-24-Hybrid (Reference + QE) & xCOMET-XXL Isolated Runtime',
+    phenomena_breakdown: [
+      { name: 'High-Score Consistency (xCOMET > 0.85)', samples: 34, judge_accuracy: 94.1, gold_agreement: 95.5 },
+      { name: 'Mid-Range Ambiguity (xCOMET 0.60-0.85)', samples: 38, judge_accuracy: 84.2, gold_agreement: 86.0 },
+      { name: 'Severe Defect Alignment (xCOMET < 0.60)', samples: 24, judge_accuracy: 91.7, gold_agreement: 93.8 },
+    ],
+  },
+];
