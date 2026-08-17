@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 from collections import defaultdict
+from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 VERDICTS = frozenset({"candidate_a", "candidate_b", "tie", "neither", "uncertain"})
@@ -14,6 +17,10 @@ VERDICTS = frozenset({"candidate_a", "candidate_b", "tie", "neither", "uncertain
 
 class DualJudgeError(ValueError):
     """Raised when judge independence or result contracts are violated."""
+
+
+class DualJudgeBudgetExceeded(DualJudgeError):
+    """Raised before the next judge call can exceed the budget cap."""
 
 
 @dataclass(frozen=True)
@@ -108,7 +115,7 @@ def plan_dual_judge(
                 _call(case, judge, "ba" if orientation == "ab" else "ab", "audit")
                 for judge, orientation in zip(judges, orientations, strict=True)
             )
-    return {
+    plan = {
         "protocol": "adaptive-dual-judge-v0.3",
         "seed": seed,
         "audit_rate": audit_rate,
@@ -118,6 +125,8 @@ def plan_dual_judge(
         "planned_call_count": len(calls),
         "calls": calls,
     }
+    plan["sha256"] = _canonical_sha256(plan)
+    return plan
 
 
 def normalize_verdict(verdict: str, orientation: str) -> str:
@@ -134,7 +143,11 @@ def plan_disagreement_followups(
     plan: dict[str, Any], results: list[dict[str, Any]]
 ) -> list[dict[str, Any]]:
     """Add each judge's missing orientation only for non-audit initial disagreement."""
-    result_by_call = {result.get("call_id"): result for result in results}
+    result_by_call = {
+        result.get("call_id"): result
+        for result in results
+        if not result.get("execution_failure") and result.get("verdict") in VERDICTS
+    }
     calls_by_case: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for call in plan["calls"]:
         calls_by_case[call["case_id"]].append(call)
@@ -172,7 +185,11 @@ def summarize_dual_judge(
 ) -> dict[str, Any]:
     """Resolve only agreement that survives available orientation checks."""
     all_calls = [*plan["calls"], *(followups or [])]
-    result_by_call = {result.get("call_id"): result for result in results}
+    result_by_call = {
+        result.get("call_id"): result
+        for result in results
+        if not result.get("execution_failure") and result.get("verdict") in VERDICTS
+    }
     calls_by_case: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for call in all_calls:
         calls_by_case[call["case_id"]].append(call)
@@ -241,9 +258,136 @@ def summarize_dual_judge(
     }
 
 
+def _canonical_sha256(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def _oriented_case(case: dict[str, Any], orientation: str) -> dict[str, Any]:
+    oriented = deepcopy(case)
+    if orientation == "ba":
+        oriented["candidate_a"], oriented["candidate_b"] = (
+            oriented["candidate_b"],
+            oriented["candidate_a"],
+        )
+    return oriented
+
+
+def execute_adaptive_dual_judge(
+    plan: dict[str, Any],
+    cases: list[dict[str, Any]],
+    transports: dict[str, Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]],
+    output_path: Path,
+    *,
+    max_cost_usd: float,
+    reserve_per_call_usd: float,
+) -> dict[str, Any]:
+    """Execute initial/audit calls, then only the required disagreement followups.
+
+    A transport receives the public call descriptor and correctly oriented case.
+    It must return ``verdict`` and may return observed ``cost_usd``. Exceptions are
+    checkpointed as failed calls and are never retried implicitly, preventing an
+    uncertain provider response from silently becoming a duplicate paid call.
+    """
+    if max_cost_usd < 0 or reserve_per_call_usd < 0:
+        raise DualJudgeError("Budget values must be non-negative.")
+    case_by_id = {case.get("id"): case for case in cases}
+    if None in case_by_id or len(case_by_id) != len(cases):
+        raise DualJudgeError("Execution cases require unique non-empty IDs.")
+    planned_case_ids = {call["case_id"] for call in plan["calls"]}
+    if planned_case_ids != set(case_by_id):
+        raise DualJudgeError("Execution cases do not match the judge plan.")
+    judge_ids = {identity["id"] for identity in plan["judge_identities"]}
+    if set(transports) != judge_ids:
+        raise DualJudgeError("Exactly one transport is required for each planned judge.")
+
+    if output_path.exists():
+        report = json.loads(output_path.read_text(encoding="utf-8"))
+        if report.get("plan_sha256") != plan.get("sha256"):
+            raise DualJudgeError("Checkpoint belongs to a different dual-judge plan.")
+    else:
+        report = {
+            "schema_version": 1,
+            "status": "running",
+            "protocol": plan["protocol"],
+            "plan_sha256": plan["sha256"],
+            "max_cost_usd": max_cost_usd,
+            "reserve_per_call_usd": reserve_per_call_usd,
+            "results": [],
+            "followup_calls": [],
+        }
+        _atomic_json(output_path, report)
+
+    def execute_calls(calls: list[dict[str, Any]]) -> None:
+        completed = {result["call_id"] for result in report["results"]}
+        for call in calls:
+            if call["id"] in completed:
+                continue
+            observed = sum(
+                float(result["cost_usd"])
+                for result in report["results"]
+                if result.get("cost_usd") is not None
+            )
+            unknown = sum(result.get("cost_usd") is None for result in report["results"])
+            committed = observed + unknown * reserve_per_call_usd
+            if committed + reserve_per_call_usd > max_cost_usd:
+                report["status"] = "budget_stopped"
+                report["committed_cost_usd"] = round(committed, 10)
+                _atomic_json(output_path, report)
+                raise DualJudgeBudgetExceeded(
+                    f"Next judge call would exceed USD {max_cost_usd:.6f} budget cap."
+                )
+            try:
+                response = transports[call["judge_id"]](
+                    deepcopy(call),
+                    _oriented_case(case_by_id[call["case_id"]], call["orientation"]),
+                )
+                if not isinstance(response, dict) or response.get("verdict") not in VERDICTS:
+                    raise DualJudgeError("Judge transport returned an invalid verdict contract.")
+                cost = response.get("cost_usd")
+                if cost is not None and (
+                    not isinstance(cost, (int, float)) or isinstance(cost, bool) or cost < 0
+                ):
+                    raise DualJudgeError("Judge cost_usd must be non-negative or null.")
+                result = {"call_id": call["id"], **deepcopy(response)}
+            except Exception as exc:  # one paid attempt; intentionally no retry
+                result = {
+                    "call_id": call["id"],
+                    "verdict": None,
+                    "cost_usd": None,
+                    "execution_failure": f"{type(exc).__name__}: {exc}",
+                }
+            report["results"].append(result)
+            _atomic_json(output_path, report)
+
+    execute_calls(plan["calls"])
+    followups = plan_disagreement_followups(plan, report["results"])
+    report["followup_calls"] = followups
+    _atomic_json(output_path, report)
+    execute_calls(followups)
+    report["summary"] = summarize_dual_judge(plan, report["results"], followups=followups)
+    report["status"] = "completed"
+    _atomic_json(output_path, report)
+    return report
+
+
 __all__ = [
     "DualJudgeError",
+    "DualJudgeBudgetExceeded",
     "JudgeIdentity",
+    "execute_adaptive_dual_judge",
     "normalize_verdict",
     "plan_disagreement_followups",
     "plan_dual_judge",

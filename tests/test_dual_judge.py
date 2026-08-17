@@ -3,8 +3,10 @@ from __future__ import annotations
 import pytest
 
 from remis_aventine.dual_judge import (
+    DualJudgeBudgetExceeded,
     DualJudgeError,
     JudgeIdentity,
+    execute_adaptive_dual_judge,
     normalize_verdict,
     plan_disagreement_followups,
     plan_dual_judge,
@@ -36,6 +38,7 @@ def test_plan_is_seeded_opposed_and_stratified_twenty_percent() -> None:
     repeated = plan_dual_judge(_cases(), JUDGE_A, JUDGE_B, seed=20260818)
 
     assert plan == repeated
+    assert len(plan["sha256"]) == 64
     assert len(plan["audit_case_ids"]) == 2
     assert plan["planned_call_count"] == 24
     for case_id in {call["case_id"] for call in plan["calls"]}:
@@ -114,3 +117,68 @@ def test_incomplete_calls_remain_unresolved_without_becoming_failure() -> None:
     assert report["resolved_count"] == 0
     assert report["unresolved_count"] == 2
     assert report["resolved_coverage"] == 0
+
+
+def test_adaptive_executor_checkpoints_resumes_and_runs_only_needed_followups(
+    tmp_path,
+) -> None:
+    cases = _cases(2)
+    for case in cases:
+        case["candidate_a"] = "A"
+        case["candidate_b"] = "B"
+    plan = plan_dual_judge(cases, JUDGE_A, JUDGE_B, seed=1, audit_rate=0)
+    calls = []
+
+    def transport(call: dict, oriented: dict) -> dict:
+        calls.append((call["id"], oriented["candidate_a"]))
+        canonical = "candidate_a" if call["judge_id"] == JUDGE_A.id else "candidate_b"
+        return {"verdict": normalize_verdict(canonical, call["orientation"]), "cost_usd": 0.01}
+
+    output = tmp_path / "judge.json"
+    first = execute_adaptive_dual_judge(
+        plan,
+        cases,
+        {JUDGE_A.id: transport, JUDGE_B.id: transport},
+        output,
+        max_cost_usd=1,
+        reserve_per_call_usd=0.02,
+    )
+    second = execute_adaptive_dual_judge(
+        plan,
+        cases,
+        {JUDGE_A.id: transport, JUDGE_B.id: transport},
+        output,
+        max_cost_usd=1,
+        reserve_per_call_usd=0.02,
+    )
+
+    assert first == second
+    assert len(calls) == 8
+    assert first["summary"]["unresolved_count"] == 2
+    assert {value for _call_id, value in calls} == {"A", "B"}
+
+
+def test_adaptive_executor_stops_before_budget_and_does_not_retry_failure(tmp_path) -> None:
+    cases = _cases(2)
+    for case in cases:
+        case["candidate_a"] = "A"
+        case["candidate_b"] = "B"
+    plan = plan_dual_judge(cases, JUDGE_A, JUDGE_B, seed=1, audit_rate=0)
+    attempts = []
+
+    def failing(call: dict, oriented: dict) -> dict:
+        attempts.append(call["id"])
+        raise RuntimeError("provider failed after one attempt")
+
+    output = tmp_path / "judge.json"
+    with pytest.raises(DualJudgeBudgetExceeded):
+        execute_adaptive_dual_judge(
+            plan,
+            cases,
+            {JUDGE_A.id: failing, JUDGE_B.id: failing},
+            output,
+            max_cost_usd=0.02,
+            reserve_per_call_usd=0.02,
+        )
+
+    assert len(attempts) == 1
