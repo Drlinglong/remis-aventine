@@ -1,0 +1,321 @@
+{
+  "schema_version": 1,
+  "protocol": "aventine-multilingual-tournament-v0.3",
+  "score_version": "multilingual-pilot-v0.3-60soft-40hard",
+  "artifact_id": "template-v03-public-result-one-profile",
+  "generated_at": null,
+  "status": "draft",
+  "publication": {
+    "season": "2026-Q3",
+    "state": "template",
+    "title": "Aventine 多语言翻译 Recipe 评测 v0.3",
+    "result_visibility": "public_sanitized",
+    "exam_content_included": false,
+    "notes": [
+      "本模板只展开1名选手和1个语言方向；正式文件重复 profiles 与 directions 数组。",
+      "所有 null 均由正式评测生成器替换，不得由前端手填估算。",
+      "参赛 recipe 使用普通实时端点；裁判使用 Batch/Flex 端点。"
+    ]
+  },
+  "exam": {
+    "exam_id": "remis-aventine-v0.3-rc1",
+    "sha256": null,
+    "direction_count": 18,
+    "repeat_count": 2,
+    "case_count": 19,
+    "item_occurrence_count": 598
+  },
+  "topology": {
+    "soft_preference": {
+      "kind": "sparse_round_robin",
+      "pairing_algorithm": "seeded-circle-v1",
+      "pairing_seed": null,
+      "pairs_per_occurrence": 9,
+      "score_model": "davidson-bradley-terry-v1",
+      "base_judges_per_decision": 1,
+      "dual_judge_sample_rate": 0.2,
+      "dual_judge_stratified": true,
+      "swap_order_on_dual": true,
+      "adaptive_escalation": "expand_low_agreement_strata_only",
+      "family_exclusion": true
+    },
+    "hard_format": {
+      "deterministic_first": true,
+      "structural_dual_judge": true,
+      "punctuation_warning_is_hard_fail": false
+    },
+    "direction_weighting": "equal_18_directions",
+    "source_group_weighting": "equal_zh_en_within_regional_scores"
+  },
+  "directions": [
+    {
+      "id": "en->ko",
+      "source": "en",
+      "target": "ko",
+      "region": "east_asian",
+      "weight": 0.05555555555555555
+    }
+  ],
+  "judge_panel": [
+    {
+      "judge_id": "gemini-3.7-flash-high-batch",
+      "model_id": "google/gemini-3.7-flash:batch",
+      "model_family": "google-gemini",
+      "provider": "OpenRouter",
+      "reasoning_effort": "high",
+      "service_tier": "batch",
+      "role": "primary",
+      "qualification": {
+        "status": "qualified",
+        "accuracy": 0.833333,
+        "sample_count": 48,
+        "position_consistency": 1
+      }
+    },
+    {
+      "judge_id": "gpt-5.6-luna-high-batch",
+      "model_id": "openai/gpt-5.6-luna:batch",
+      "model_family": "openai-gpt-5.6",
+      "provider": "OpenRouter",
+      "reasoning_effort": "high",
+      "service_tier": "batch",
+      "role": "primary",
+      "qualification": {
+        "status": "pending",
+        "accuracy": null,
+        "sample_count": 0,
+        "position_consistency": null
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_id": "anchor-high-v03",
+      "level": "high",
+      "status": "pending_selection",
+      "profile_id": null,
+      "frozen_output_sha256": null
+    },
+    {
+      "anchor_id": "anchor-medium-v03",
+      "level": "medium",
+      "status": "pending_selection",
+      "profile_id": null,
+      "frozen_output_sha256": null
+    },
+    {
+      "anchor_id": "anchor-low-v03",
+      "level": "low",
+      "status": "pending_selection",
+      "profile_id": null,
+      "frozen_output_sha256": null
+    }
+  ],
+  "contestant_count": 1,
+  "profiles": [
+    {
+      "profile_id": "solar-pro4",
+      "execution_identity_sha256": null,
+      "label": "Solar Pro 4",
+      "model_id": "upstage/solar-pro4",
+      "model_family": "upstage-solar",
+      "provider": "OpenRouter",
+      "service_tier": "default",
+      "reasoning_effort": null,
+      "focused_capabilities": [
+        "ko"
+      ],
+      "status": "pending_smoke",
+      "rank": null,
+      "scores": {
+        "overall_intelligence": {
+          "score": null,
+          "sample_count": 0,
+          "decision_count": 0,
+          "coverage": 0,
+          "status": "pending",
+          "missing_directions": [
+            "template_omits_17_directions"
+          ]
+        },
+        "zh_en_core": {
+          "score": null,
+          "sample_count": 0,
+          "decision_count": 0,
+          "coverage": 0,
+          "status": "pending",
+          "missing_directions": [
+            "zh-CN->en",
+            "en->zh-CN"
+          ]
+        },
+        "east_asian": {
+          "score": null,
+          "sample_count": 0,
+          "decision_count": 0,
+          "coverage": 0,
+          "status": "pending",
+          "missing_directions": [
+            "zh-CN->ja",
+            "en->ja",
+            "zh-CN->ko",
+            "en->ko"
+          ]
+        },
+        "continental": {
+          "score": null,
+          "sample_count": 0,
+          "decision_count": 0,
+          "coverage": 0,
+          "status": "pending",
+          "missing_directions": [
+            "continental_directions"
+          ]
+        },
+        "hard_format": {
+          "score": null,
+          "sample_count": 0,
+          "decision_count": 0,
+          "coverage": 0,
+          "status": "pending",
+          "missing_directions": [
+            "template_pending"
+          ]
+        },
+        "soft_preference": {
+          "score": null,
+          "sample_count": 0,
+          "decision_count": 0,
+          "coverage": 0,
+          "status": "pending",
+          "missing_directions": [
+            "template_pending"
+          ]
+        },
+        "per_extended_language": {
+          "ko": {
+            "score": null,
+            "sample_count": 0,
+            "decision_count": 0,
+            "coverage": 0,
+            "status": "pending",
+            "missing_directions": [
+              "zh-CN->ko",
+              "en->ko"
+            ]
+          }
+        },
+        "direction_scores": [
+          {
+            "direction_id": "en->ko",
+            "intelligence": {
+              "score": null,
+              "sample_count": 0,
+              "decision_count": 0,
+              "coverage": 0,
+              "status": "pending",
+              "missing_directions": [
+                "en->ko"
+              ]
+            },
+            "hard_format": {
+              "score": null,
+              "sample_count": 0,
+              "decision_count": 0,
+              "coverage": 0,
+              "status": "pending",
+              "missing_directions": [
+                "en->ko"
+              ]
+            },
+            "soft_preference": {
+              "score": null,
+              "sample_count": 0,
+              "decision_count": 0,
+              "coverage": 0,
+              "status": "pending",
+              "missing_directions": [
+                "en->ko"
+              ]
+            }
+          }
+        ]
+      },
+      "telemetry": {
+        "call_count": 0,
+        "elapsed_seconds": null,
+        "latency_seconds": {
+          "p50": null,
+          "p95": null,
+          "maximum": null
+        },
+        "throughput_output_tokens_per_second": null,
+        "tokens": {
+          "input": 0,
+          "output_including_reasoning": 0,
+          "reasoning": 0,
+          "total": 0
+        },
+        "cost": {
+          "observed_usd": null,
+          "observation_count": 0,
+          "pricing_mode": "pending",
+          "rank_eligible": true,
+          "reproducible_paid_equivalent_usd": null
+        },
+        "contract": {
+          "raw_pass_rate": null,
+          "normalization_applied_rate": null,
+          "final_pass_rate": null,
+          "punctuation_warning_count": 0
+        }
+      },
+      "evidence_summary": {
+        "soft": {
+          "wins": 0,
+          "losses": 0,
+          "ties": 0,
+          "unresolved": 0,
+          "comparison_count": 0,
+          "dual_judged_count": 0,
+          "judge_agreement": null
+        },
+        "hard": {
+          "deterministic_pass": 0,
+          "deterministic_fail": 0,
+          "structural_pass": 0,
+          "structural_fail": 0,
+          "structural_unresolved": 0
+        }
+      }
+    }
+  ],
+  "rankings": {
+    "overall_intelligence": [],
+    "zh_en_core": [],
+    "east_asian": [],
+    "continental": [],
+    "hard_format": [],
+    "soft_preference": []
+  },
+  "pareto_frontiers": {
+    "quality_cost": [],
+    "quality_speed": [],
+    "quality_tokens": []
+  },
+  "watchlist": [
+    {
+      "model_id": "skt/A.X-K2",
+      "label": "A.X K2",
+      "status": "awaiting_shared_host",
+      "reason": "No verified shared pay-as-you-go API; Solar Pro 4 is the active Korean-focused contestant.",
+      "focused_capabilities": [
+        "ko"
+      ]
+    }
+  ],
+  "integrity": {
+    "source_artifact_sha256": null,
+    "public_artifact_sha256": null
+  }
+}
