@@ -98,3 +98,8 @@ aventine build-v03-leaderboard manifest.json v03-leaderboard.json --json
 运行时值。两位独立家族裁判各进行一次无重试调用；同意 `acceptable` 才恢复 hard pass，同意
 `lost_or_added` 才 hard fail，分歧或 uncertain 均保持 unresolved。plan 与 checkpoint 同样绑定完整
 candidate evidence hash、裁判家族和美元预算。
+
+`tests/test_v03_end_to_end.py` 以完整 18 方向、两次 repeat 的合成 artifact 覆盖全链路：36 个参赛
+occurrence 经 hard/structural/soft 三路分流，结构双裁判、自适应软双裁判与 20% 分层审计执行后，
+最终生成 status=complete 的网站 aggregate。该测试专门防止单遍 smoke 无法发现的 repeat identity、
+candidate orientation、resolution handoff 与方向 completeness 回归。
