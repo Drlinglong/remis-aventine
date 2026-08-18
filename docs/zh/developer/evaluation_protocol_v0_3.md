@@ -92,3 +92,9 @@ aventine build-v03-leaderboard manifest.json v03-leaderboard.json --json
 ```
 
 双裁判 plan 现在还绑定完整 candidate evidence SHA-256；候选文本改变后，旧裁判 checkpoint 无法续跑。
+
+结构复核由 `structural_judge.py` 执行：它只展开路由为 `structural_judges` 的候选，并把 judge prompt
+限制为一个问题——受保护变量次数变化究竟是合法的目标语言语法重组，还是丢失、重复、重指派或新增
+运行时值。两位独立家族裁判各进行一次无重试调用；同意 `acceptable` 才恢复 hard pass，同意
+`lost_or_added` 才 hard fail，分歧或 uncertain 均保持 unresolved。plan 与 checkpoint 同样绑定完整
+candidate evidence hash、裁判家族和美元预算。

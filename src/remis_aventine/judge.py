@@ -178,6 +178,17 @@ def _case_mode(case: dict[str, Any]) -> str:
 
 def _prompt(case: dict[str, Any]) -> str:
     mode = _case_mode(case)
+    if case.get("evaluation_scope") == "structural":
+        return (
+            "Evaluate ONLY whether the protected-variable count change is a grammatically "
+            "legitimate target-language rewrite. Pass only when every runtime value remains "
+            "semantically represented and no new runtime value was invented. Fail when a "
+            "variable/value was lost, duplicated, reassigned, or added. Do not fail for unrelated "
+            "style or translation preferences. Use uncertain when the supplied context cannot "
+            "resolve this narrow question. Return strict JSON matching the single-case example.\n"
+            "INPUT:\n"
+            + json.dumps(case["input"], ensure_ascii=False, sort_keys=True)
+        )
     return (
         f"Evaluate this {mode} translation case. The language pair and all available evidence are "
         "inside INPUT. Return strict JSON matching the example.\nINPUT:\n"
