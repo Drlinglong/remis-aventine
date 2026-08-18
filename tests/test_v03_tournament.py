@@ -14,7 +14,7 @@ def _identity(model: str, family: str) -> tuple[dict, str]:
     return value, hashlib.sha256(payload.encode()).hexdigest()
 
 
-def _run(model: str, family: str, routes: tuple[str, ...]) -> dict:
+def _run(model: str, family: str, routes: tuple[str, ...], *, repeats: int = 1) -> dict:
     identity, digest = _identity(model, family)
     items = []
     for index, route in enumerate(routes):
@@ -30,6 +30,17 @@ def _run(model: str, family: str, routes: tuple[str, ...]) -> dict:
                 },
             }
         )
+    results = []
+    for repeat in range(1, repeats + 1):
+        repeated = deepcopy(items)
+        for item in repeated:
+            item["output"] = f"{item['output']}-repeat-{repeat}"
+        results.append(
+            {
+                "job_id": f"official::en->zh-CN::repeat-{repeat}",
+                "validation": {"items": repeated},
+            }
+        )
     return {
         "status": "completed",
         "exam_sha256": "exam",
@@ -37,7 +48,7 @@ def _run(model: str, family: str, routes: tuple[str, ...]) -> dict:
         "planned_call_count": 1,
         "execution_identity": identity,
         "execution_identity_sha256": digest,
-        "results": [{"validation": {"items": items}}],
+        "results": results,
     }
 
 
@@ -80,6 +91,17 @@ def test_build_routes_items_without_double_penalizing_hard_failures() -> None:
     case = pack["soft_judge_cases"][0]
     assert case["candidate_families"] == ["family-a", "family-b"]
     assert case["input"]["reference"] == "一"
+
+
+def test_two_repeats_remain_distinct_occurrences() -> None:
+    pack = build_v03_pairwise_pack(
+        _exam(),
+        _run("a", "family-a", ("pass", "pass", "pass"), repeats=2),
+        _run("b", "family-b", ("pass", "pass", "pass"), repeats=2),
+    )
+
+    assert pack["counts"]["total"] == 6
+    assert len({case["id"] for case in pack["soft_judge_cases"]}) == 6
 
 
 def test_rejects_missing_or_tampered_execution_identity() -> None:

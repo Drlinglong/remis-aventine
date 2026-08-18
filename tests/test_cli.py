@@ -860,3 +860,30 @@ def test_build_pilot_aggregate_cli_reports_error(monkeypatch, capsys) -> None:
         == 2
     )
     assert "bad tournament" in capsys.readouterr().err
+
+
+def test_build_v03_leaderboard_cli_writes_website_artifact(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text('{"runs": [], "matches": []}', encoding="utf-8")
+    monkeypatch.setattr(
+        cli,
+        "build_v03_leaderboard",
+        lambda *_args, **_kwargs: {
+            "status": "complete",
+            "score_version": "multilingual-pilot-v0.3-60soft-40hard",
+            "profiles": [{}, {}],
+        },
+    )
+    output = tmp_path / "leaderboard.json"
+
+    exit_code = main(
+        ["build-v03-leaderboard", str(manifest), str(output), "--json"]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert output.is_file()
+    assert payload["profile_count"] == 2
+    assert payload["status"] == "complete"

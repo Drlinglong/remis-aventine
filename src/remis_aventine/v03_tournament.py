@@ -52,11 +52,15 @@ def _exam_items(exam: dict[str, Any]) -> dict[str, dict[str, Any]]:
 def _run_items(run: dict[str, Any]) -> dict[str, dict[str, Any]]:
     flattened: dict[str, dict[str, Any]] = {}
     for result in run.get("results", []):
+        job_id = result.get("job_id")
+        if not isinstance(job_id, str) or not job_id:
+            raise V03TournamentError("Every run result requires a job_id.")
         for item in (result.get("validation") or {}).get("items", []):
             item_id = item.get("item_id")
-            if not isinstance(item_id, str) or item_id in flattened:
+            occurrence_id = f"{job_id}::{item_id}"
+            if not isinstance(item_id, str) or occurrence_id in flattened:
                 raise V03TournamentError("Run contains missing or duplicate item IDs.")
-            flattened[item_id] = item
+            flattened[occurrence_id] = {**item, "base_item_id": item_id, "job_id": job_id}
     return flattened
 
 
@@ -79,21 +83,30 @@ def build_v03_pairwise_pack(
     right_items = _run_items(right)
     if set(left_items) != set(right_items):
         raise V03TournamentError("Contestant runs contain different item sets.")
-    unknown = set(left_items) - set(exam_items)
+    unknown = {
+        item["base_item_id"]
+        for item in left_items.values()
+        if item["base_item_id"] not in exam_items
+    }
     if unknown:
         raise V03TournamentError(f"Run items are absent from the exam: {sorted(unknown)!r}")
 
     cases = []
     hard_decisions = []
     structural_queue = []
-    for item_id in sorted(left_items):
+    for occurrence_id in sorted(left_items):
+        left_item = left_items[occurrence_id]
+        right_item = right_items[occurrence_id]
+        item_id = left_item["base_item_id"]
+        if right_item["base_item_id"] != item_id:
+            raise V03TournamentError("Aligned occurrences contain different base item IDs.")
         evidence = exam_items[item_id]
-        left_item = left_items[item_id]
-        right_item = right_items[item_id]
         left_route = left_item["classification"]["route"]
         right_route = right_item["classification"]["route"]
         base = {
-            "id": item_id,
+            "id": occurrence_id,
+            "item_id": item_id,
+            "job_id": left_item["job_id"],
             "direction": evidence["language_pair"],
             "origin": evidence["origin"],
             "left_route": left_route,
@@ -127,7 +140,9 @@ def build_v03_pairwise_pack(
             continue
         cases.append(
             {
-                "id": item_id,
+                "id": occurrence_id,
+                "item_id": item_id,
+                "job_id": left_item["job_id"],
                 "evaluation_mode": "pairwise",
                 "stratum": f"{evidence['language_pair']}:{evidence['origin']}",
                 "candidate_families": [

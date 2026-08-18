@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://drlinglong.github.io/Remis/aventine/schemas/v03-leaderboard.schema.json",
+  "title": "Aventine multilingual leaderboard v0.3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol",
+    "score_version",
+    "status",
+    "exam_sha256",
+    "direction_count",
+    "contestant_count",
+    "match_count",
+    "profiles"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "protocol": {"const": "aventine-multilingual-tournament-v0.3"},
+    "score_version": {"const": "multilingual-pilot-v0.3-60soft-40hard"},
+    "status": {"enum": ["complete", "incomplete"]},
+    "exam_sha256": {"type": "string", "minLength": 1},
+    "direction_count": {"const": 18},
+    "contestant_count": {"type": "integer", "minimum": 2},
+    "match_count": {"type": "integer", "minimum": 0},
+    "profiles": {
+      "type": "array",
+      "minItems": 2,
+      "items": {"$ref": "#/$defs/profile"}
+    }
+  },
+  "$defs": {
+    "measure": {
+      "type": "object",
+      "required": ["score", "sample_count", "decision_count", "coverage", "status", "missing_directions"]
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["execution_identity_sha256", "recipe", "scores", "telemetry"],
+      "properties": {
+        "execution_identity_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "recipe": {"type": "object", "minProperties": 1},
+        "scores": {
+          "type": "object",
+          "required": [
+            "score_version",
+            "direction_count",
+            "overall_intelligence",
+            "zh_en_core",
+            "east_asian",
+            "continental",
+            "per_extended_language",
+            "direction_scores",
+            "hard_format",
+            "soft_preference",
+            "direction_components"
+          ]
+        },
+        "telemetry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "call_count",
+            "elapsed_seconds",
+            "throughput_output_tokens_per_second",
+            "tokens",
+            "cost_usd",
+            "cost_observation_count",
+            "raw_contract_pass_rate",
+            "normalization_applied_rate"
+          ],
+          "properties": {
+            "call_count": {"type": "integer", "minimum": 0},
+            "elapsed_seconds": {"type": "number", "minimum": 0},
+            "throughput_output_tokens_per_second": {"type": ["number", "null"], "minimum": 0},
+            "tokens": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["input", "output_including_reasoning", "reasoning", "total"],
+              "properties": {
+                "input": {"type": "integer", "minimum": 0},
+                "output_including_reasoning": {"type": "integer", "minimum": 0},
+                "reasoning": {"type": "integer", "minimum": 0},
+                "total": {"type": "integer", "minimum": 0}
+              }
+            },
+            "cost_usd": {"type": ["number", "null"], "minimum": 0},
+            "cost_observation_count": {"type": "integer", "minimum": 0},
+            "raw_contract_pass_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+            "normalization_applied_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
+          }
+        }
+      }
+    }
+  }
+}

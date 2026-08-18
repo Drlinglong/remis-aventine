@@ -56,9 +56,19 @@
     "softCase": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "evaluation_mode", "stratum", "candidate_families", "input"],
+      "required": [
+        "id",
+        "item_id",
+        "job_id",
+        "evaluation_mode",
+        "stratum",
+        "candidate_families",
+        "input"
+      ],
       "properties": {
         "id": {"type": "string", "minLength": 1},
+        "item_id": {"type": "string", "minLength": 1},
+        "job_id": {"type": "string", "minLength": 1},
         "evaluation_mode": {"const": "pairwise"},
         "stratum": {"type": "string", "minLength": 1},
         "candidate_families": {

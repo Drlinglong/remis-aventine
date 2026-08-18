@@ -40,6 +40,7 @@ from remis_aventine.remis_pairwise import (
     build_remis_pairwise_pack,
     write_remis_pairwise_report,
 )
+from remis_aventine.v03_aggregate import V03AggregateError, build_v03_leaderboard
 from remis_aventine.validation import DocumentValidationError, validate_document
 
 
@@ -151,6 +152,14 @@ def build_parser() -> argparse.ArgumentParser:
     pilot_parser.add_argument("output_json", type=Path)
     pilot_parser.add_argument("output_markdown", type=Path)
     pilot_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    v03_parser = subparsers.add_parser(
+        "build-v03-leaderboard",
+        help="Build the 18-direction v0.3 website artifact from run and judge evidence.",
+    )
+    v03_parser.add_argument("manifest", type=Path)
+    v03_parser.add_argument("output", type=Path)
+    v03_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     pack_parser = subparsers.add_parser(
         "build-calibration-pack",
@@ -477,6 +486,49 @@ def _report_remis_pairwise(args: argparse.Namespace) -> int:
     return 0
 
 
+def _build_v03_leaderboard(args: argparse.Namespace) -> int:
+    try:
+        manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+        root = args.manifest.resolve().parent
+
+        def load(relative: str) -> dict[str, Any]:
+            return json.loads((root / relative).read_text(encoding="utf-8"))
+
+        runs = [load(path) for path in manifest.get("runs", [])]
+        matches = [
+            {
+                "pack": load(match["pack"]),
+                "judge_report": load(match["judge_report"]),
+            }
+            for match in manifest.get("matches", [])
+        ]
+        structural_path = manifest.get("structural_resolutions")
+        structural = load(structural_path).get("resolutions", []) if structural_path else []
+        aggregate = build_v03_leaderboard(
+            runs, matches, structural_resolutions=structural
+        )
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        temporary = args.output.with_suffix(args.output.suffix + ".tmp")
+        temporary.write_text(
+            json.dumps(aggregate, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        temporary.replace(args.output)
+    except (V03AggregateError, OSError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    _emit(
+        {
+            "built": True,
+            "output": str(args.output),
+            "status": aggregate["status"],
+            "score_version": aggregate["score_version"],
+            "profile_count": len(aggregate["profiles"]),
+        },
+        as_json=args.json,
+    )
+    return 0
+
+
 def _build_pack(args: argparse.Namespace) -> int:
     try:
         pack = build_calibration_pack(args.source_root, args.output, args.remis_fixture)
@@ -782,6 +834,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         }
         _emit(payload, as_json=args.json)
         return 0
+    if args.command == "build-v03-leaderboard":
+        return _build_v03_leaderboard(args)
     if args.command == "build-calibration-pack":
         return _build_pack(args)
     if args.command == "build-mtme-mqm-pack":

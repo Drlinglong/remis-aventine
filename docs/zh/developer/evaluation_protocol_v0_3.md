@@ -70,3 +70,25 @@ decision；结构可疑项进入结构双裁判；其余进入盲化 soft pairwi
 必须通过 family exclusion：默认可用 Gemini 3.7 Flash high + OpenRouter DeepSeek；Google recipe
 参赛时改用 DeepSeek + Grok。所有远程裁判仍是一逻辑结果一次 HTTP attempt、逐次原子 checkpoint、
 预算前置拦截，不做隐式付费重试。
+
+## v0.3 聚合与网站合同
+
+`v03_aggregate.py` 只接受内容哈希一致的参赛 run、pairwise pack、双裁判 checkpoint 和结构裁决。
+每个方向先计算 Soft Preference 与 Hard Format，再按冻结公式合成：
+
+`direction score = 60% × soft preference + 40% × hard format`
+
+综合智力是 18 个 direction score 的等权平均。中英核心、东亚、欧陆、单目标语言、Hard Format 和
+Soft Preference 同时独立输出；任何缺失方向、结构裁判分歧或双裁判 unresolved 都降低 coverage，
+不会被当成模型失败，也不会对剩余证据重新归一化。
+
+生成的 `v03-leaderboard.schema.json` artifact 同时携带 observed cost、elapsed time、总 token、reasoning
+token、吞吐、raw contract 与 normalization 比例。网站由固定路径
+`data/v03-leaderboard.json` 读取；没有正式 artifact 时必须显示“尚未发布”，不得用手填估算伪装成
+v0.3 排名。命令行入口为：
+
+```powershell
+aventine build-v03-leaderboard manifest.json v03-leaderboard.json --json
+```
+
+双裁判 plan 现在还绑定完整 candidate evidence SHA-256；候选文本改变后，旧裁判 checkpoint 无法续跑。

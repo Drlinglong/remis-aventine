@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 import pytest
 
 from remis_aventine.dual_judge import (
@@ -40,6 +42,7 @@ def test_plan_is_seeded_opposed_and_stratified_twenty_percent() -> None:
 
     assert plan == repeated
     assert len(plan["sha256"]) == 64
+    assert len(plan["cases_sha256"]) == 64
     assert len(plan["audit_case_ids"]) == 2
     assert plan["planned_call_count"] == 24
     for case_id in {call["case_id"] for call in plan["calls"]}:
@@ -223,3 +226,33 @@ def test_nested_candidate_input_is_swapped_and_schema_judge_is_adapted(tmp_path)
 
     assert result["summary"]["resolved_count"] == 1
     assert result["summary"]["decisions"][0]["verdict"] == "candidate_a"
+
+
+def test_resume_rejects_changed_candidate_text(tmp_path) -> None:
+    cases = [{**_cases(1)[0], "input": {"candidate_a": "A", "candidate_b": "B"}}]
+    plan = plan_dual_judge(cases, JUDGE_A, JUDGE_B, seed=1, audit_rate=0)
+
+    def transport(call, oriented):
+        return {"verdict": "tie", "cost_usd": 0}
+
+    output = tmp_path / "bound.json"
+    execute_adaptive_dual_judge(
+        plan,
+        cases,
+        {JUDGE_A.id: transport, JUDGE_B.id: transport},
+        output,
+        max_cost_usd=1,
+        reserve_per_call_usd=0,
+    )
+    changed = deepcopy(cases)
+    changed[0]["input"]["candidate_a"] = "changed"
+
+    with pytest.raises(DualJudgeError, match="Execution cases do not match"):
+        execute_adaptive_dual_judge(
+            plan,
+            changed,
+            {JUDGE_A.id: transport, JUDGE_B.id: transport},
+            output,
+            max_cost_usd=1,
+            reserve_per_call_usd=0,
+        )

@@ -119,6 +119,7 @@ def plan_dual_judge(
         "protocol": "adaptive-dual-judge-v0.3",
         "seed": seed,
         "audit_rate": audit_rate,
+        "cases_sha256": _canonical_sha256(cases),
         "judge_identities": [{"id": judge.id, "family": judge.family} for judge in judges],
         "case_count": len(cases),
         "audit_case_ids": sorted(audit_ids),
@@ -340,6 +341,8 @@ def execute_adaptive_dual_judge(
     planned_case_ids = {call["case_id"] for call in plan["calls"]}
     if planned_case_ids != set(case_by_id):
         raise DualJudgeError("Execution cases do not match the judge plan.")
+    if _canonical_sha256(cases) != plan.get("cases_sha256"):
+        raise DualJudgeError("Execution cases do not match the judge plan evidence hash.")
     judge_ids = {identity["id"] for identity in plan["judge_identities"]}
     if set(transports) != judge_ids:
         raise DualJudgeError("Exactly one transport is required for each planned judge.")
@@ -348,12 +351,15 @@ def execute_adaptive_dual_judge(
         report = json.loads(output_path.read_text(encoding="utf-8"))
         if report.get("plan_sha256") != plan.get("sha256"):
             raise DualJudgeError("Checkpoint belongs to a different dual-judge plan.")
+        if report.get("cases_sha256") != plan.get("cases_sha256"):
+            raise DualJudgeError("Checkpoint belongs to different candidate evidence.")
     else:
         report = {
             "schema_version": 1,
             "status": "running",
             "protocol": plan["protocol"],
             "plan_sha256": plan["sha256"],
+            "cases_sha256": plan["cases_sha256"],
             "max_cost_usd": max_cost_usd,
             "reserve_per_call_usd": reserve_per_call_usd,
             "results": [],
