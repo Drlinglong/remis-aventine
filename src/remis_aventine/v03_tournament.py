@@ -31,8 +31,13 @@ def _identity(run: dict[str, Any], side: str) -> dict[str, Any]:
 
 def _exam_items(exam: dict[str, Any]) -> dict[str, dict[str, Any]]:
     items: dict[str, dict[str, Any]] = {}
-    for task in exam.get("translation_tasks", []):
-        references = task.get("reference")
+    tasks = [*exam.get("translation_tasks", []), *exam.get("repair_tasks", [])]
+    for task in tasks:
+        references = (
+            task.get("clean_reference")
+            if task.get("mode") == "repair"
+            else task.get("reference")
+        )
         for index, source in enumerate(task.get("source_items", [])):
             item_id = f"{task['id']}::{index}"
             reference = references[index] if isinstance(references, list) else None
@@ -40,11 +45,14 @@ def _exam_items(exam: dict[str, Any]) -> dict[str, dict[str, Any]]:
                 "item_id": item_id,
                 "case_id": task["case_id"],
                 "origin": task["origin"],
+                "mode": task.get("mode", "translation"),
                 "language_pair": f"{task['source_lang']}->{task['target_lang']}",
                 "source": source["text"] if isinstance(source, dict) else source,
                 "reference": reference,
                 "context": task.get("context", ""),
-                "focus": deepcopy(task.get("focus", [])),
+                "focus": deepcopy(
+                    task.get("focus", task.get("injected_errors", []))
+                ),
             }
     return items
 
@@ -151,6 +159,7 @@ def build_v03_pairwise_pack(
                 ],
                 "input": {
                     "language_pair": evidence["language_pair"],
+                    "task_mode": evidence["mode"],
                     "source": evidence["source"],
                     "reference": evidence["reference"],
                     "context": evidence["context"],

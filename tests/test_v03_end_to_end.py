@@ -41,7 +41,23 @@ def _exam() -> dict:
                 "focus": ["meaning", "protected variables"],
             }
         )
-    return {"translation_tasks": tasks}
+    return {
+        "translation_tasks": tasks,
+        "repair_tasks": [
+            {
+                "id": "repair-case::repair",
+                "case_id": "repair-case",
+                "origin": "integration",
+                "mode": "repair",
+                "source_lang": "en",
+                "target_lang": "zh-CN",
+                "source_items": [{"key": "repair", "text": "§YWarning§!"}],
+                "clean_reference": ["§Y警告§!"],
+                "injected_errors": ["missing color terminator"],
+                "context": "repair integration test",
+            }
+        ],
+    }
 
 
 def _run(model: str, family: str, *, structural_first: bool = False) -> dict:
@@ -89,6 +105,34 @@ def _run(model: str, family: str, *, structural_first: bool = False) -> dict:
                     },
                 }
             )
+    for repeat in (1, 2):
+        results.append(
+            {
+                "job_id": f"integration-repair::en->zh-CN::repeat-{repeat}",
+                "elapsed_seconds": 1,
+                "cost_usd": 0.001,
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "total_tokens": 15,
+                    "completion_tokens_details": {"reasoning_tokens": 2},
+                },
+                "validation": {
+                    "raw_contract_pass": True,
+                    "normalization_operations": [],
+                    "items": [
+                        {
+                            "item_id": "repair-case::repair::0",
+                            "output": f"{model}: §Y警告§!",
+                            "classification": {
+                                "route": "pass",
+                                "structural_review_queue": [],
+                            },
+                        }
+                    ],
+                },
+            }
+        )
     return {
         "status": "completed",
         "exam_sha256": "full-18-direction-integration",
@@ -114,10 +158,10 @@ def test_full_18_direction_two_repeat_pipeline(tmp_path: Path) -> None:
     pack = build_v03_pairwise_pack(_exam(), left, right)
 
     assert pack["counts"] == {
-        "soft_judge": 35,
+        "soft_judge": 37,
         "deterministic_hard": 0,
         "structural_review": 1,
-        "total": 36,
+        "total": 38,
     }
 
     structural_cases = build_structural_cases(pack)
@@ -172,10 +216,10 @@ def test_full_18_direction_two_repeat_pipeline(tmp_path: Path) -> None:
     }
 
     assert structural_report["summary"]["resolved_count"] == 1
-    assert soft_report["summary"]["resolved_count"] == 35
+    assert soft_report["summary"]["resolved_count"] == 37
     assert aggregate["status"] == "complete"
     assert profiles["left/model"]["scores"]["overall_intelligence"]["score"] == 100
     assert profiles["right/model"]["scores"]["overall_intelligence"]["score"] == 40
     assert profiles["left/model"]["scores"]["east_asian"]["status"] == "complete"
     assert profiles["left/model"]["scores"]["continental"]["status"] == "complete"
-    assert profiles["left/model"]["telemetry"]["call_count"] == 36
+    assert profiles["left/model"]["telemetry"]["call_count"] == 38

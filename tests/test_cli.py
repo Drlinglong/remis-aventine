@@ -887,3 +887,22 @@ def test_build_v03_leaderboard_cli_writes_website_artifact(
     assert output.is_file()
     assert payload["profile_count"] == 2
     assert payload["status"] == "complete"
+
+
+def test_estimate_v03_campaign_cli_reports_judges_separately(capsys) -> None:
+    exit_code = main(
+        [
+            "estimate-v03-campaign",
+            "--contestants",
+            "2",
+            "--topology",
+            "single-anchor",
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["expected_calls"]["contestant"] == 740
+    assert payload["expected_calls"]["soft_judges"] == 1532
+    assert payload["pricing_kind"] == "caller-supplied-reserve-not-provider-quote"

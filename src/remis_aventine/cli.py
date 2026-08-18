@@ -41,6 +41,7 @@ from remis_aventine.remis_pairwise import (
     write_remis_pairwise_report,
 )
 from remis_aventine.v03_aggregate import V03AggregateError, build_v03_leaderboard
+from remis_aventine.v03_budget import V03BudgetError, estimate_v03_campaign
 from remis_aventine.validation import DocumentValidationError, validate_document
 
 
@@ -160,6 +161,25 @@ def build_parser() -> argparse.ArgumentParser:
     v03_parser.add_argument("manifest", type=Path)
     v03_parser.add_argument("output", type=Path)
     v03_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    budget_parser = subparsers.add_parser(
+        "estimate-v03-campaign",
+        help="Estimate contestant and dual-judge call volume before any paid request.",
+    )
+    budget_parser.add_argument("--contestants", type=int, required=True)
+    budget_parser.add_argument(
+        "--topology",
+        choices=("full-round-robin", "single-anchor", "double-anchor"),
+        default="full-round-robin",
+    )
+    budget_parser.add_argument("--contestant-calls-each", type=int, default=370)
+    budget_parser.add_argument("--judgeable-items-per-pair", type=int, default=598)
+    budget_parser.add_argument("--audit-rate", type=float, default=0.2)
+    budget_parser.add_argument("--disagreement-rate", type=float, default=0.1)
+    budget_parser.add_argument("--structural-rate", type=float, default=0.02)
+    budget_parser.add_argument("--contestant-call-usd", type=float, default=0.0065)
+    budget_parser.add_argument("--judge-call-usd", type=float, default=0.0025)
+    budget_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
     pack_parser = subparsers.add_parser(
         "build-calibration-pack",
@@ -836,6 +856,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "build-v03-leaderboard":
         return _build_v03_leaderboard(args)
+    if args.command == "estimate-v03-campaign":
+        try:
+            estimate = estimate_v03_campaign(
+                contestants=args.contestants,
+                contestant_calls_each=args.contestant_calls_each,
+                judgeable_items_per_pair=args.judgeable_items_per_pair,
+                topology=args.topology,
+                audit_rate=args.audit_rate,
+                disagreement_rate=args.disagreement_rate,
+                structural_rate=args.structural_rate,
+                contestant_call_usd=args.contestant_call_usd,
+                judge_call_usd=args.judge_call_usd,
+            )
+        except V03BudgetError as exc:
+            return _emit_command_error(exc, as_json=args.json)
+        _emit(estimate, as_json=args.json)
+        return 0
     if args.command == "build-calibration-pack":
         return _build_pack(args)
     if args.command == "build-mtme-mqm-pack":

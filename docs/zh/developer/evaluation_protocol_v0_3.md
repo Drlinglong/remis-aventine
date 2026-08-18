@@ -103,3 +103,20 @@ candidate evidence hash、裁判家族和美元预算。
 occurrence 经 hard/structural/soft 三路分流，结构双裁判、自适应软双裁判与 20% 分层审计执行后，
 最终生成 status=complete 的网站 aggregate。该测试专门防止单遍 smoke 无法发现的 repeat identity、
 candidate orientation、resolution handoff 与方向 completeness 回归。
+
+## Campaign 预算预检
+
+`estimate-v03-campaign` 在任何付费请求前分别估算参赛、软双裁判与结构双裁判调用。默认单位成本来自
+当前 smoke 的量级假设，artifact 会明确标记 `caller-supplied-reserve-not-provider-quote`；调用者可用
+实际 provider telemetry 覆盖，不能把它宣传成官方报价。
+
+```powershell
+aventine estimate-v03-campaign --contestants 4 --topology full-round-robin --json
+```
+
+以 598 个可裁 occurrence、20% 四裁审计、10% 分歧补裁、2% 结构复核、参赛调用 `$0.0065`、裁判
+调用 `$0.0025` 为假设：2 名参赛者预期约 `$8.76`；4 名完整 round-robin 预期约 `$32.84`、最坏
+约 `$57.46`；9 名完整 round-robin 约 `$160.07`。因此首轮建议 4 名代表 recipe、总硬上限
+`$40–45`；若触顶则保留 incomplete/coverage，而不是越权继续消费。稳定基线后的新选手应使用版本化
+anchor topology，避免全量 round-robin 的二次方增长；anchor 分数合同未冻结前，不把两种 topology
+混成同一排行榜。
