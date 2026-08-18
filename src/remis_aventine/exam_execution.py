@@ -204,6 +204,7 @@ def run_execution_plan(
     *,
     max_cost_usd: float,
     reserve_per_call_usd: float,
+    execution_identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Execute jobs once, checkpoint each response, and resume by plan fingerprint.
 
@@ -214,10 +215,16 @@ def run_execution_plan(
     """
     if max_cost_usd < 0 or reserve_per_call_usd < 0:
         raise ExamExecutionError("Budget values must be non-negative.")
+    identity = deepcopy(execution_identity or {})
+    identity_sha256 = canonical_sha256(identity)
     if output_path.exists():
         report = json.loads(output_path.read_text(encoding="utf-8"))
         if report.get("plan_sha256") != plan.sha256:
             raise ExamExecutionError("Checkpoint belongs to a different execution plan.")
+        recorded_identity = report.get("execution_identity", {})
+        recorded_hash = report.get("execution_identity_sha256")
+        if recorded_hash != identity_sha256 or recorded_identity != identity:
+            raise ExamExecutionError("Checkpoint belongs to a different execution identity.")
     else:
         report = {
             "schema_version": 1,
@@ -231,6 +238,8 @@ def run_execution_plan(
             "planned_call_count": len(plan.jobs),
             "max_cost_usd": max_cost_usd,
             "reserve_per_call_usd": reserve_per_call_usd,
+            "execution_identity": identity,
+            "execution_identity_sha256": identity_sha256,
             "results": [],
         }
         _atomic_json(output_path, report)

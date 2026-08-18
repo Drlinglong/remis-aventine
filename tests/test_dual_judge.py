@@ -7,6 +7,7 @@ from remis_aventine.dual_judge import (
     DualJudgeError,
     JudgeIdentity,
     execute_adaptive_dual_judge,
+    make_judge_transport,
     normalize_verdict,
     plan_disagreement_followups,
     plan_dual_judge,
@@ -182,3 +183,43 @@ def test_adaptive_executor_stops_before_budget_and_does_not_retry_failure(tmp_pa
         )
 
     assert len(attempts) == 1
+
+
+def test_nested_candidate_input_is_swapped_and_schema_judge_is_adapted(tmp_path) -> None:
+    case = {
+        **_cases(1)[0],
+        "evaluation_mode": "pairwise",
+        "input": {"candidate_a": "A", "candidate_b": "B"},
+    }
+    plan = plan_dual_judge([case], JUDGE_A, JUDGE_B, seed=1, audit_rate=0)
+
+    class FakeJudge:
+        provider = "fake"
+        model_id = "fake/model"
+        profile = "fake-profile"
+        prompt_revision = "p1"
+        reasoning_effort = "high"
+
+        def evaluate_once(self, oriented):
+            verdict = (
+                "candidate_a"
+                if oriented["input"]["candidate_a"] == "A"
+                else "candidate_b"
+            )
+            return {"evaluation": {"verdict": verdict}}, {"output_tokens": 1}
+
+        def cost_fields(self, usage, prior):
+            return {"estimated_cost_usd": 0.001}
+
+    transport = make_judge_transport(FakeJudge())
+    result = execute_adaptive_dual_judge(
+        plan,
+        [case],
+        {JUDGE_A.id: transport, JUDGE_B.id: transport},
+        tmp_path / "nested.json",
+        max_cost_usd=1,
+        reserve_per_call_usd=0.01,
+    )
+
+    assert result["summary"]["resolved_count"] == 1
+    assert result["summary"]["decisions"][0]["verdict"] == "candidate_a"

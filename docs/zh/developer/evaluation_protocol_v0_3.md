@@ -55,3 +55,18 @@ Gemini 3.7 Flash high 已通过资格测试，但其历史术语细错召回不�
 `multilingual_scoring.py` 只聚合已经 resolved 的方向证据，并让 coverage 与质量分开。网站的质量—
 金钱、质量—速度和质量—token 散点图必须使用 observed telemetry；未知本地成本不得伪装成 `$0`，
 unresolved 也不得伪装成参赛模型失败。
+
+## 正式执行闸门
+
+参赛 checkpoint 除 exam/plan 哈希外，还必须绑定 `execution_identity`：provider、请求模型、模型家族、
+推理档、最大输出、Remis/Aventine commit 与私密 runner 哈希。任何一项变化都禁止续跑旧断点，避免
+同一结果文件混入两个 recipe。
+
+`v03_tournament.py` 对齐两份完整参赛结果并生成三条互斥路径：确定性 hard fail 直接形成 hard
+decision；结构可疑项进入结构双裁判；其余进入盲化 soft pairwise。hard fail 不再进入软裁判，避免
+同一故障重复扣分。候选模型身份只保留在 artifact 元数据中，不进入 model-visible `input`。
+
+双裁判执行器现可直接包装现有 schema-bound judge，并正确交换新版 `input.candidate_a/b`。正式面板
+必须通过 family exclusion：默认可用 Gemini 3.7 Flash high + OpenRouter DeepSeek；Google recipe
+参赛时改用 DeepSeek + Grok。所有远程裁判仍是一逻辑结果一次 HTTP attempt、逐次原子 checkpoint、
+预算前置拦截，不做隐式付费重试。

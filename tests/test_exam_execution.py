@@ -190,3 +190,26 @@ def test_resume_rejects_different_plan(tmp_path: Path) -> None:
             max_cost_usd=1,
             reserve_per_call_usd=0,
         )
+
+
+def test_resume_rejects_recipe_identity_drift(tmp_path: Path) -> None:
+    plan = build_execution_plan(_exam(), directions=["zh-CN->en"], repetitions=1)
+    output = tmp_path / "run.json"
+    run_execution_plan(
+        plan,
+        output,
+        lambda job: {"cost_usd": 0, "outputs": [job["id"]]},
+        max_cost_usd=1,
+        reserve_per_call_usd=0,
+        execution_identity={"model": "vendor/model-a", "reasoning": "high"},
+    )
+
+    with pytest.raises(ExamExecutionError, match="different execution identity"):
+        run_execution_plan(
+            plan,
+            output,
+            lambda job: {},
+            max_cost_usd=1,
+            reserve_per_call_usd=0,
+            execution_identity={"model": "vendor/model-b", "reasoning": "high"},
+        )

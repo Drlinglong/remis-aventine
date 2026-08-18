@@ -278,11 +278,42 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
 def _oriented_case(case: dict[str, Any], orientation: str) -> dict[str, Any]:
     oriented = deepcopy(case)
     if orientation == "ba":
-        oriented["candidate_a"], oriented["candidate_b"] = (
-            oriented["candidate_b"],
-            oriented["candidate_a"],
+        inputs = oriented.get("input", oriented)
+        inputs["candidate_a"], inputs["candidate_b"] = (
+            inputs["candidate_b"],
+            inputs["candidate_a"],
         )
     return oriented
+
+
+def make_judge_transport(judge: Any) -> Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]:
+    """Adapt a schema-bound judge to the dual protocol with per-call USD accounting."""
+
+    def transport(call: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
+        result, usage = judge.evaluate_once(case)
+        evaluation = result.get("evaluation") or {}
+        cost_fields = judge.cost_fields(usage, {})
+        cost = cost_fields.get("exact_cost_usd", cost_fields.get("estimated_cost_usd"))
+        if cost is None:
+            raise DualJudgeError(
+                "This judge does not expose USD cost; use a USD-routed adapter for a capped run."
+            )
+        return {
+            "verdict": evaluation.get("verdict"),
+            "cost_usd": cost,
+            "usage": usage,
+            "judge_result": result,
+            "judge_configuration": {
+                "provider": getattr(judge, "provider", "unknown"),
+                "model": getattr(judge, "model_id", "unknown"),
+                "profile": getattr(judge, "profile", "unknown"),
+                "prompt_revision": getattr(judge, "prompt_revision", "unknown"),
+                "reasoning_effort": getattr(judge, "reasoning_effort", "unknown"),
+            },
+            "orientation": call["orientation"],
+        }
+
+    return transport
 
 
 def execute_adaptive_dual_judge(
@@ -388,6 +419,7 @@ __all__ = [
     "DualJudgeBudgetExceeded",
     "JudgeIdentity",
     "execute_adaptive_dual_judge",
+    "make_judge_transport",
     "normalize_verdict",
     "plan_disagreement_followups",
     "plan_dual_judge",
