@@ -1,28 +1,36 @@
 :root {
-  /* Core Palette - Dark Theme (Default) */
-  --bg-main: #0c0e14;
-  --bg-card: #141721;
-  --bg-card-elevated: #1b202e;
-  --bg-card-hover: #22283a;
-  --bg-input: #12151f;
-  --bg-muted: #283046;
+  --bg-main: #f7f1e6;
+  --bg-card: #fffdf8;
+  --bg-card-elevated: #ffffff;
+  --bg-card-hover: #f5ecdc;
+  --bg-input: #f3ead9;
+  --bg-muted: #e6d7bb;
 
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #161c24;
+  --text-secondary: #2a2e35;
+  --text-muted: #5f6470;
 
-  --border-subtle: #1e2536;
-  --border-medium: #2a334a;
-  --border-strong: #3b4765;
+  --border-subtle: #dfd1b5;
+  --border-medium: #cbb58a;
+  --border-strong: #b29662;
 
-  /* Brand Accents */
-  --brand-gold: #E5A93C;
-  --brand-gold-glow: rgba(229, 169, 60, 0.2);
-  --brand-blue: #3B82F6;
-  --brand-emerald: #10B981;
-  --brand-purple: #8B5CF6;
-  --brand-rose: #F43F5E;
-  --brand-orange: #F97316;
+  --brand-gold: #c8a45b;
+  --brand-pale-gold: #d7b96f;
+  --brand-gold-glow: rgba(200, 164, 91, 0.22);
+  --brand-blue: #2f5fa3;
+  --brand-emerald: #0a7a60;
+  --brand-purple: #6f5cb6;
+  --brand-rose: #b83a53;
+  --brand-orange: #b86c2d;
+
+  --vendor-gemini: #2f5fa3;
+  --vendor-openai: #0a7a60;
+  --vendor-qwen: #b86c2d;
+  --vendor-deepseek: #6f5cb6;
+  --vendor-nvidia: #24745e;
+  --vendor-tencent: #4f57a6;
+  --vendor-local: #7b5e3e;
+  --vendor-neutral: #6d7076;
 
   /* Font Families */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -37,40 +45,45 @@
   --radius-full: 9999px;
 
   /* Elevation Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 2px 0 rgba(22, 28, 36, 0.08);
+  --shadow-md: 0 4px 12px -2px rgba(22, 28, 36, 0.12);
+  --shadow-lg: 0 10px 25px -5px rgba(22, 28, 36, 0.18);
+  --shadow-xl: 0 20px 40px -10px rgba(22, 28, 36, 0.22);
 }
 
-[data-theme="light"] {
-  --bg-main: #ffffff;
-  --bg-card: #f8fafc;
-  --bg-card-elevated: #ffffff;
-  --bg-card-hover: #f1f5f9;
-  --bg-input: #f1f5f9;
-  --bg-muted: #e2e8f0;
+[data-theme="dark"] {
+  --bg-main: #161c24;
+  --bg-card: #1d242d;
+  --bg-card-elevated: #232b35;
+  --bg-card-hover: #2b3440;
+  --bg-input: #222a34;
+  --bg-muted: #3c4654;
 
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-primary: #f7f1e6;
+  --text-secondary: #dad2c6;
+  --text-muted: #aba190;
 
-  --border-subtle: #e2e8f0;
-  --border-medium: #cbd5e1;
-  --border-strong: #94a3b8;
+  --border-subtle: #303b48;
+  --border-medium: #435061;
+  --border-strong: #56637a;
 
-  --brand-gold: #c68a25;
-  --brand-gold-glow: rgba(198, 138, 37, 0.15);
-  --brand-blue: #2563eb;
-  --brand-emerald: #059669;
-  --brand-purple: #7c3aed;
-  --brand-rose: #e11d48;
-  --brand-orange: #ea580c;
+  --brand-gold: #d7b96f;
+  --brand-pale-gold: #c8a45b;
+  --brand-gold-glow: rgba(215, 185, 111, 0.24);
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.12);
+  --vendor-gemini: #7fb0f6;
+  --vendor-openai: #6ad7b9;
+  --vendor-qwen: #f0a869;
+  --vendor-deepseek: #9f95f2;
+  --vendor-nvidia: #74d4b7;
+  --vendor-tencent: #a8afff;
+  --vendor-local: #d3b590;
+  --vendor-neutral: #adb4bf;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.32);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.58);
 }
 
 * {
@@ -152,9 +165,9 @@ body {
 }
 
 .badge-gold {
-  background-color: rgba(229, 169, 60, 0.12);
+  background-color: color-mix(in srgb, var(--brand-gold) 16%, transparent);
   color: var(--brand-gold);
-  border: 1px solid rgba(229, 169, 60, 0.25);
+  border: 1px solid color-mix(in srgb, var(--brand-gold) 36%, transparent);
 }
 
 .badge-blue {
@@ -179,6 +192,11 @@ body {
   background-color: var(--bg-card-elevated);
   color: var(--text-secondary);
   border: 1px solid var(--border-subtle);
+}
+
+.badge-provider {
+  background-color: var(--bg-card-elevated);
+  border: 1px solid var(--border-medium);
 }
 
 /* Tab buttons */
@@ -269,6 +287,72 @@ body {
 
 .animate-fade-in {
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.hero-editorial {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+  gap: 40px;
+  align-items: stretch;
+  padding-top: 44px;
+  padding-bottom: 42px;
+}
+
+.hero-copy-column {
+  position: relative;
+  overflow: hidden;
+  padding-right: 12px;
+}
+
+.hero-mark {
+  position: absolute;
+  width: clamp(220px, 36vw, 410px);
+  opacity: 0.14;
+  right: clamp(-90px, -8vw, -40px);
+  top: clamp(22px, 8vw, 96px);
+  pointer-events: none;
+}
+
+.hero-benchmark-card {
+  padding: 20px;
+  align-self: start;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.hero-cta-primary {
+  background: var(--brand-gold);
+  color: var(--bg-main);
+}
+
+.hero-cta-secondary {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+@media (max-width: 980px) {
+  .hero-editorial {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding-top: 26px;
+  }
+
+  .hero-mark {
+    right: -70px;
+    top: 18px;
+    width: 250px;
+  }
 }
 
 /* Scrollbars */

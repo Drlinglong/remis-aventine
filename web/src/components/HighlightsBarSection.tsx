@@ -39,13 +39,13 @@ export const HighlightsBarSection: React.FC<HighlightsBarSectionProps> = ({
     if (hoveredRecipeId && hoveredRecipeId !== recipe.id && !isHighlighted) {
       return 'var(--bg-muted)';
     }
-    if (recipe.provider.includes('Google')) return '#3B82F6';
-    if (recipe.provider.includes('OpenAI') || recipe.provider.includes('Luna')) return '#10B981';
-    if (recipe.provider.includes('DeepSeek')) return '#E5A93C';
-    if (recipe.provider.includes('Tencent')) return '#8B5CF6';
-    if (recipe.provider.includes('Nvidia')) return '#10B981';
-    if (recipe.provider.includes('Qwen') || recipe.provider.includes('alibaba')) return '#F97316';
-    return '#64748B';
+    if (recipe.provider.includes('Google')) return 'var(--vendor-gemini)';
+    if (recipe.provider.includes('OpenAI') || recipe.provider.includes('Luna')) return 'var(--vendor-openai)';
+    if (recipe.provider.includes('DeepSeek')) return 'var(--vendor-deepseek)';
+    if (recipe.provider.includes('Tencent')) return 'var(--vendor-tencent)';
+    if (recipe.provider.includes('Nvidia')) return 'var(--vendor-nvidia)';
+    if (recipe.provider.includes('Qwen') || recipe.provider.includes('alibaba')) return 'var(--vendor-qwen)';
+    return 'var(--vendor-neutral)';
   };
 
   // Helper for provider icon / letter

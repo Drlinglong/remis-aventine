@@ -1,105 +1,92 @@
 import React from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import type { V03LeaderboardArtifact } from '../types/v03';
 
 interface HeroSectionProps {
   onSelectTab: (tab: string) => void;
+  artifact: V03LeaderboardArtifact | null;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ onSelectTab }) => {
+function modelName(artifact: V03LeaderboardArtifact): string {
+  const leader = [...artifact.profiles]
+    .filter((profile) => profile.scores.overall_intelligence.score !== null)
+    .sort((left, right) => (right.scores.overall_intelligence.score ?? -1) - (left.scores.overall_intelligence.score ?? -1))[0];
+  return leader?.recipe.requested_model || 'Awaiting publication';
+}
+
+function modelScore(artifact: V03LeaderboardArtifact): string {
+  const leader = [...artifact.profiles]
+    .filter((profile) => profile.scores.overall_intelligence.score !== null)
+    .sort((left, right) => (right.scores.overall_intelligence.score ?? -1) - (left.scores.overall_intelligence.score ?? -1))[0];
+  return leader?.scores.overall_intelligence.score?.toFixed(2) || 'Unmeasured';
+}
+
+export const HeroSection: React.FC<HeroSectionProps> = ({ onSelectTab, artifact }) => {
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)',
-        gap: '48px',
-        alignItems: 'center',
-        paddingTop: '32px',
-        paddingBottom: '40px',
-      }}
-      className="hero-grid"
-    >
-      {/* Left Column: Big Editorial Serif Title */}
-      <div>
-        <h1
-          className="display-serif"
-          style={{
-            fontSize: 'clamp(42px, 5.5vw, 64px)',
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.03em',
-            lineHeight: 1.05,
-            marginBottom: '16px',
-          }}
-        >
-          Independent
-          <br />
-          analysis of AI
-          <br />
-          translation
+    <section className="hero-editorial">
+      <div className="hero-copy-column">
+        <img src="./brand/aventine-mark-gold.svg" alt="" aria-hidden="true" className="hero-mark" />
+        <span className="badge badge-gold" style={{ marginBottom: 12 }}>AI-native translation benchmark</span>
+        <h1 className="display-serif" style={{ fontSize: 'clamp(44px, 6vw, 72px)', lineHeight: 1.02, marginBottom: 18 }}>
+          Aventine is a leaderboard for complete translation recipes.
         </h1>
-        <p
-          style={{
-            fontSize: '16px',
-            color: 'var(--text-secondary)',
-            maxWidth: '520px',
-            lineHeight: 1.5,
-          }}
-        >
-          Understand translation recipes, hard-reliability vetoes, and 18-direction benchmark frontiers for game localization.
+        <p style={{ fontSize: 18, color: 'var(--text-secondary)', maxWidth: 700, lineHeight: 1.6, marginBottom: 12 }}>
+          We benchmark model, prompt, glossary, validation, and repair together—because the goal is to make AI translate best, not to score isolated model names.
         </p>
-      </div>
-
-      {/* Right Column: Update Cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Card 1 */}
-        <div
-          className="av-card"
-          style={{
-            padding: '18px 20px',
-            backgroundColor: 'var(--bg-card)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          }}
-          onClick={() => onSelectTab('changelog')}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--brand-purple)' }}>
-              PILOT TOURNAMENT
-            </span>
-            <ArrowUpRight size={14} color="var(--text-muted)" />
-          </div>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-            Nine-Model Round-Robin Benchmark
-          </div>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            Gemini 3.6 Flash finishes #1 with 84.21 score, 100% hard pass, and lowest latency among high reasoning contestants.
-          </p>
-        </div>
-
-        {/* Card 2 */}
-        <div
-          className="av-card"
-          style={{
-            padding: '18px 20px',
-            backgroundColor: 'var(--bg-card)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          }}
-          onClick={() => onSelectTab('multilingual')}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--brand-purple)' }}>
-              SPECIFICATION
-            </span>
-            <ArrowUpRight size={14} color="var(--text-muted)" />
-          </div>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-            18 Directions & Dual-Judge Architecture
-          </div>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            ZH↔EN (2), ZH/EN→JA·KO (4), and ZH/EN→six Continental targets (12), with no minor-language cross-pairs.
-          </p>
+        <p style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 700, lineHeight: 1.6, marginBottom: 28 }}>
+          Long term, Aventine tracks the systems work needed to eliminate language barriers in the LLM era.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+          <button className="hero-cta hero-cta-primary" onClick={() => onSelectTab('multilingual')}>
+            Explore leaderboard <ArrowRight size={16} />
+          </button>
+          <button className="hero-cta hero-cta-secondary" onClick={() => onSelectTab('calibration')}>
+            Review evidence <ArrowUpRight size={16} />
+          </button>
         </div>
       </div>
-    </div>
+
+      <aside className="av-card hero-benchmark-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
+            Current benchmark
+          </span>
+          <span className="badge badge-neutral">v0.3 public artifact</span>
+        </div>
+        {artifact ? (
+          <>
+            <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 2 }}>Status</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>
+              {artifact.status === 'complete' ? 'Complete' : 'Incomplete'}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Contestants</div>
+                <div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{artifact.contestant_count}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Matches</div>
+                <div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{artifact.match_count}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Top profile</div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{modelName(artifact)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Top score</div>
+                <div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{modelScore(artifact)}</div>
+              </div>
+            </div>
+            <button className="hero-cta hero-cta-secondary" onClick={() => onSelectTab('multilingual')} style={{ width: '100%', justifyContent: 'center' }}>
+              Open 18-direction table
+            </button>
+          </>
+        ) : (
+          <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            Waiting for a published v0.3 public result artifact.
+          </p>
+        )}
+      </aside>
+    </section>
   );
 };

@@ -70,16 +70,17 @@ export const App: React.FC = () => {
                 setActiveTab(tab);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
+              artifact={v03Artifact}
             />
 
             {v03Artifact ? (
               <V03Leaderboard artifact={v03Artifact} />
             ) : (
               <div className="v03-panel" style={{ padding: '14px 16px', marginTop: 20, marginBottom: 24 }}>
-                <strong>Multilingual v0.3 · ready for execution</strong>
+                <strong>Multilingual v0.3 · awaiting public artifact</strong>
                 <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>
-                  The frozen 18-direction exam and calibrated dual-judge pipeline are ready.
-                  No v0.3 leaderboard result has been published yet{v03LoadError ? ` (${v03LoadError})` : ''}.
+                  No public v0.3 result artifact was found at <code>web/public/data/v03-public-result.json</code>
+                  {v03LoadError ? ` (${v03LoadError})` : ''}.
                 </p>
               </div>
             )}

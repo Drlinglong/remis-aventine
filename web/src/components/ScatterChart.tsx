@@ -79,12 +79,12 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({ onSelectModel }) => 
 
   // Color mapping by provider
   const getProviderColor = (provider: string) => {
-    if (provider.includes('Google')) return '#3B82F6';
-    if (provider.includes('OpenRouter') || provider.includes('OpenAI')) return '#10B981';
-    if (provider.includes('DeepSeek')) return '#E5A93C';
-    if (provider.includes('Tencent')) return '#8B5CF6';
-    if (provider.includes('Nvidia')) return '#10B981';
-    return '#94A3B8';
+    if (provider.includes('Google')) return 'var(--vendor-gemini)';
+    if (provider.includes('OpenRouter') || provider.includes('OpenAI')) return 'var(--vendor-openai)';
+    if (provider.includes('DeepSeek')) return 'var(--vendor-deepseek)';
+    if (provider.includes('Tencent')) return 'var(--vendor-tencent)';
+    if (provider.includes('Nvidia')) return 'var(--vendor-nvidia)';
+    return 'var(--vendor-neutral)';
   };
 
   return (
@@ -384,16 +384,16 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({ onSelectModel }) => 
         {/* Legend */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B82F6' }} /> Google AI Studio
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--vendor-gemini)' }} /> Google AI Studio
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }} /> OpenRouter / OpenAI
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--vendor-openai)' }} /> OpenRouter / OpenAI
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#E5A93C' }} /> DeepSeek
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--vendor-deepseek)' }} /> DeepSeek
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#8B5CF6' }} /> Tencent HY3
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--vendor-tencent)' }} /> Tencent HY3
           </span>
         </div>
       </div>
