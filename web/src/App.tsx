@@ -5,7 +5,6 @@ import { HeroSection } from './components/HeroSection';
 import { HighlightsBarSection } from './components/HighlightsBarSection';
 import { ScatterChart } from './components/ScatterChart';
 import { LeaderboardTable } from './components/LeaderboardTable';
-import { MultilingualMatrix } from './components/MultilingualMatrix';
 import { RadarComparison } from './components/RadarComparison';
 import { PairwiseHeatmap } from './components/PairwiseHeatmap';
 import { CalibrationView } from './components/CalibrationView';
@@ -13,17 +12,34 @@ import { ChangelogTimeline } from './components/ChangelogTimeline';
 import { MethodologyView } from './components/MethodologyView';
 import { RecipeDrawer } from './components/RecipeDrawer';
 import { CommandPalette } from './components/CommandPalette';
+import { V03Leaderboard } from './components/V03Leaderboard';
+import { loadV03Leaderboard } from './data/v03Leaderboard';
 import type { RecipeEntry } from './types/benchmark';
+import type { V03LeaderboardArtifact } from './types/v03';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('leaderboard');
   const [selectedModel, setSelectedModel] = useState<RecipeEntry | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isDark, setIsDark] = useState(false); // Default clean light/dark support
+  const [v03Artifact, setV03Artifact] = useState<V03LeaderboardArtifact | null>(null);
+  const [v03LoadError, setV03LoadError] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadV03Leaderboard(controller.signal)
+      .then(setV03Artifact)
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setV03LoadError(error instanceof Error ? error.message : String(error));
+        }
+      });
+    return () => controller.abort();
+  }, []);
 
   const handleToggleTheme = () => {
     setIsDark(!isDark);
@@ -55,6 +71,22 @@ export const App: React.FC = () => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             />
+
+            {v03Artifact ? (
+              <V03Leaderboard artifact={v03Artifact} />
+            ) : (
+              <div className="v03-panel" style={{ padding: '14px 16px', marginTop: 20, marginBottom: 24 }}>
+                <strong>Multilingual v0.3 · ready for execution</strong>
+                <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>
+                  The frozen 18-direction exam and calibrated dual-judge pipeline are ready.
+                  No v0.3 leaderboard result has been published yet{v03LoadError ? ` (${v03LoadError})` : ''}.
+                </p>
+              </div>
+            )}
+
+            <div className="section-title" style={{ marginTop: 28 }}>
+              <span>Historical nine-model pilot · v0.2</span>
+            </div>
 
             {/* 2. Highlights Visual Vertical Bar Cards (Pilot Score / Speed / Cost) */}
             <HighlightsBarSection
@@ -97,14 +129,20 @@ export const App: React.FC = () => {
             <div style={{ marginBottom: '24px' }}>
               <span className="badge badge-purple" style={{ marginBottom: '8px' }}>ISSUE #6 REGIONAL SPEC</span>
               <h1 className="display-serif" style={{ fontSize: '38px', color: 'var(--text-primary)', marginBottom: '8px' }}>
-                18 Languages Multilingual Leaderboard
+                18-Direction Multilingual Leaderboard
               </h1>
               <p style={{ fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '800px', lineHeight: 1.5 }}>
-                Equal-weighted aggregation across 12 European languages and 6 East Asian languages, penalizing failure modes using stage-specific multipliers.
+                Equal-weighted ZH↔EN (2), ZH/EN→JA·KO (4), and ZH/EN→DE·RU·FR·ES·PT-BR·TR (12). Missing directions are never renormalized.
               </p>
             </div>
-            <MultilingualMatrix onSelectModel={(m) => setSelectedModel(m)} />
-            <RadarComparison onSelectModel={(m) => setSelectedModel(m)} />
+            {v03Artifact ? (
+              <V03Leaderboard artifact={v03Artifact} />
+            ) : (
+              <div className="v03-panel" style={{ padding: 20 }}>
+                The v0.3 exam is frozen and ready, but no 18-direction result has been published.
+                Historical v0.2 language estimates are intentionally excluded from this view.
+              </div>
+            )}
           </div>
         )}
 

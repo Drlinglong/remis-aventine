@@ -18,7 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const navItems = [
     { id: 'leaderboard', label: 'Overview' },
-    { id: 'multilingual', label: '18 Languages' },
+    { id: 'multilingual', label: '18 Directions' },
     { id: 'charts', label: 'Frontier Charts' },
     { id: 'arena', label: '9x9 Arena' },
     { id: 'calibration', label: 'Evidence' },

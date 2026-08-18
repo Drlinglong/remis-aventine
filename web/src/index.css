@@ -89,6 +89,13 @@ body {
   overflow-x: hidden;
 }
 
+.v03-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
 /* Typography styles */
 .display-serif {
   font-family: var(--font-display);

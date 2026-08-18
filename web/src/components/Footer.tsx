@@ -54,7 +54,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
             </h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
               <li><button onClick={() => onSelectTab('leaderboard')} style={{ color: 'inherit', textAlign: 'left' }}>🏆 Comprehensive Leaderboard</button></li>
-              <li><button onClick={() => onSelectTab('multilingual')} style={{ color: 'inherit', textAlign: 'left' }}>🌐 18 Languages Matrix</button></li>
+              <li><button onClick={() => onSelectTab('multilingual')} style={{ color: 'inherit', textAlign: 'left' }}>🌐 18-Direction Matrix</button></li>
               <li><button onClick={() => onSelectTab('charts')} style={{ color: 'inherit', textAlign: 'left' }}>📈 Pareto Frontier & Charts</button></li>
               <li><button onClick={() => onSelectTab('arena')} style={{ color: 'inherit', textAlign: 'left' }}>⚔️ 9x9 Pairwise Arena</button></li>
               <li><button onClick={() => onSelectTab('calibration')} style={{ color: 'inherit', textAlign: 'left' }}>🎯 MQM / ACES Calibration</button></li>

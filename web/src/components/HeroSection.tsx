@@ -44,7 +44,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSelectTab }) => {
             lineHeight: 1.5,
           }}
         >
-          Understand translation recipes, hard-reliability vetoes, and 18-language benchmark frontiers for game localization.
+          Understand translation recipes, hard-reliability vetoes, and 18-direction benchmark frontiers for game localization.
         </p>
       </div>
 
@@ -93,10 +93,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onSelectTab }) => {
             <ArrowUpRight size={14} color="var(--text-muted)" />
           </div>
           <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-            18 Languages & Multiplier Architecture
+            18 Directions & Dual-Judge Architecture
           </div>
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            Equal-weighted European (12) and East Asian (6) regional cohorts with stage failure multipliers from Issue #6.
+            ZH↔EN (2), ZH/EN→JA·KO (4), and ZH/EN→six Continental targets (12), with no minor-language cross-pairs.
           </p>
         </div>
       </div>

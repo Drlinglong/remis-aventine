@@ -185,7 +185,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           {filteredLanguages.length > 0 && (
             <div style={{ marginBottom: '16px' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', padding: '4px 12px 8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Globe size={13} color="var(--brand-blue)" /> 18 Languages
+                <Globe size={13} color="var(--brand-blue)" /> 18 Directions
               </div>
               {filteredLanguages.map((code) => {
                 const meta = LANGUAGE_METADATA[code];
