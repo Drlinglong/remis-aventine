@@ -24,6 +24,16 @@ export interface ZhEnPreviewProfile {
     cost_usd: number | null;
     elapsed_seconds: number;
     total_tokens: number;
+    verified_cost?: {
+      amount: number;
+      currency: 'CNY';
+      cny_per_usd: number;
+      converted_on: string;
+      observed_date: string;
+      rate_date: string;
+      rate_source: 'CFETS central parity';
+      source: 'provider-dashboard';
+    };
   };
   zh_en_score: number;
 }
@@ -35,8 +45,9 @@ export interface ZhEnPreviewArtifact {
   profiles: ZhEnPreviewProfile[];
   protocol: string;
   schema_version: 1;
+  source_commit: string;
   soft_case_count: number;
   soft_resolved_count: number;
   soft_unresolved_count: number;
-  status: 'complete-preview';
+  status: 'published-partial';
 }
