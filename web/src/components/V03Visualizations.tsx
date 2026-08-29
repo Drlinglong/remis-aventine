@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { ArrowUpRight, X } from 'lucide-react';
 import { getVendorBrand } from '../data/vendorBrands';
 import { observedThroughput, paretoFrontier, paretoValue, type ParetoMetric } from '../data/v03VisualMetrics';
