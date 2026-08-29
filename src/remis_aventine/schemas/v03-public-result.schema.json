@@ -116,7 +116,7 @@
         "kind": {"const": "sparse_round_robin"},
         "pairing_algorithm": {"const": "seeded-circle-v1"},
         "pairing_seed": {"type": ["integer", "null"]},
-        "pairs_per_occurrence": {"const": 9},
+        "pairs_per_occurrence": {"const": 11},
         "score_model": {"const": "davidson-bradley-terry-v1"},
         "base_judges_per_decision": {"const": 1},
         "dual_judge_sample_rate": {"const": 0.2},
@@ -168,7 +168,7 @@
         "model_family": {"type": "string", "minLength": 1},
         "provider": {"type": "string", "minLength": 1},
         "reasoning_effort": {"type": "string", "minLength": 1},
-        "service_tier": {"const": "batch"},
+        "service_tier": {"enum": ["batch", "flex", "default"]},
         "role": {"enum": ["primary", "reserve"]},
         "qualification": {
           "type": "object",

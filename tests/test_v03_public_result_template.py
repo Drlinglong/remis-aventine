@@ -16,7 +16,14 @@ def test_public_result_template_is_small_valid_and_frontend_safe() -> None:
     assert payload["profiles"][0]["model_id"] == "upstage/solar-pro4"
     assert payload["profiles"][0]["focused_capabilities"] == ["ko"]
     assert payload["profiles"][0]["service_tier"] == "default"
-    assert all(judge["service_tier"] == "batch" for judge in payload["judge_panel"])
+    assert {
+        (judge["model_id"], judge["service_tier"])
+        for judge in payload["judge_panel"]
+    } == {
+        ("google/gemini-3.7-flash", "default"),
+        ("openai/gpt-5.6-luna", "default"),
+    }
+    assert payload["topology"]["soft_preference"]["pairs_per_occurrence"] == 11
     assert {anchor["level"] for anchor in payload["anchors"]} == {"high", "medium", "low"}
     assert payload["watchlist"][0]["model_id"] == "skt/A.X-K2"
     assert TEMPLATE.read_text(encoding="utf-8").count("\n") < 400

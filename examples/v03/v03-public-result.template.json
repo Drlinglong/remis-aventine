@@ -14,7 +14,7 @@
     "notes": [
       "本模板只展开1名选手和1个语言方向；正式文件重复 profiles 与 directions 数组。",
       "所有 null 均由正式评测生成器替换，不得由前端手填估算。",
-      "参赛 recipe 使用普通实时端点；裁判使用 Batch/Flex 端点。"
+      "本轮中英预览的参赛 recipe 与裁判均使用普通实时端点；Batch 仅保留为非时效性重跑选项。"
     ]
   },
   "exam": {
@@ -30,7 +30,7 @@
       "kind": "sparse_round_robin",
       "pairing_algorithm": "seeded-circle-v1",
       "pairing_seed": null,
-      "pairs_per_occurrence": 9,
+      "pairs_per_occurrence": 11,
       "score_model": "davidson-bradley-terry-v1",
       "base_judges_per_decision": 1,
       "dual_judge_sample_rate": 0.2,
@@ -58,12 +58,12 @@
   ],
   "judge_panel": [
     {
-      "judge_id": "gemini-3.7-flash-high-batch",
-      "model_id": "google/gemini-3.7-flash:batch",
+      "judge_id": "gemini-3.7-flash-high-default",
+      "model_id": "google/gemini-3.7-flash",
       "model_family": "google-gemini",
       "provider": "OpenRouter",
       "reasoning_effort": "high",
-      "service_tier": "batch",
+      "service_tier": "default",
       "role": "primary",
       "qualification": {
         "status": "qualified",
@@ -73,12 +73,12 @@
       }
     },
     {
-      "judge_id": "gpt-5.6-luna-high-batch",
-      "model_id": "openai/gpt-5.6-luna:batch",
+      "judge_id": "gpt-5.6-luna-high-default",
+      "model_id": "openai/gpt-5.6-luna",
       "model_family": "openai-gpt-5.6",
       "provider": "OpenRouter",
       "reasoning_effort": "high",
-      "service_tier": "batch",
+      "service_tier": "default",
       "role": "primary",
       "qualification": {
         "status": "pending",
