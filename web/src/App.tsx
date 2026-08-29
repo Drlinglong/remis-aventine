@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
+import { ModelDetailPage } from './components/ModelDetailPage';
 import { HeroSection, CredibilityStrip } from './components/HeroSection';
 import { V03Visualizations } from './components/V03Visualizations';
 import { ZhEnPreviewLeaderboard } from './components/ZhEnPreviewLeaderboard';
@@ -20,6 +21,7 @@ export const App = () => {
   const [result, setResult] = useState<ZhEnPreviewArtifact | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<RecipeEntry | null>(null);
+  const requestedModelId = new URLSearchParams(window.location.search).get('model');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
@@ -36,6 +38,9 @@ export const App = () => {
   }, []);
 
   const selectTab = (tab: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('model');
+    window.history.replaceState({}, '', url);
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -62,6 +67,14 @@ export const App = () => {
       />
 
       <main className="container" style={{ flex: 1 }}>
+        {requestedModelId && result?.profiles.find((profile) => profile.model_id === requestedModelId) && (
+          <ModelDetailPage
+            artifact={result}
+            profile={result.profiles.find((profile) => profile.model_id === requestedModelId)!}
+            onBack={() => selectTab('leaderboard')}
+          />
+        )}
+        {!requestedModelId && <>
         {activeTab === 'leaderboard' && (
           <div className="animate-fade-in">
             <HeroSection onSelectTab={selectTab} result={result} />
@@ -111,6 +124,7 @@ export const App = () => {
             <ChangelogTimeline />
           </div>
         )}
+        </>}
       </main>
 
       <Footer onSelectTab={selectTab} />

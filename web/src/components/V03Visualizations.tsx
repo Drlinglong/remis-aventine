@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { ArrowUpRight, X } from 'lucide-react';
+import { useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { ArrowUpRight } from 'lucide-react';
+import { modelDetailHref } from '../data/modelDetailUrl';
 import { getVendorBrand } from '../data/vendorBrands';
 import { observedThroughput, paretoFrontier, paretoValue, type ParetoMetric } from '../data/v03VisualMetrics';
 import { zhEnProfileName } from '../data/zhEnProfileName';
@@ -339,84 +340,10 @@ function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[];
   );
 }
 
-function ManifestDrawer({ profile, artifact, onClose }: { profile: ZhEnPreviewProfile | null; artifact: ZhEnPreviewArtifact; onClose: () => void }) {
-  const { t } = useI18n();
-  useEffect(() => {
-    if (!profile) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const drawer = document.querySelector<HTMLElement>('.manifest-drawer');
-    drawer?.scrollTo({ top: 0 });
-    drawer?.querySelector<HTMLButtonElement>('.manifest-close')?.focus({ preventScroll: true });
-    const close = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', close);
-    return () => { document.removeEventListener('keydown', close); document.body.style.overflow = previousOverflow; };
-  }, [profile, onClose]);
-  if (!profile) return null;
-  const verified = profile.telemetry.verified_cost;
-  return (
-    <div className="manifest-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <aside className="manifest-drawer" role="dialog" aria-modal="true" aria-labelledby="manifest-title">
-        <header>
-          <div>
-            <span className="eyebrow">{t('manifest.eyebrow')}</span>
-            <h2 id="manifest-title">{zhEnProfileName(profile)}</h2>
-            <code>{profile.model_id}</code>
-          </div>
-          <button className="manifest-close" onClick={onClose} aria-label={t('a11y.closeManifest')}>
-            <X size={20} />
-          </button>
-        </header>
-        <div className="manifest-score">
-          <span>{t('manifest.zhEnScore')}</span>
-          <strong>{profile.zh_en_score.toFixed(2)}</strong>
-        </div>
-        <dl className="manifest-grid">
-          <div><dt>ZH→EN</dt><dd>{profile.directions['zh-CN->en'].score.toFixed(2)}</dd></div>
-          <div><dt>EN→ZH</dt><dd>{profile.directions['en->zh-CN'].score.toFixed(2)}</dd></div>
-          <div><dt>{t('manifest.observedCost')}</dt><dd>{profile.telemetry.cost_usd === null ? t('common.notMeasured') : `$${profile.telemetry.cost_usd.toFixed(4)}`}</dd></div>
-          <div><dt>{t('manifest.elapsed')}</dt><dd>{t('common.minutes', { value: (profile.telemetry.elapsed_seconds / 60).toFixed(1) })}</dd></div>
-          <div><dt>{t('manifest.tokens')}</dt><dd>{profile.telemetry.total_tokens.toLocaleString()}</dd></div>
-          <div><dt>{t('manifest.throughput')}</dt><dd>{observedThroughput(profile).toFixed(1)} tok/s</dd></div>
-          <div><dt>{t('manifest.soft')}</dt><dd>{aggregate(profile, 'soft').score.toFixed(2)}</dd></div>
-          <div><dt>{t('manifest.hard')}</dt><dd>{aggregate(profile, 'hard').score.toFixed(2)}</dd></div>
-        </dl>
-        {verified && (
-          <section className="manifest-note">
-            <strong>{t('manifest.verified')}</strong>
-            <p>{t('manifest.verifiedCopy', { amount: verified.amount.toFixed(2), rate: verified.cny_per_usd, date: verified.converted_on })}</p>
-          </section>
-        )}
-        <section className="manifest-identity">
-          <h3>{t('manifest.repro')}</h3>
-          <dl>
-            <div><dt>{t('manifest.source')}</dt><dd><code>{artifact.source_commit}</code></dd></div>
-            <div><dt>{t('manifest.identity')}</dt><dd><code>{profile.execution_identity_sha256}</code></dd></div>
-            <div><dt>{t('manifest.directions')}</dt><dd>zh-CN→en · en→zh-CN</dd></div>
-          </dl>
-        </section>
-        <p className="manifest-disclosure">{t('manifest.disclosure')}</p>
-      </aside>
-    </div>
-  );
-}
-
 export function V03Visualizations({ artifact }: { artifact: ZhEnPreviewArtifact }) {
-  const { t } = useI18n();
-  const [openProfile, setOpenProfile] = useState<ZhEnPreviewProfile | null>(null);
-  const returnFocus = useRef<HTMLElement | null>(null);
-  const returnScrollY = useRef(0);
+  const { locale, t } = useI18n();
   const openDetails = (profile: ZhEnPreviewProfile) => {
-    returnScrollY.current = window.scrollY;
-    returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setOpenProfile(profile);
-  };
-  const closeDetails = () => {
-    setOpenProfile(null);
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: returnScrollY.current, behavior: 'instant' });
-      returnFocus.current?.focus({ preventScroll: true });
-    });
+    window.open(modelDetailHref(profile.model_id, locale), '_blank', 'noopener,noreferrer');
   };
   return (
     <section className="v03-analysis">
@@ -426,7 +353,6 @@ export function V03Visualizations({ artifact }: { artifact: ZhEnPreviewArtifact 
         <InteractivePareto profiles={artifact.profiles} onOpen={openDetails} />
         <SoftHardScatter profiles={artifact.profiles} onOpen={openDetails} />
       </div>
-      <ManifestDrawer profile={openProfile} artifact={artifact} onClose={closeDetails} />
     </section>
   );
 }
