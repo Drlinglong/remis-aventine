@@ -3,7 +3,6 @@ from pathlib import Path
 
 from remis_aventine.validation import validate_document
 
-
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "examples" / "v03" / "v03-public-result.template.json"
 

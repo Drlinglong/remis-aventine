@@ -217,6 +217,11 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# Web application
+web/node_modules/
+web/dist/
+web/dist-ssr/
+
 # Aventine local benchmark data and generated artifacts
 benchmark_data/
 benchmark_results/
@@ -228,3 +233,4 @@ benchmark_results/
 # Project-local test scratch
 .pytest-basetemp/
 .pytest-basetemp-*/
+

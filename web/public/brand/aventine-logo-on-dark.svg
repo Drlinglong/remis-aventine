@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Aventine evaluation logo on dark background</title>
+  <desc id="desc">A pale-gold seal containing a high-ground beacon, surrounded by the words Aventine and Evaluation.</desc>
+  <defs>
+    <path id="top-arc" d="M 214 520 A 298 298 0 0 1 810 520"/>
+    <path id="bottom-arc" d="M 244 640 A 286 286 0 0 0 780 640"/>
+  </defs>
+  <rect width="1024" height="1024" fill="#161C24"/>
+  <g fill="none" stroke="#D7B96F">
+    <path d="M512 42 742 104 920 282 982 512 920 742 742 920 512 982 282 920 104 742 42 512 104 282 282 104Z" stroke-width="7"/>
+    <circle cx="512" cy="512" r="425" stroke-width="9"/>
+    <circle cx="512" cy="548" r="235" stroke-width="8"/>
+  </g>
+  <g fill="#D7B96F">
+    <circle cx="190" cy="616" r="9"/>
+    <circle cx="834" cy="616" r="9"/>
+    <path d="M493 382 512 363 531 382 512 401Z"/>
+    <path d="M505 397H519V471H505Z"/>
+    <path d="M330 686 491 484Q512 460 533 484L694 686 663 711 512 522 361 711Z"/>
+    <path d="M453 690 512 617 571 690Z"/>
+  </g>
+  <g text-anchor="middle">
+    <text fill="#F4E9CF" font-family="Baskerville, Georgia, 'Times New Roman', serif" font-size="76" letter-spacing="16">
+      <textPath href="#top-arc" startOffset="50%">AVENTINE</textPath>
+    </text>
+    <text fill="#D7B96F" font-family="Bahnschrift, 'Segoe UI', Arial, sans-serif" font-size="38" font-weight="300" letter-spacing="13">
+      <textPath href="#bottom-arc" startOffset="50%">EVALUATION</textPath>
+    </text>
+  </g>
+</svg>
