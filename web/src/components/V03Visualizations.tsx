@@ -233,9 +233,15 @@ function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[];
     hard: aggregate(profile, 'hard').score,
     soft: aggregate(profile, 'soft').score,
   }));
-  const x = (value: number) => pad.left + (value / 100) * (width - pad.left - pad.right);
+  const xMin = Math.floor(Math.min(...points.map((point) => point.hard)) / 10) * 10;
+  const x = (value: number) => pad.left + ((value - xMin) / (100 - xMin)) * (width - pad.left - pad.right);
   const y = (value: number) => pad.top + (1 - value / 100) * (height - pad.top - pad.bottom);
-  const isoLines = [30, 45, 60, 75, 90];
+  const xTicks = Array.from({ length: 5 }, (_, index) => xMin + ((100 - xMin) * index) / 4);
+  const yTicks = [0, 25, 50, 75, 100];
+  const isoLines = [45, 60, 75, 90];
+  const active = hovered ?? points[0].profile;
+  const activeSoft = aggregate(active, 'soft').score;
+  const activeHard = aggregate(active, 'hard').score;
   const keyOpen = (event: KeyboardEvent<SVGGElement>, profile: ZhEnPreviewProfile) => {
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(profile); }
   };
@@ -244,18 +250,22 @@ function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[];
       <h2>{t('softhard.title')}</h2>
       <p>{t('softhard.subtitle')}</p>
       <svg viewBox={`0 0 ${width} ${height}`} className="soft-hard-chart" role="img" aria-label={t('softhard.title')}>
-        {[0, 25, 50, 75, 100].map((tick) => (
+        {yTicks.map((tick) => (
           <g key={tick}>
             <line className="chart-gridline" x1={pad.left} y1={y(tick)} x2={width - pad.right} y2={y(tick)} />
             <text className="chart-tick" x={pad.left - 12} y={y(tick) + 4} textAnchor="end">{tick}</text>
+          </g>
+        ))}
+        {xTicks.map((tick) => (
+          <g key={tick}>
             <line className="chart-gridline vertical" x1={x(tick)} y1={pad.top} x2={x(tick)} y2={height - pad.bottom} />
-            <text className="chart-tick" x={x(tick)} y={height - pad.bottom + 24} textAnchor="middle">{tick}</text>
+            <text className="chart-tick" x={x(tick)} y={height - pad.bottom + 24} textAnchor="middle">{Math.round(tick)}</text>
           </g>
         ))}
         {isoLines.map((k) => {
           // 0.6·S + 0.4·H = k → S = (k - 0.4·H)/0.6; clip to [0,100]×[0,100]
           const candidates: Array<[number, number]> = [
-            [0, k / 0.6],
+            [xMin, (k - 0.4 * xMin) / 0.6],
             [100, (k - 40) / 0.6],
             [k / 0.4, 0],
             [(k - 60) / 0.4, 100],
@@ -309,14 +319,22 @@ function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[];
         <text className="axis-title" x={18} y={height / 2} transform={`rotate(-90 18 ${height / 2})`} textAnchor="middle">
           {t('softhard.yAxis')}
         </text>
+        <text className="chart-direction chart-direction-x" x={width - pad.right} y={height - pad.bottom + 42} textAnchor="end">{t('softhard.reliable')}</text>
+        <text className="chart-direction" x={pad.left + 6} y={pad.top + 14}>{t('softhard.better')}</text>
       </svg>
-      <div className="soft-hard-legend">
-        {profiles.slice(0, 6).map((profile) => (
-          <span key={profile.execution_identity_sha256}>
-            <i style={{ background: color(profile) }} />{zhEnProfileName(profile)}
+      <footer className="soft-hard-inspector" aria-live="polite">
+        <div>
+          <span>{t('softhard.inspect')}</span>
+          <small>{t('softhard.isoFormula')}</small>
+        </div>
+        <div className="soft-hard-active">
+          <VendorLogo signals={[active.model_family, active.model_id]} size={32} fallback={zhEnProfileName(active)} />
+          <span>
+            <strong>{zhEnProfileName(active)}</strong>
+            <small>{t('common.score')} {active.zh_en_score.toFixed(2)} · {t('manifest.soft')} {activeSoft.toFixed(1)} · {t('manifest.hard')} {activeHard.toFixed(1)}</small>
           </span>
-        ))}
-      </div>
+        </div>
+      </footer>
     </article>
   );
 }

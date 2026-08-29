@@ -1022,14 +1022,22 @@ body {
 .soft-hard-scatter h2 { margin-top: 3px; font-size: 21px; color: var(--text-primary); }
 .soft-hard-scatter > p { margin-top: 4px; color: var(--text-secondary); font-size: 11px; }
 .soft-hard-chart { display: block; width: 100%; min-width: 720px; height: auto; margin-top: 10px; }
-.soft-hard-legend {
-  display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 10px;
+.chart-direction { fill: var(--brand-gold); font-family: var(--font-sans); font-size: 10px; font-weight: 700; }
+.soft-hard-inspector {
+  display: grid; grid-template-columns: minmax(240px, 1fr) auto; align-items: center; gap: 20px;
+  min-height: 68px; margin-top: 8px; padding: 12px 14px;
+  background: color-mix(in srgb, var(--brand-gold) 5%, var(--bg-card));
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);
 }
-.soft-hard-legend span {
-  display: inline-flex; align-items: center; gap: 6px;
-  color: var(--text-secondary); font-size: 10px;
+.soft-hard-inspector > div, .soft-hard-active span { display: flex; flex-direction: column; }
+.soft-hard-inspector span { color: var(--text-secondary); font-size: 11px; }
+.soft-hard-inspector small { color: var(--text-muted); font-size: 10px; line-height: 1.5; }
+.soft-hard-active { display: flex !important; align-items: center; flex-direction: row !important; gap: 9px; }
+.soft-hard-active strong { color: var(--text-primary); font-size: 12px; }
+
+@media (max-width: 760px) {
+  .soft-hard-inspector { grid-template-columns: 1fr; gap: 12px; }
 }
-.soft-hard-legend i { width: 9px; height: 9px; border-radius: 50%; }
 
 /* FINDING-005: vendor color as identity — ensure bar fills and table dots use vendor tokens */
 .preview-score { color: var(--vendor-color); }
