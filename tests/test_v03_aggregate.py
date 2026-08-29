@@ -60,11 +60,7 @@ def _match(left: dict, right: dict, *, verdict: str = "candidate_a") -> dict:
     report = {
         "status": "completed",
         "cases_sha256": _sha([case]),
-        "summary": {
-            "decisions": [
-                {"case_id": case["id"], "resolved": True, "verdict": verdict}
-            ]
-        },
+        "summary": {"decisions": [{"case_id": case["id"], "resolved": True, "verdict": verdict}]},
     }
     return {"pack": pack, "judge_report": report}
 
@@ -73,9 +69,7 @@ def test_builds_incomplete_18_direction_profile_without_renormalizing() -> None:
     left = _run("left", "family-left")
     right = _run("right", "family-right")
     result = build_v03_leaderboard([left, right], [_match(left, right)])
-    profiles = {
-        profile["recipe"]["requested_model"]: profile for profile in result["profiles"]
-    }
+    profiles = {profile["recipe"]["requested_model"]: profile for profile in result["profiles"]}
 
     assert result["status"] == "incomplete"
     assert result["direction_count"] == 18

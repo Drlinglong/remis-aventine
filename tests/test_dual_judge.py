@@ -204,11 +204,7 @@ def test_nested_candidate_input_is_swapped_and_schema_judge_is_adapted(tmp_path)
         reasoning_effort = "high"
 
         def evaluate_once(self, oriented):
-            verdict = (
-                "candidate_a"
-                if oriented["input"]["candidate_a"] == "A"
-                else "candidate_b"
-            )
+            verdict = "candidate_a" if oriented["input"]["candidate_a"] == "A" else "candidate_b"
             return {"evaluation": {"verdict": verdict}}, {"output_tokens": 1}
 
         def cost_fields(self, usage, prior):

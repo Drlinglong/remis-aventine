@@ -192,8 +192,7 @@ def _prompt(case: dict[str, Any]) -> str:
             "variable/value was lost, duplicated, reassigned, or added. Do not fail for unrelated "
             "style or translation preferences. Use uncertain when the supplied context cannot "
             "resolve this narrow question. Return strict JSON matching the single-case example.\n"
-            "INPUT:\n"
-            + json.dumps(case["input"], ensure_ascii=False, sort_keys=True)
+            "INPUT:\n" + json.dumps(case["input"], ensure_ascii=False, sort_keys=True)
         )
     return (
         f"Evaluate this {mode} translation case. The language pair and all available evidence are "

@@ -109,9 +109,7 @@ def test_rejects_missing_or_tampered_execution_identity() -> None:
     left["execution_identity"]["requested_model"] = "tampered"
 
     with pytest.raises(V03TournamentError, match="valid execution identity"):
-        build_v03_pairwise_pack(
-            _exam(), left, _run("b", "family-b", ("pass", "pass", "pass"))
-        )
+        build_v03_pairwise_pack(_exam(), left, _run("b", "family-b", ("pass", "pass", "pass")))
 
 
 def test_rejects_mismatched_item_sets() -> None:
@@ -120,6 +118,4 @@ def test_rejects_mismatched_item_sets() -> None:
     right["results"][0]["validation"]["items"].pop()
 
     with pytest.raises(V03TournamentError, match="different item sets"):
-        build_v03_pairwise_pack(
-            _exam(), _run("a", "family-a", ("pass", "pass", "pass")), right
-        )
+        build_v03_pairwise_pack(_exam(), _run("a", "family-a", ("pass", "pass", "pass")), right)

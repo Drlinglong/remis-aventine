@@ -34,9 +34,7 @@ def _exam_items(exam: dict[str, Any]) -> dict[str, dict[str, Any]]:
     tasks = [*exam.get("translation_tasks", []), *exam.get("repair_tasks", [])]
     for task in tasks:
         references = (
-            task.get("clean_reference")
-            if task.get("mode") == "repair"
-            else task.get("reference")
+            task.get("clean_reference") if task.get("mode") == "repair" else task.get("reference")
         )
         for index, source in enumerate(task.get("source_items", [])):
             item_id = f"{task['id']}::{index}"
@@ -50,9 +48,7 @@ def _exam_items(exam: dict[str, Any]) -> dict[str, dict[str, Any]]:
                 "source": source["text"] if isinstance(source, dict) else source,
                 "reference": reference,
                 "context": task.get("context", ""),
-                "focus": deepcopy(
-                    task.get("focus", task.get("injected_errors", []))
-                ),
+                "focus": deepcopy(task.get("focus", task.get("injected_errors", []))),
             }
     return items
 

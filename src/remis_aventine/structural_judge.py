@@ -168,9 +168,7 @@ def execute_structural_dual_judge(
             judge = judges[call["judge_id"]]
             result, usage = judge.evaluate_once(deepcopy(case_by_id[call["case_id"]]))
             verdict = (result.get("evaluation") or {}).get("verdict")
-            decision = {"pass": "acceptable", "fail": "lost_or_added"}.get(
-                verdict, "uncertain"
-            )
+            decision = {"pass": "acceptable", "fail": "lost_or_added"}.get(verdict, "uncertain")
             call_result = {
                 "call_id": call["id"],
                 "case_id": call["case_id"],
@@ -200,12 +198,8 @@ def execute_structural_dual_judge(
     for case in cases:
         values = [result["decision"] for result in results_by_case[case["id"]]]
         resolved = len(values) == 2 and values[0] == values[1] and values[0] != "uncertain"
-        decisions.append(
-            {"case_id": case["id"], "decisions": values, "resolved": resolved}
-        )
-        if len(values) == 2 and all(
-            value in {"acceptable", "lost_or_added"} for value in values
-        ):
+        decisions.append({"case_id": case["id"], "decisions": values, "resolved": resolved})
+        if len(values) == 2 and all(value in {"acceptable", "lost_or_added"} for value in values):
             resolutions.append(
                 {
                     "execution_identity_sha256": case["execution_identity_sha256"],
@@ -228,9 +222,7 @@ def execute_structural_dual_judge(
         "observed_cost_usd": round(observed_cost, 10) if cost_count else None,
         "cost_observation_count": cost_count,
         "cost_per_resolved_usd": (
-            round(observed_cost / resolved_count, 10)
-            if cost_count and resolved_count
-            else None
+            round(observed_cost / resolved_count, 10) if cost_count and resolved_count else None
         ),
         "decisions": decisions,
     }

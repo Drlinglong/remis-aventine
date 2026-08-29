@@ -911,9 +911,7 @@ def test_build_pilot_aggregate_cli_reports_error(monkeypatch, capsys) -> None:
     assert "bad tournament" in capsys.readouterr().err
 
 
-def test_build_v03_leaderboard_cli_writes_website_artifact(
-    monkeypatch, tmp_path, capsys
-) -> None:
+def test_build_v03_leaderboard_cli_writes_website_artifact(monkeypatch, tmp_path, capsys) -> None:
     manifest = tmp_path / "manifest.json"
     manifest.write_text('{"runs": [], "matches": []}', encoding="utf-8")
     monkeypatch.setattr(
@@ -927,9 +925,7 @@ def test_build_v03_leaderboard_cli_writes_website_artifact(
     )
     output = tmp_path / "leaderboard.json"
 
-    exit_code = main(
-        ["build-v03-leaderboard", str(manifest), str(output), "--json"]
-    )
+    exit_code = main(["build-v03-leaderboard", str(manifest), str(output), "--json"])
 
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 0

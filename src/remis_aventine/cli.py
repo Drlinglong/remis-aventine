@@ -586,9 +586,7 @@ def _build_v03_leaderboard(args: argparse.Namespace) -> int:
         ]
         structural_path = manifest.get("structural_resolutions")
         structural = load(structural_path).get("resolutions", []) if structural_path else []
-        aggregate = build_v03_leaderboard(
-            runs, matches, structural_resolutions=structural
-        )
+        aggregate = build_v03_leaderboard(runs, matches, structural_resolutions=structural)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         temporary = args.output.with_suffix(args.output.suffix + ".tmp")
         temporary.write_text(

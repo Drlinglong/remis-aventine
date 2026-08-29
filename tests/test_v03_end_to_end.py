@@ -91,13 +91,9 @@ def _run(model: str, family: str, *, structural_first: bool = False) -> dict:
                                     else f"{model}: [Name] saw [Name]."
                                 ),
                                 "classification": {
-                                    "route": (
-                                        "structural_judges" if structural else "pass"
-                                    ),
+                                    "route": ("structural_judges" if structural else "pass"),
                                     "structural_review_queue": (
-                                        [{"code": "variable_count_changed"}]
-                                        if structural
-                                        else []
+                                        [{"code": "variable_count_changed"}] if structural else []
                                     ),
                                 },
                             }
@@ -211,9 +207,7 @@ def test_full_18_direction_two_repeat_pipeline(tmp_path: Path) -> None:
         [{"pack": pack, "judge_report": soft_report}],
         structural_resolutions=structural_report["resolutions"],
     )
-    profiles = {
-        profile["recipe"]["requested_model"]: profile for profile in aggregate["profiles"]
-    }
+    profiles = {profile["recipe"]["requested_model"]: profile for profile in aggregate["profiles"]}
 
     assert structural_report["summary"]["resolved_count"] == 1
     assert soft_report["summary"]["resolved_count"] == 37

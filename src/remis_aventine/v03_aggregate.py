@@ -65,9 +65,7 @@ def _structural_map(resolutions: list[dict[str, Any]]) -> dict[tuple[str, str], 
             or any(value not in {"acceptable", "lost_or_added"} for value in decisions)
         ):
             raise V03AggregateError("Structural resolution requires exactly two valid decisions.")
-        result[key] = (
-            decisions[0] == "acceptable" if decisions[0] == decisions[1] else None
-        )
+        result[key] = decisions[0] == "acceptable" if decisions[0] == decisions[1] else None
     return result
 
 
@@ -93,12 +91,8 @@ def _telemetry(run: dict[str, Any]) -> dict[str, Any]:
             cost_observations += 1
         usage = result.get("usage") or {}
         prompt = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
-        completion = int(
-            usage.get("completion_tokens") or usage.get("output_tokens") or 0
-        )
-        details = usage.get("completion_tokens_details") or usage.get(
-            "output_tokens_details"
-        ) or {}
+        completion = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
+        details = usage.get("completion_tokens_details") or usage.get("output_tokens_details") or {}
         reasoning = int(details.get("reasoning_tokens") or usage.get("reasoning_tokens") or 0)
         prompt_tokens += prompt
         completion_tokens += completion
@@ -120,13 +114,9 @@ def _telemetry(run: dict[str, Any]) -> dict[str, Any]:
             "reasoning": reasoning_tokens,
             "total": total_tokens,
         },
-        "cost_usd": (
-            float(observed_cost) if cost_observations == len(results) else None
-        ),
+        "cost_usd": (float(observed_cost) if cost_observations == len(results) else None),
         "cost_observation_count": cost_observations,
-        "raw_contract_pass_rate": (
-            round(raw_passes / len(results), 6) if results else None
-        ),
+        "raw_contract_pass_rate": (round(raw_passes / len(results), 6) if results else None),
         "normalization_applied_rate": (
             round(normalized_calls / len(results), 6) if results else None
         ),
@@ -266,9 +256,7 @@ def build_v03_leaderboard(
             if hard_value["score"] is not None and soft_value["score"] is not None:
                 soft_score = Decimal(str(soft_value["score"]))
                 hard_score = Decimal(str(hard_value["score"]))
-                score = round(
-                    soft_score * Decimal("0.6") + hard_score * Decimal("0.4"), 4
-                )
+                score = round(soft_score * Decimal("0.6") + hard_score * Decimal("0.4"), 4)
                 normalized[direction] = {
                     "score": score,
                     "coverage": min(hard_value["coverage"], soft_value["coverage"]),
@@ -298,8 +286,7 @@ def build_v03_leaderboard(
         )
     profiles.sort(key=lambda value: value["execution_identity_sha256"])
     complete = all(
-        profile["scores"]["overall_intelligence"]["status"] == "complete"
-        for profile in profiles
+        profile["scores"]["overall_intelligence"]["status"] == "complete" for profile in profiles
     )
     leaderboard = {
         "schema_version": 1,

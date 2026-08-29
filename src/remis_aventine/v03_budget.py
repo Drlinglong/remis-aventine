@@ -58,9 +58,7 @@ def estimate_v03_campaign(
     audit_items = min(judgeable_items_per_pair, math.ceil(judgeable_items_per_pair * audit_rate))
     non_audit_items = judgeable_items_per_pair - audit_items
     disagreement_items = math.ceil(non_audit_items * disagreement_rate)
-    soft_calls_per_pair = (
-        2 * judgeable_items_per_pair + 2 * audit_items + 2 * disagreement_items
-    )
+    soft_calls_per_pair = 2 * judgeable_items_per_pair + 2 * audit_items + 2 * disagreement_items
     soft_calls = pairs * soft_calls_per_pair
     soft_calls_worst = pairs * 4 * judgeable_items_per_pair
     structural_cases_each = math.ceil(judgeable_items_per_pair * structural_rate)

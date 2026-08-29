@@ -24,9 +24,10 @@ def test_anchor_topologies_avoid_quadratic_pair_growth() -> None:
     assert round_robin["assumptions"]["pair_count"] == 36
     assert single_anchor["assumptions"]["pair_count"] == 8
     assert double_anchor["assumptions"]["pair_count"] == 15
-    assert round_robin["expected_calls"]["soft_judges"] > 4 * single_anchor[
-        "expected_calls"
-    ]["soft_judges"]
+    assert (
+        round_robin["expected_calls"]["soft_judges"]
+        > 4 * single_anchor["expected_calls"]["soft_judges"]
+    )
 
 
 def test_invalid_rates_and_topology_are_rejected() -> None:
