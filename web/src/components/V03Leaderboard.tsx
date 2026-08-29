@@ -155,7 +155,7 @@ export function V03Leaderboard({ artifact }: { artifact: V03LeaderboardArtifact 
 
   return (
     <section style={{ marginTop: 24, marginBottom: 40 }}>
-      <div className="section-title"><span>Multilingual v0.3 · 18 directions</span></div>
+      <div className="section-title"><span>Multilingual benchmark · 18 directions</span></div>
       <p style={{ color: 'var(--text-secondary)', maxWidth: 960, marginBottom: 12 }}>
         ZH↔EN (2), ZH/EN→JA·KO (4), and ZH/EN→DE·RU·FR·ES·PT-BR·TR (12). Null means unmeasured, never zero.
       </p>

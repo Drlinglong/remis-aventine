@@ -446,6 +446,63 @@ body {
   line-height: 1.45;
 }
 
+.benchmark-term {
+  position: relative;
+  border-bottom: 1px dotted var(--brand-gold);
+  cursor: help;
+  outline: none;
+}
+
+.benchmark-term::after {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  width: min(260px, 70vw);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  background: var(--bg-card-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  content: attr(data-tooltip);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.benchmark-term:hover::after,
+.benchmark-term:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.benchmark-term:focus-visible {
+  outline: 2px solid var(--brand-gold);
+  outline-offset: 3px;
+}
+
+.benchmark-date {
+  font-size: clamp(18px, 2vw, 24px) !important;
+}
+
+.benchmark-framework a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--brand-gold);
+  text-decoration: none;
+}
+
+.benchmark-framework a:hover {
+  text-decoration: underline;
+}
+
 .benchmark-facts {
   display: grid;
   grid-template-columns: 1fr 1fr;

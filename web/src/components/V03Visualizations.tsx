@@ -370,7 +370,6 @@ function ManifestDrawer({ profile, artifact, onClose }: { profile: ZhEnPreviewPr
         <section className="manifest-identity">
           <h3>{t('manifest.repro')}</h3>
           <dl>
-            <div><dt>{t('manifest.protocol')}</dt><dd>{artifact.protocol}</dd></div>
             <div><dt>{t('manifest.source')}</dt><dd><code>{artifact.source_commit}</code></dd></div>
             <div><dt>{t('manifest.identity')}</dt><dd><code>{profile.execution_identity_sha256}</code></dd></div>
             <div><dt>{t('manifest.directions')}</dt><dd>zh-CN→en · en→zh-CN</dd></div>

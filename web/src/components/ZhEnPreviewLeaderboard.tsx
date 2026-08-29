@@ -112,7 +112,6 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
       </div>
 
       <div className="preview-footnote">
-        <span>{t('leader.protocol')} <code>{artifact.protocol}</code></span>
         <span>{t('leader.source')} <code>{artifact.source_commit}</code></span>
         <span>{t('leader.judgeCost')} ${artifact.judge_cost_usd.toFixed(3)}</span>
         <a href={`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`} target="_blank" rel="noreferrer">{t('leader.download')}</a>

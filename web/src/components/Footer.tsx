@@ -105,10 +105,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
           <div>
             {t('footer.copyright')}
           </div>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <span>{t('footer.scorePolicy')} <code>v0.3-zh-en-60soft-40hard</code></span>
-            <span>{t('footer.artifact')} <code>v0.3-zh-en-results</code></span>
-          </div>
+          <span>{t('footer.source')} <code>c734ac4</code></span>
         </div>
       </div>
     </footer>

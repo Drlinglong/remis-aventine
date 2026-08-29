@@ -45,14 +45,15 @@ export function HeroSection({ onSelectTab, result }: HeroSectionProps) {
         </div>
         <div className="benchmark-card-rule" />
         <h2 className="display-serif">{t('benchmark.title')}</h2>
-        <p className="benchmark-version">
-          {t('benchmark.version')}
+        <p className="benchmark-version" aria-label={t('benchmark.version')}>
+          60% <span className="benchmark-term" tabIndex={0} data-tooltip={t('benchmark.softDefinition')}>{t('table.soft')}</span>
+          {' · '}40% <span className="benchmark-term" tabIndex={0} data-tooltip={t('benchmark.hardDefinition')}>{t('table.hard')}</span>
         </p>
         <dl className="benchmark-facts">
           <div><dt>{t('benchmark.directions')}</dt><dd>{result ? `${result.direction_count} / 18` : '2 / 18'}</dd></div>
           <div><dt>{t('benchmark.contestants')}</dt><dd>{result?.contestant_count ?? 17}</dd></div>
-          <div><dt>{t('benchmark.softCases')}</dt><dd>{result?.soft_case_count ?? 677}</dd></div>
-          <div><dt>{t('benchmark.resolved')}</dt><dd>{result?.soft_resolved_count ?? 640}</dd></div>
+          <div><dt>{t('benchmark.lastUpdated')}</dt><dd className="benchmark-date">{t('benchmark.updatedDate')}</dd></div>
+          <div><dt>{t('benchmark.framework')}</dt><dd className="benchmark-framework"><a href="https://drlinglong.github.io/Remis/" target="_blank" rel="noreferrer">Remis <ArrowUpRight size={15} /></a></dd></div>
         </dl>
         <p className="benchmark-judges">
           <span>{t('benchmark.judges')}</span> {t('benchmark.judgeNames')}

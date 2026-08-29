@@ -105,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
               {LOCALES.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
             </select>
           </label>
-          {/* Pilot Spec Badge */}
+          {/* Published scope badge */}
           <span
             style={{
               padding: '6px 12px',
@@ -118,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
             }}
             className="lg:inline-flex"
           >
-            ZH–EN v0.3
+            {t('benchmark.scope')}
           </span>
 
           {/* Theme Toggle */}
