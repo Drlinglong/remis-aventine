@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://drlinglong.github.io/Remis/aventine/schemas/v03-pairwise-pack.schema.json",
+  "title": "Aventine v0.3 pairwise pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol",
+    "exam_sha256",
+    "plan_sha256",
+    "candidate_identities",
+    "soft_judge_cases",
+    "deterministic_hard_decisions",
+    "structural_review_queue",
+    "counts",
+    "sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "protocol": {"const": "aventine-v0.3-pairwise"},
+    "exam_sha256": {"type": "string", "minLength": 1},
+    "plan_sha256": {"type": "string", "minLength": 1},
+    "candidate_identities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_a", "candidate_b"],
+      "properties": {
+        "candidate_a": {"type": "object", "minProperties": 1},
+        "candidate_b": {"type": "object", "minProperties": 1}
+      }
+    },
+    "soft_judge_cases": {"type": "array", "items": {"$ref": "#/$defs/softCase"}},
+    "deterministic_hard_decisions": {
+      "type": "array",
+      "items": {"type": "object", "required": ["id", "direction", "winner"]}
+    },
+    "structural_review_queue": {
+      "type": "array",
+      "items": {"type": "object", "required": ["id", "direction", "source"]}
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["soft_judge", "deterministic_hard", "structural_review", "total"],
+      "properties": {
+        "soft_judge": {"type": "integer", "minimum": 0},
+        "deterministic_hard": {"type": "integer", "minimum": 0},
+        "structural_review": {"type": "integer", "minimum": 0},
+        "total": {"type": "integer", "minimum": 0}
+      }
+    },
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "$defs": {
+    "softCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "item_id",
+        "job_id",
+        "evaluation_mode",
+        "stratum",
+        "candidate_families",
+        "input"
+      ],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "item_id": {"type": "string", "minLength": 1},
+        "job_id": {"type": "string", "minLength": 1},
+        "evaluation_mode": {"const": "pairwise"},
+        "stratum": {"type": "string", "minLength": 1},
+        "candidate_families": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "input": {
+          "type": "object",
+          "required": ["language_pair", "source", "candidate_a", "candidate_b"]
+        }
+      }
+    }
+  }
+}

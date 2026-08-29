@@ -40,6 +40,8 @@ from remis_aventine.remis_pairwise import (
     build_remis_pairwise_pack,
     write_remis_pairwise_report,
 )
+from remis_aventine.v03_aggregate import V03AggregateError, build_v03_leaderboard
+from remis_aventine.v03_budget import V03BudgetError, estimate_v03_campaign
 from remis_aventine.validation import DocumentValidationError, validate_document
 
 
@@ -152,6 +154,33 @@ def build_parser() -> argparse.ArgumentParser:
     pilot_parser.add_argument("output_markdown", type=Path)
     pilot_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
 
+    v03_parser = subparsers.add_parser(
+        "build-v03-leaderboard",
+        help="Build the 18-direction v0.3 website artifact from run and judge evidence.",
+    )
+    v03_parser.add_argument("manifest", type=Path)
+    v03_parser.add_argument("output", type=Path)
+    v03_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
+    budget_parser = subparsers.add_parser(
+        "estimate-v03-campaign",
+        help="Estimate contestant and dual-judge call volume before any paid request.",
+    )
+    budget_parser.add_argument("--contestants", type=int, required=True)
+    budget_parser.add_argument(
+        "--topology",
+        choices=("full-round-robin", "single-anchor", "double-anchor"),
+        default="full-round-robin",
+    )
+    budget_parser.add_argument("--contestant-calls-each", type=int, default=370)
+    budget_parser.add_argument("--judgeable-items-per-pair", type=int, default=598)
+    budget_parser.add_argument("--audit-rate", type=float, default=0.2)
+    budget_parser.add_argument("--disagreement-rate", type=float, default=0.1)
+    budget_parser.add_argument("--structural-rate", type=float, default=0.02)
+    budget_parser.add_argument("--contestant-call-usd", type=float, default=0.0065)
+    budget_parser.add_argument("--judge-call-usd", type=float, default=0.0025)
+    budget_parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
+
     pack_parser = subparsers.add_parser(
         "build-calibration-pack",
         help="Build the fixed 48-case pack from an already-downloaded external source cache.",
@@ -232,7 +261,17 @@ def build_parser() -> argparse.ArgumentParser:
     judge_run_parser.add_argument("--workers", type=int, default=1)
     judge_run_parser.add_argument(
         "--provider",
-        choices=("deepseek", "deepseek-flash", "xai", "google", "openrouter"),
+        choices=(
+            "deepseek",
+            "deepseek-flash",
+            "xai",
+            "google",
+            "openrouter",
+            "openrouter-gemini",
+            "openrouter-gemini-high",
+            "openrouter-luna",
+            "openrouter-deepseek-flash",
+        ),
         default="deepseek",
     )
     judge_run_parser.add_argument("--resume-from", type=Path)
@@ -466,6 +505,49 @@ def _report_remis_pairwise(args: argparse.Namespace) -> int:
             f"Remis pairwise report: left {payload['left_win_count']}, "
             f"right {payload['right_win_count']}, unresolved {payload['unresolved_count']}"
         )
+    return 0
+
+
+def _build_v03_leaderboard(args: argparse.Namespace) -> int:
+    try:
+        manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+        root = args.manifest.resolve().parent
+
+        def load(relative: str) -> dict[str, Any]:
+            return json.loads((root / relative).read_text(encoding="utf-8"))
+
+        runs = [load(path) for path in manifest.get("runs", [])]
+        matches = [
+            {
+                "pack": load(match["pack"]),
+                "judge_report": load(match["judge_report"]),
+            }
+            for match in manifest.get("matches", [])
+        ]
+        structural_path = manifest.get("structural_resolutions")
+        structural = load(structural_path).get("resolutions", []) if structural_path else []
+        aggregate = build_v03_leaderboard(
+            runs, matches, structural_resolutions=structural
+        )
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        temporary = args.output.with_suffix(args.output.suffix + ".tmp")
+        temporary.write_text(
+            json.dumps(aggregate, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        temporary.replace(args.output)
+    except (V03AggregateError, OSError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        return _emit_command_error(exc, as_json=args.json)
+    _emit(
+        {
+            "built": True,
+            "output": str(args.output),
+            "status": aggregate["status"],
+            "score_version": aggregate["score_version"],
+            "profile_count": len(aggregate["profiles"]),
+        },
+        as_json=args.json,
+    )
     return 0
 
 
@@ -773,6 +855,25 @@ def main(argv: Sequence[str] | None = None) -> int:
             "profile_count": len(aggregate["entries"]),
         }
         _emit(payload, as_json=args.json)
+        return 0
+    if args.command == "build-v03-leaderboard":
+        return _build_v03_leaderboard(args)
+    if args.command == "estimate-v03-campaign":
+        try:
+            estimate = estimate_v03_campaign(
+                contestants=args.contestants,
+                contestant_calls_each=args.contestant_calls_each,
+                judgeable_items_per_pair=args.judgeable_items_per_pair,
+                topology=args.topology,
+                audit_rate=args.audit_rate,
+                disagreement_rate=args.disagreement_rate,
+                structural_rate=args.structural_rate,
+                contestant_call_usd=args.contestant_call_usd,
+                judge_call_usd=args.judge_call_usd,
+            )
+        except V03BudgetError as exc:
+            return _emit_command_error(exc, as_json=args.json)
+        _emit(estimate, as_json=args.json)
         return 0
     if args.command == "build-calibration-pack":
         return _build_pack(args)

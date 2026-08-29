@@ -1,0 +1,454 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://drlinglong.github.io/Remis/aventine/schemas/v03-public-result.schema.json",
+  "title": "Aventine multilingual v0.3 public result",
+  "description": "Frontend-facing, sanitized result artifact derived from canonical v0.3 evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol",
+    "score_version",
+    "artifact_id",
+    "generated_at",
+    "status",
+    "publication",
+    "exam",
+    "topology",
+    "directions",
+    "judge_panel",
+    "anchors",
+    "contestant_count",
+    "profiles",
+    "rankings",
+    "pareto_frontiers",
+    "watchlist"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "protocol": {"const": "aventine-multilingual-tournament-v0.3"},
+    "score_version": {"const": "multilingual-pilot-v0.3-60soft-40hard"},
+    "artifact_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": ["string", "null"], "format": "date-time"},
+    "status": {"enum": ["draft", "incomplete", "complete"]},
+    "publication": {"$ref": "#/$defs/publication"},
+    "exam": {"$ref": "#/$defs/exam"},
+    "topology": {"$ref": "#/$defs/topology"},
+    "directions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 18,
+      "items": {"$ref": "#/$defs/direction"}
+    },
+    "judge_panel": {
+      "type": "array",
+      "minItems": 2,
+      "items": {"$ref": "#/$defs/judge"}
+    },
+    "anchors": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/anchor"}
+    },
+    "contestant_count": {"type": "integer", "minimum": 1},
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/profile"}
+    },
+    "rankings": {"$ref": "#/$defs/rankings"},
+    "pareto_frontiers": {"$ref": "#/$defs/pareto_frontiers"},
+    "watchlist": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/watchlist_entry"}
+    },
+    "integrity": {"$ref": "#/$defs/integrity"}
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["season", "state", "title", "result_visibility", "exam_content_included", "notes"],
+      "properties": {
+        "season": {"type": "string", "minLength": 1},
+        "state": {"enum": ["template", "preview", "published"]},
+        "title": {"type": "string", "minLength": 1},
+        "result_visibility": {"const": "public_sanitized"},
+        "exam_content_included": {"const": false},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "exam": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exam_id", "sha256", "direction_count", "repeat_count", "case_count", "item_occurrence_count"],
+      "properties": {
+        "exam_id": {"type": "string", "minLength": 1},
+        "sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "direction_count": {"const": 18},
+        "repeat_count": {"const": 2},
+        "case_count": {"type": ["integer", "null"], "minimum": 1},
+        "item_occurrence_count": {"type": ["integer", "null"], "minimum": 1}
+      }
+    },
+    "soft_preference_topology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "pairing_algorithm",
+        "pairing_seed",
+        "pairs_per_occurrence",
+        "score_model",
+        "base_judges_per_decision",
+        "dual_judge_sample_rate",
+        "dual_judge_stratified",
+        "swap_order_on_dual",
+        "adaptive_escalation",
+        "family_exclusion"
+      ],
+      "properties": {
+        "kind": {"const": "sparse_round_robin"},
+        "pairing_algorithm": {"const": "seeded-circle-v1"},
+        "pairing_seed": {"type": ["integer", "null"]},
+        "pairs_per_occurrence": {"const": 11},
+        "score_model": {"const": "davidson-bradley-terry-v1"},
+        "base_judges_per_decision": {"const": 1},
+        "dual_judge_sample_rate": {"const": 0.2},
+        "dual_judge_stratified": {"const": true},
+        "swap_order_on_dual": {"const": true},
+        "adaptive_escalation": {"const": "expand_low_agreement_strata_only"},
+        "family_exclusion": {"const": true}
+      }
+    },
+    "topology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["soft_preference", "hard_format", "direction_weighting", "source_group_weighting"],
+      "properties": {
+        "soft_preference": {"$ref": "#/$defs/soft_preference_topology"},
+        "hard_format": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["deterministic_first", "structural_dual_judge", "punctuation_warning_is_hard_fail"],
+          "properties": {
+            "deterministic_first": {"const": true},
+            "structural_dual_judge": {"const": true},
+            "punctuation_warning_is_hard_fail": {"const": false}
+          }
+        },
+        "direction_weighting": {"const": "equal_18_directions"},
+        "source_group_weighting": {"const": "equal_zh_en_within_regional_scores"}
+      }
+    },
+    "direction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source", "target", "region", "weight"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^(zh-CN|en)->(zh-CN|en|ja|ko|de|ru|fr|es|pt-BR|tr)$"},
+        "source": {"enum": ["zh-CN", "en"]},
+        "target": {"enum": ["zh-CN", "en", "ja", "ko", "de", "ru", "fr", "es", "pt-BR", "tr"]},
+        "region": {"enum": ["zh_en_core", "east_asian", "continental"]},
+        "weight": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}
+      }
+    },
+    "judge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["judge_id", "model_id", "model_family", "provider", "reasoning_effort", "service_tier", "role", "qualification"],
+      "properties": {
+        "judge_id": {"type": "string", "minLength": 1},
+        "model_id": {"type": "string", "minLength": 1},
+        "model_family": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1},
+        "reasoning_effort": {"type": "string", "minLength": 1},
+        "service_tier": {"enum": ["batch", "flex", "default"]},
+        "role": {"enum": ["primary", "reserve"]},
+        "qualification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "accuracy", "sample_count", "position_consistency"],
+          "properties": {
+            "status": {"enum": ["pending", "qualified", "rejected"]},
+            "accuracy": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+            "sample_count": {"type": "integer", "minimum": 0},
+            "position_consistency": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
+          }
+        }
+      }
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anchor_id", "level", "status", "profile_id", "frozen_output_sha256"],
+      "properties": {
+        "anchor_id": {"type": "string", "minLength": 1},
+        "level": {"enum": ["high", "medium", "low"]},
+        "status": {"enum": ["pending_selection", "frozen", "retired"]},
+        "profile_id": {"type": ["string", "null"]},
+        "frozen_output_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+      }
+    },
+    "measure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "sample_count", "decision_count", "coverage", "status", "missing_directions"],
+      "properties": {
+        "score": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+        "sample_count": {"type": "integer", "minimum": 0},
+        "decision_count": {"type": "integer", "minimum": 0},
+        "coverage": {"type": "number", "minimum": 0, "maximum": 1},
+        "status": {"enum": ["pending", "complete", "partial", "incomplete"]},
+        "missing_directions": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overall_intelligence",
+        "zh_en_core",
+        "east_asian",
+        "continental",
+        "hard_format",
+        "soft_preference",
+        "per_extended_language",
+        "direction_scores"
+      ],
+      "properties": {
+        "overall_intelligence": {"$ref": "#/$defs/measure"},
+        "zh_en_core": {"$ref": "#/$defs/measure"},
+        "east_asian": {"$ref": "#/$defs/measure"},
+        "continental": {"$ref": "#/$defs/measure"},
+        "hard_format": {"$ref": "#/$defs/measure"},
+        "soft_preference": {"$ref": "#/$defs/measure"},
+        "per_extended_language": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "ja": {"$ref": "#/$defs/measure"},
+            "ko": {"$ref": "#/$defs/measure"},
+            "de": {"$ref": "#/$defs/measure"},
+            "ru": {"$ref": "#/$defs/measure"},
+            "fr": {"$ref": "#/$defs/measure"},
+            "es": {"$ref": "#/$defs/measure"},
+            "pt-BR": {"$ref": "#/$defs/measure"},
+            "tr": {"$ref": "#/$defs/measure"}
+          }
+        },
+        "direction_scores": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/direction_score"}
+        }
+      }
+    },
+    "direction_score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["direction_id", "intelligence", "hard_format", "soft_preference"],
+      "properties": {
+        "direction_id": {"type": "string", "minLength": 1},
+        "intelligence": {"$ref": "#/$defs/measure"},
+        "hard_format": {"$ref": "#/$defs/measure"},
+        "soft_preference": {"$ref": "#/$defs/measure"}
+      }
+    },
+    "telemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "call_count",
+        "elapsed_seconds",
+        "latency_seconds",
+        "throughput_output_tokens_per_second",
+        "tokens",
+        "cost",
+        "contract"
+      ],
+      "properties": {
+        "call_count": {"type": "integer", "minimum": 0},
+        "elapsed_seconds": {"type": ["number", "null"], "minimum": 0},
+        "latency_seconds": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["p50", "p95", "maximum"],
+          "properties": {
+            "p50": {"type": ["number", "null"], "minimum": 0},
+            "p95": {"type": ["number", "null"], "minimum": 0},
+            "maximum": {"type": ["number", "null"], "minimum": 0}
+          }
+        },
+        "throughput_output_tokens_per_second": {"type": ["number", "null"], "minimum": 0},
+        "tokens": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["input", "output_including_reasoning", "reasoning", "total"],
+          "properties": {
+            "input": {"type": "integer", "minimum": 0},
+            "output_including_reasoning": {"type": "integer", "minimum": 0},
+            "reasoning": {"type": "integer", "minimum": 0},
+            "total": {"type": "integer", "minimum": 0}
+          }
+        },
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["observed_usd", "observation_count", "pricing_mode", "rank_eligible", "reproducible_paid_equivalent_usd"],
+          "properties": {
+            "observed_usd": {"type": ["number", "null"], "minimum": 0},
+            "observation_count": {"type": "integer", "minimum": 0},
+            "pricing_mode": {"enum": ["pending", "metered", "free_tier", "local_unpriced", "unavailable"]},
+            "rank_eligible": {"type": "boolean"},
+            "reproducible_paid_equivalent_usd": {"type": ["number", "null"], "minimum": 0}
+          }
+        },
+        "contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["raw_pass_rate", "normalization_applied_rate", "final_pass_rate", "punctuation_warning_count"],
+          "properties": {
+            "raw_pass_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+            "normalization_applied_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+            "final_pass_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+            "punctuation_warning_count": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "evidence_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["soft", "hard"],
+      "properties": {
+        "soft": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["wins", "losses", "ties", "unresolved", "comparison_count", "dual_judged_count", "judge_agreement"],
+          "properties": {
+            "wins": {"type": "integer", "minimum": 0},
+            "losses": {"type": "integer", "minimum": 0},
+            "ties": {"type": "integer", "minimum": 0},
+            "unresolved": {"type": "integer", "minimum": 0},
+            "comparison_count": {"type": "integer", "minimum": 0},
+            "dual_judged_count": {"type": "integer", "minimum": 0},
+            "judge_agreement": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
+          }
+        },
+        "hard": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["deterministic_pass", "deterministic_fail", "structural_pass", "structural_fail", "structural_unresolved"],
+          "properties": {
+            "deterministic_pass": {"type": "integer", "minimum": 0},
+            "deterministic_fail": {"type": "integer", "minimum": 0},
+            "structural_pass": {"type": "integer", "minimum": 0},
+            "structural_fail": {"type": "integer", "minimum": 0},
+            "structural_unresolved": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "execution_identity_sha256",
+        "label",
+        "model_id",
+        "model_family",
+        "provider",
+        "service_tier",
+        "reasoning_effort",
+        "focused_capabilities",
+        "status",
+        "rank",
+        "scores",
+        "telemetry",
+        "evidence_summary"
+      ],
+      "properties": {
+        "profile_id": {"type": "string", "minLength": 1},
+        "execution_identity_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "label": {"type": "string", "minLength": 1},
+        "model_id": {"type": "string", "minLength": 1, "not": {"pattern": ":batch$"}},
+        "model_family": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1},
+        "service_tier": {"const": "default"},
+        "reasoning_effort": {"type": ["string", "null"]},
+        "focused_capabilities": {
+          "type": "array",
+          "items": {"enum": ["zh-CN", "en", "ja", "ko", "de", "ru", "fr", "es", "pt-BR", "tr"]},
+          "uniqueItems": true
+        },
+        "status": {"enum": ["pending_smoke", "ready", "running", "complete", "incomplete", "failed", "withdrawn"]},
+        "rank": {"type": ["integer", "null"], "minimum": 1},
+        "scores": {"$ref": "#/$defs/scores"},
+        "telemetry": {"$ref": "#/$defs/telemetry"},
+        "evidence_summary": {"$ref": "#/$defs/evidence_summary"}
+      }
+    },
+    "rank_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rank", "profile_id", "score", "coverage"],
+      "properties": {
+        "rank": {"type": "integer", "minimum": 1},
+        "profile_id": {"type": "string", "minLength": 1},
+        "score": {"type": "number", "minimum": 0, "maximum": 100},
+        "coverage": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "rankings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["overall_intelligence", "zh_en_core", "east_asian", "continental", "hard_format", "soft_preference"],
+      "properties": {
+        "overall_intelligence": {"type": "array", "items": {"$ref": "#/$defs/rank_entry"}},
+        "zh_en_core": {"type": "array", "items": {"$ref": "#/$defs/rank_entry"}},
+        "east_asian": {"type": "array", "items": {"$ref": "#/$defs/rank_entry"}},
+        "continental": {"type": "array", "items": {"$ref": "#/$defs/rank_entry"}},
+        "hard_format": {"type": "array", "items": {"$ref": "#/$defs/rank_entry"}},
+        "soft_preference": {"type": "array", "items": {"$ref": "#/$defs/rank_entry"}}
+      }
+    },
+    "pareto_frontiers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quality_cost", "quality_speed", "quality_tokens"],
+      "properties": {
+        "quality_cost": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "quality_speed": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "quality_tokens": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "watchlist_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "label", "status", "reason", "focused_capabilities"],
+      "properties": {
+        "model_id": {"type": "string", "minLength": 1},
+        "label": {"type": "string", "minLength": 1},
+        "status": {"enum": ["awaiting_shared_host", "awaiting_api", "deferred", "retired"]},
+        "reason": {"type": "string", "minLength": 1},
+        "focused_capabilities": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_artifact_sha256", "public_artifact_sha256"],
+      "properties": {
+        "source_artifact_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "public_artifact_sha256": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+      }
+    }
+  }
+}
