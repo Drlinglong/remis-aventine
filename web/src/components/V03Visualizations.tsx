@@ -31,25 +31,61 @@ function formatHighlight(value: number, metric: HighlightMetric): string {
 
 function HighlightCard({ metric, profiles, onOpen }: { metric: HighlightMetric; profiles: ZhEnPreviewProfile[]; onOpen: (profile: ZhEnPreviewProfile) => void }) {
   const { t } = useI18n();
-  const ranked = profiles.map((profile) => ({ profile, value: highlightValue(profile, metric) })).filter((item): item is { profile: ZhEnPreviewProfile; value: number } => item.value !== null).sort((left, right) => right.value - left.value).slice(0, 9);
+  const ranked = profiles
+    .map((profile) => ({ profile, value: highlightValue(profile, metric) }))
+    .filter((item): item is { profile: ZhEnPreviewProfile; value: number } => item.value !== null)
+    .sort((left, right) => (metric === 'cost' ? left.value - right.value : right.value - left.value))
+    .slice(0, 9);
   const max = Math.max(...ranked.map((item) => item.value));
   const copy = {
     score: { title: t('highlight.score'), subtitle: t('highlight.scoreSub'), color: 'var(--brand-purple)' },
     throughput: { title: t('highlight.throughput'), subtitle: t('highlight.throughputSub'), color: 'var(--brand-emerald)' },
     cost: { title: t('highlight.cost'), subtitle: t('highlight.costSub'), color: 'var(--brand-orange)' },
   }[metric];
-  return <article className="av-card highlight-card">
-    <header className="highlight-card-header"><div><h2><i style={{ background: copy.color }} />{copy.title}</h2><p>{copy.subtitle}</p></div><span className="highlight-count">{t('common.top9')} <ArrowUpRight size={13} /></span></header>
-    <div className="mini-bars" aria-label={`${copy.title}, top nine recipes`}>
-      {ranked.map(({ profile, value }) => <button className="mini-bar" key={profile.execution_identity_sha256} onClick={() => onOpen(profile)} title={`${zhEnProfileName(profile)} · ${formatHighlight(value, metric)}`} style={{ '--bar-color': color(profile) } as CSSProperties}>
-        <strong className="mono">{formatHighlight(value, metric)}</strong><span className="mini-bar-track"><i style={{ height: `${Math.max(5, (value / max) * 100)}%` }} /></span><span className="mini-bar-label"><VendorLogo signals={[profile.model_family, profile.model_id]} size={23} fallback={zhEnProfileName(profile)} /><small>{zhEnProfileName(profile)}</small></span>
-      </button>)}
-    </div>
-  </article>;
+  return (
+    <article className="av-card highlight-card">
+      <header className="highlight-card-header">
+        <div><h2><i style={{ background: copy.color }} />{copy.title}</h2><p>{copy.subtitle}</p></div>
+        <span className="highlight-count">{t('common.top9')} <ArrowUpRight size={13} /></span>
+      </header>
+      <div className="hbar-rows" aria-label={`${copy.title}, top nine recipes`}>
+        {ranked.map(({ profile, value }, index) => {
+          const brand = getVendorBrand(profile.model_family, profile.model_id);
+          return (
+            <button
+              className={`hbar-row ${index === 0 ? 'lead' : ''}`}
+              key={profile.execution_identity_sha256}
+              onClick={() => onOpen(profile)}
+              title={`${zhEnProfileName(profile)} · ${formatHighlight(value, metric)}`}
+              style={{ '--vendor-color': brand.color } as CSSProperties}
+            >
+              <span className="hbar-rank">{index + 1}</span>
+              <span className="hbar-main">
+                <span className="hbar-label">
+                  <VendorLogo signals={[profile.model_family, profile.model_id]} size={16} fallback={zhEnProfileName(profile)} />
+                  {zhEnProfileName(profile)}
+                </span>
+                <span className="hbar-track">
+                  <i className="hbar-fill" style={{ width: `${Math.max(3, (value / max) * 100)}%` }} />
+                </span>
+              </span>
+              <span className="hbar-val mono">{formatHighlight(value, metric)}</span>
+            </button>
+          );
+        })}
+      </div>
+    </article>
+  );
 }
 
 function Highlights({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[]; onOpen: (profile: ZhEnPreviewProfile) => void }) {
-  return <div className="highlights-grid"><HighlightCard metric="score" profiles={profiles} onOpen={onOpen} /><HighlightCard metric="throughput" profiles={profiles} onOpen={onOpen} /><HighlightCard metric="cost" profiles={profiles} onOpen={onOpen} /></div>;
+  return (
+    <div className="highlights-grid">
+      <HighlightCard metric="score" profiles={profiles} onOpen={onOpen} />
+      <HighlightCard metric="throughput" profiles={profiles} onOpen={onOpen} />
+      <HighlightCard metric="cost" profiles={profiles} onOpen={onOpen} />
+    </div>
+  );
 }
 
 function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[]; onOpen: (profile: ZhEnPreviewProfile) => void }) {
@@ -66,7 +102,7 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
   const width = 940, height = 430, pad = { top: 38, right: 58, bottom: 66, left: 62 };
   const values = points.map((profile) => paretoValue(profile, metric) as number);
   const minValue = Math.min(...values), maxValue = Math.max(...values), useLog = metric === 'cost';
-  const project = (value: number) => useLog ? Math.log10(Math.max(value, 0.0001)) : value;
+  const project = (value: number) => (useLog ? Math.log10(Math.max(value, 0.0001)) : value);
   const projectedMin = project(minValue), projectedMax = project(maxValue);
   const x = (value: number) => pad.left + ((project(value) - projectedMin) / Math.max(0.0001, projectedMax - projectedMin)) * (width - pad.left - pad.right);
   const yMin = Math.max(0, Math.floor(Math.min(...points.map((profile) => profile.zh_en_score)) / 10) * 10 - 5);
@@ -74,39 +110,213 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
   const ticks = Array.from({ length: 5 }, (_, index) => minValue + ((maxValue - minValue) * index) / 4);
   const scoreTicks = [40, 55, 70, 85, 100].filter((tick) => tick >= yMin);
   const active = hovered ?? frontier[frontier.length - 1] ?? points[0];
-  const keyOpen = (event: KeyboardEvent<SVGGElement>, profile: ZhEnPreviewProfile) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(profile); } };
-  return <article className="av-card pareto-card">
-    <header className="pareto-header"><div><span className="eyebrow">{t('pareto.eyebrow')}</span><h2>{t('pareto.title')}</h2><p>{t('pareto.subtitle')}</p></div><div className="tab-group pareto-tabs" aria-label={t('pareto.title')}>{(Object.keys(paretoCopy) as ParetoMetric[]).map((item) => <button className={`tab-btn ${metric === item ? 'active' : ''}`} key={item} onClick={() => { setMetric(item); setHovered(null); }}>{paretoCopy[item].label}</button>)}</div></header>
-    <div className="pareto-chart-wrap"><svg viewBox={`0 0 ${width} ${height}`} className="pareto-chart" role="img" aria-label={`${t('pareto.title')} · ${paretoCopy[metric].label}`}>
-      <defs><linearGradient id="frontierWash" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--brand-gold)" stopOpacity="0.18" /><stop offset="1" stopColor="var(--brand-gold)" stopOpacity="0" /></linearGradient></defs>
-      {scoreTicks.map((tick) => <g key={tick}><line className="chart-gridline" x1={pad.left} y1={y(tick)} x2={width - pad.right} y2={y(tick)} /><text className="chart-tick" x={pad.left - 12} y={y(tick) + 4} textAnchor="end">{tick}</text></g>)}
-      {ticks.map((tick, index) => <g key={`${tick}-${index}`}><line className="chart-gridline vertical" x1={x(tick)} y1={pad.top} x2={x(tick)} y2={height - pad.bottom} /><text className="chart-tick" x={x(tick)} y={height - pad.bottom + 24} textAnchor={index === 0 ? 'start' : index === ticks.length - 1 ? 'end' : 'middle'}>{paretoCopy[metric].format(tick)}</text></g>)}
-      {frontier.length > 1 && <><polygon points={`${frontier.map((profile) => `${x(paretoValue(profile, metric) as number)},${y(profile.zh_en_score)}`).join(' ')} ${x(paretoValue(frontier.at(-1)!, metric) as number)},${height - pad.bottom} ${x(paretoValue(frontier[0], metric) as number)},${height - pad.bottom}`} fill="url(#frontierWash)" /><polyline className="frontier-line" points={frontier.map((profile) => `${x(paretoValue(profile, metric) as number)},${y(profile.zh_en_score)}`).join(' ')} /></>}
-      {points.map((profile) => { const value = paretoValue(profile, metric) as number; const onFrontier = frontier.includes(profile); const isHovered = hovered === profile; return <g className="pareto-point" key={profile.execution_identity_sha256} role="button" tabIndex={0} aria-label={`${zhEnProfileName(profile)}, ${t('common.score')} ${profile.zh_en_score.toFixed(2)}, ${paretoCopy[metric].format(value)}. ${t('pareto.open')}`} onMouseEnter={() => setHovered(profile)} onMouseLeave={() => setHovered(null)} onFocus={() => setHovered(profile)} onBlur={() => setHovered(null)} onClick={() => onOpen(profile)} onKeyDown={(event) => keyOpen(event, profile)}>
-        {(isHovered || onFrontier) && <circle cx={x(value)} cy={y(profile.zh_en_score)} r={isHovered ? 14 : 10} fill={onFrontier ? 'var(--brand-gold)' : color(profile)} opacity={isHovered ? 0.2 : 0.11} />}<circle cx={x(value)} cy={y(profile.zh_en_score)} r={isHovered ? 7 : onFrontier ? 6 : 4.5} fill={color(profile)} stroke={onFrontier ? 'var(--brand-gold)' : 'var(--bg-card)'} strokeWidth={onFrontier ? 3 : 2} />{(onFrontier || isHovered) && <text className="point-label" x={x(value) + (x(value) > width - 180 ? -10 : 10)} y={y(profile.zh_en_score) - 11} textAnchor={x(value) > width - 180 ? 'end' : 'start'}>{zhEnProfileName(profile)}</text>}
-      </g>; })}
-      <text className="axis-title" x={width / 2} y={height - 10} textAnchor="middle">{paretoCopy[metric].axis}{useLog ? ` · ${t('pareto.log')}` : ''}</text><text className="axis-title" x={18} y={height / 2} transform={`rotate(-90 18 ${height / 2})`} textAnchor="middle">{t('pareto.scoreAxis')}</text>
-    </svg></div>
-    <footer className="pareto-inspector" aria-live="polite"><div className="pareto-inspector-copy"><span>{t('pareto.inspect')}</span><small>{t('pareto.current')}</small></div>{active && <div className="pareto-active"><VendorLogo signals={[active.model_family, active.model_id]} size={32} fallback={zhEnProfileName(active)} /><span><strong>{zhEnProfileName(active)}</strong><small>{t('common.score')} {active.zh_en_score.toFixed(2)} · {paretoCopy[metric].format(paretoValue(active, metric) as number)}</small></span></div>}</footer>
-  </article>;
+  const keyOpen = (event: KeyboardEvent<SVGGElement>, profile: ZhEnPreviewProfile) => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(profile); }
+  };
+  return (
+    <article className="av-card pareto-card">
+      <header className="pareto-header">
+        <div><span className="eyebrow">{t('pareto.eyebrow')}</span><h2>{t('pareto.title')}</h2><p>{t('pareto.subtitle')}</p></div>
+        <div className="tab-group pareto-tabs" aria-label={t('pareto.title')}>
+          {(Object.keys(paretoCopy) as ParetoMetric[]).map((item) => (
+            <button className={`tab-btn ${metric === item ? 'active' : ''}`} key={item} onClick={() => { setMetric(item); setHovered(null); }}>
+              {paretoCopy[item].label}
+            </button>
+          ))}
+        </div>
+      </header>
+      <div className="pareto-chart-wrap">
+        <svg viewBox={`0 0 ${width} ${height}`} className="pareto-chart" role="img" aria-label={`${t('pareto.title')} · ${paretoCopy[metric].label}`}>
+          <defs>
+            <linearGradient id="frontierWash" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="var(--brand-gold)" stopOpacity="0.18" />
+              <stop offset="1" stopColor="var(--brand-gold)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          {scoreTicks.map((tick) => (
+            <g key={tick}>
+              <line className="chart-gridline" x1={pad.left} y1={y(tick)} x2={width - pad.right} y2={y(tick)} />
+              <text className="chart-tick" x={pad.left - 12} y={y(tick) + 4} textAnchor="end">{tick}</text>
+            </g>
+          ))}
+          {ticks.map((tick, index) => (
+            <g key={`${tick}-${index}`}>
+              <line className="chart-gridline vertical" x1={x(tick)} y1={pad.top} x2={x(tick)} y2={height - pad.bottom} />
+              <text className="chart-tick" x={x(tick)} y={height - pad.bottom + 24} textAnchor={index === 0 ? 'start' : index === ticks.length - 1 ? 'end' : 'middle'}>
+                {paretoCopy[metric].format(tick)}
+              </text>
+            </g>
+          ))}
+          {frontier.length > 1 && (
+            <>
+              <polygon
+                points={`${frontier.map((profile) => `${x(paretoValue(profile, metric) as number)},${y(profile.zh_en_score)}`).join(' ')} ${x(paretoValue(frontier.at(-1)!, metric) as number)},${height - pad.bottom} ${x(paretoValue(frontier[0], metric) as number)},${height - pad.bottom}`}
+                fill="url(#frontierWash)"
+              />
+              <polyline
+                className="frontier-line"
+                points={frontier.map((profile) => `${x(paretoValue(profile, metric) as number)},${y(profile.zh_en_score)}`).join(' ')}
+              />
+            </>
+          )}
+          {points.map((profile) => {
+            const value = paretoValue(profile, metric) as number;
+            const onFrontier = frontier.includes(profile);
+            const isHovered = hovered === profile;
+            return (
+              <g
+                className="pareto-point"
+                key={profile.execution_identity_sha256}
+                role="button"
+                tabIndex={0}
+                aria-label={`${zhEnProfileName(profile)}, ${t('common.score')} ${profile.zh_en_score.toFixed(2)}, ${paretoCopy[metric].format(value)}. ${t('pareto.open')}`}
+                onMouseEnter={() => setHovered(profile)}
+                onMouseLeave={() => setHovered(null)}
+                onFocus={() => setHovered(profile)}
+                onBlur={() => setHovered(null)}
+                onClick={() => onOpen(profile)}
+                onKeyDown={(event) => keyOpen(event, profile)}
+              >
+                {(isHovered || onFrontier) && (
+                  <circle cx={x(value)} cy={y(profile.zh_en_score)} r={isHovered ? 14 : 10} fill={onFrontier ? 'var(--brand-gold)' : color(profile)} opacity={isHovered ? 0.2 : 0.11} />
+                )}
+                <circle
+                  cx={x(value)}
+                  cy={y(profile.zh_en_score)}
+                  r={isHovered ? 7 : onFrontier ? 6 : 4.5}
+                  fill={color(profile)}
+                  stroke={onFrontier ? 'var(--brand-gold)' : 'var(--bg-card)'}
+                  strokeWidth={onFrontier ? 3 : 2}
+                />
+                {(onFrontier || isHovered) && (
+                  <text className="point-label" x={x(value) + (x(value) > width - 180 ? -10 : 10)} y={y(profile.zh_en_score) - 11} textAnchor={x(value) > width - 180 ? 'end' : 'start'}>
+                    {zhEnProfileName(profile)}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+          <text className="axis-title" x={width / 2} y={height - 10} textAnchor="middle">
+            {paretoCopy[metric].axis}{useLog ? ` · ${t('pareto.log')}` : ''}
+          </text>
+          <text className="axis-title" x={18} y={height / 2} transform={`rotate(-90 18 ${height / 2})`} textAnchor="middle">
+            {t('pareto.scoreAxis')}
+          </text>
+        </svg>
+      </div>
+      <footer className="pareto-inspector" aria-live="polite">
+        <div className="pareto-inspector-copy">
+          <span>{t('pareto.inspect')}</span><small>{t('pareto.current')}</small>
+        </div>
+        {active && (
+          <div className="pareto-active">
+            <VendorLogo signals={[active.model_family, active.model_id]} size={32} fallback={zhEnProfileName(active)} />
+            <span>
+              <strong>{zhEnProfileName(active)}</strong>
+              <small>{t('common.score')} {active.zh_en_score.toFixed(2)} · {paretoCopy[metric].format(paretoValue(active, metric) as number)}</small>
+            </span>
+          </div>
+        )}
+      </footer>
+    </article>
+  );
 }
 
-const RADAR_AXES = [['Overall', (profile: ZhEnPreviewProfile) => profile.zh_en_score], ['ZH→EN', (profile: ZhEnPreviewProfile) => profile.directions['zh-CN->en'].score], ['EN→ZH', (profile: ZhEnPreviewProfile) => profile.directions['en->zh-CN'].score], ['Soft', (profile: ZhEnPreviewProfile) => aggregate(profile, 'soft').score], ['Hard', (profile: ZhEnPreviewProfile) => aggregate(profile, 'hard').score], ['Coverage', (profile: ZhEnPreviewProfile) => aggregate(profile, 'soft').coverage * 100]] as const;
-
-function SixAxisRadar({ profiles }: { profiles: ZhEnPreviewProfile[] }) {
+function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[]; onOpen: (profile: ZhEnPreviewProfile) => void }) {
   const { t } = useI18n();
-  const ranked = useMemo(() => [...profiles].sort((left, right) => right.zh_en_score - left.zh_en_score), [profiles]);
-  const [selected, setSelected] = useState(() => ranked.slice(0, 2).map((profile) => profile.model_id).concat('deepseek/deepseek-v4-pro-0813'));
-  const chosen = selected.map((id) => profiles.find((profile) => profile.model_id === id)).filter(Boolean) as ZhEnPreviewProfile[];
-  const size = 440, center = size / 2, radius = 150;
-  const radarLabels = [t('radar.overall'), 'ZH→EN', 'EN→ZH', t('radar.soft'), t('radar.hard'), t('radar.coverage')];
-  const coordinate = (index: number, value: number) => { const angle = Math.PI * 2 * index / RADAR_AXES.length - Math.PI / 2; return { x: center + radius * value / 100 * Math.cos(angle), y: center + radius * value / 100 * Math.sin(angle) }; };
-  const toggle = (id: string) => setSelected((current) => current.includes(id) ? (current.length > 1 ? current.filter((item) => item !== id) : current) : (current.length < 3 ? [...current, id] : current));
-  return <article className="av-card radar-card"><h2>{t('radar.title')}</h2><p>{t('radar.subtitle')}</p><div className="radar-layout"><div className="radar-options">{ranked.map((profile) => { const active = selected.includes(profile.model_id); return <button key={profile.model_id} onClick={() => toggle(profile.model_id)} style={{ '--profile-color': color(profile) } as CSSProperties} className={active ? 'active' : ''}>{zhEnProfileName(profile)}</button>; })}</div><svg viewBox={`0 0 ${size} ${size}`} className="radar-chart" aria-label={t('radar.title')}>
-    {[20, 40, 60, 80, 100].map((level) => <polygon key={level} points={RADAR_AXES.map((_, index) => { const point = coordinate(index, level); return `${point.x},${point.y}`; }).join(' ')} fill={level === 100 ? 'var(--bg-card-elevated)' : 'none'} stroke="var(--border-subtle)" />)}
-    {RADAR_AXES.map(([label], index) => { const end = coordinate(index, 100), textPoint = coordinate(index, 117); return <g key={label}><line x1={center} y1={center} x2={end.x} y2={end.y} stroke="var(--border-subtle)" /><text x={textPoint.x} y={textPoint.y + 4} textAnchor={textPoint.x > center + 10 ? 'start' : textPoint.x < center - 10 ? 'end' : 'middle'} className="radar-label">{radarLabels[index]}</text></g>; })}
-    {chosen.map((profile) => <g key={profile.model_id}><polygon points={RADAR_AXES.map(([, getter], index) => { const point = coordinate(index, getter(profile)); return `${point.x},${point.y}`; }).join(' ')} fill={color(profile)} fillOpacity="0.13" stroke={color(profile)} strokeWidth="2.5" />{RADAR_AXES.map(([, getter], index) => { const point = coordinate(index, getter(profile)); return <circle key={index} cx={point.x} cy={point.y} r="3.5" fill={color(profile)} />; })}</g>)}
-  </svg></div><div className="radar-legend">{chosen.map((profile) => <span key={profile.model_id}><i style={{ background: color(profile) }} />{zhEnProfileName(profile)}</span>)}</div></article>;
+  const [hovered, setHovered] = useState<ZhEnPreviewProfile | null>(null);
+  const width = 940, height = 430, pad = { top: 30, right: 40, bottom: 56, left: 56 };
+  const points = profiles.map((profile) => ({
+    profile,
+    hard: aggregate(profile, 'hard').score,
+    soft: aggregate(profile, 'soft').score,
+  }));
+  const x = (value: number) => pad.left + (value / 100) * (width - pad.left - pad.right);
+  const y = (value: number) => pad.top + (1 - value / 100) * (height - pad.top - pad.bottom);
+  const isoLines = [30, 45, 60, 75, 90];
+  const keyOpen = (event: KeyboardEvent<SVGGElement>, profile: ZhEnPreviewProfile) => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(profile); }
+  };
+  return (
+    <article className="av-card soft-hard-scatter">
+      <h2>{t('softhard.title')}</h2>
+      <p>{t('softhard.subtitle')}</p>
+      <svg viewBox={`0 0 ${width} ${height}`} className="soft-hard-chart" role="img" aria-label={t('softhard.title')}>
+        {[0, 25, 50, 75, 100].map((tick) => (
+          <g key={tick}>
+            <line className="chart-gridline" x1={pad.left} y1={y(tick)} x2={width - pad.right} y2={y(tick)} />
+            <text className="chart-tick" x={pad.left - 12} y={y(tick) + 4} textAnchor="end">{tick}</text>
+            <line className="chart-gridline vertical" x1={x(tick)} y1={pad.top} x2={x(tick)} y2={height - pad.bottom} />
+            <text className="chart-tick" x={x(tick)} y={height - pad.bottom + 24} textAnchor="middle">{tick}</text>
+          </g>
+        ))}
+        {isoLines.map((k) => {
+          // 0.6·S + 0.4·H = k → S = (k - 0.4·H)/0.6; clip to [0,100]×[0,100]
+          const candidates: Array<[number, number]> = [
+            [0, k / 0.6],
+            [100, (k - 40) / 0.6],
+            [k / 0.4, 0],
+            [(k - 60) / 0.4, 100],
+          ].filter(([h, s]) => h >= 0 && h <= 100 && s >= 0 && s <= 100) as Array<[number, number]>;
+          if (candidates.length < 2) return null;
+          const [a, b] = candidates;
+          return (
+            <g key={k}>
+              <line
+                x1={x(a[0])} y1={y(a[1])} x2={x(b[0])} y2={y(b[1])}
+                stroke="var(--brand-gold)" strokeWidth="1" strokeDasharray="4 4" opacity="0.35"
+              />
+              <text
+                x={x(b[0]) - 4} y={y(b[1]) - 4}
+                textAnchor="end" fontSize="9" fill="var(--brand-gold)" opacity="0.7"
+              >
+                {k}
+              </text>
+            </g>
+          );
+        })}
+        {points.map(({ profile, hard, soft }) => {
+          const isHovered = hovered === profile;
+          return (
+            <g
+              key={profile.execution_identity_sha256}
+              role="button"
+              tabIndex={0}
+              aria-label={`${zhEnProfileName(profile)}, ${t('softhard.xAxis')} ${hard.toFixed(1)}, ${t('softhard.yAxis')} ${soft.toFixed(1)}`}
+              onMouseEnter={() => setHovered(profile)}
+              onMouseLeave={() => setHovered(null)}
+              onFocus={() => setHovered(profile)}
+              onBlur={() => setHovered(null)}
+              onClick={() => onOpen(profile)}
+              onKeyDown={(event) => keyOpen(event, profile)}
+              style={{ cursor: 'pointer' }}
+            >
+              {isHovered && <circle cx={x(hard)} cy={y(soft)} r={12} fill={color(profile)} opacity="0.15" />}
+              <circle cx={x(hard)} cy={y(soft)} r={isHovered ? 6 : 4.5} fill={color(profile)} stroke="var(--bg-card)" strokeWidth="1.5" />
+              {(isHovered || profile.zh_en_score === Math.max(...points.map((p) => p.profile.zh_en_score))) && (
+                <text className="point-label" x={x(hard) + 8} y={y(soft) - 6}>
+                  {zhEnProfileName(profile)}
+                </text>
+              )}
+            </g>
+          );
+        })}
+        <text className="axis-title" x={width / 2} y={height - 10} textAnchor="middle">
+          {t('softhard.xAxis')}
+        </text>
+        <text className="axis-title" x={18} y={height / 2} transform={`rotate(-90 18 ${height / 2})`} textAnchor="middle">
+          {t('softhard.yAxis')}
+        </text>
+      </svg>
+      <div className="soft-hard-legend">
+        {profiles.slice(0, 6).map((profile) => (
+          <span key={profile.execution_identity_sha256}>
+            <i style={{ background: color(profile) }} />{zhEnProfileName(profile)}
+          </span>
+        ))}
+      </div>
+    </article>
+  );
 }
 
 function ManifestDrawer({ profile, artifact, onClose }: { profile: ZhEnPreviewProfile | null; artifact: ZhEnPreviewArtifact; onClose: () => void }) {
@@ -124,13 +334,66 @@ function ManifestDrawer({ profile, artifact, onClose }: { profile: ZhEnPreviewPr
   }, [profile, onClose]);
   if (!profile) return null;
   const verified = profile.telemetry.verified_cost;
-  return <div className="manifest-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><aside className="manifest-drawer" role="dialog" aria-modal="true" aria-labelledby="manifest-title"><header><div><span className="eyebrow">{t('manifest.eyebrow')}</span><h2 id="manifest-title">{zhEnProfileName(profile)}</h2><code>{profile.model_id}</code></div><button className="manifest-close" onClick={onClose} aria-label={t('a11y.closeManifest')}><X size={20} /></button></header><div className="manifest-score"><span>{t('manifest.zhEnScore')}</span><strong>{profile.zh_en_score.toFixed(2)}</strong></div><dl className="manifest-grid">
-    <div><dt>ZH→EN</dt><dd>{profile.directions['zh-CN->en'].score.toFixed(2)}</dd></div><div><dt>EN→ZH</dt><dd>{profile.directions['en->zh-CN'].score.toFixed(2)}</dd></div><div><dt>{t('manifest.observedCost')}</dt><dd>{profile.telemetry.cost_usd === null ? t('common.notMeasured') : `$${profile.telemetry.cost_usd.toFixed(4)}`}</dd></div><div><dt>{t('manifest.elapsed')}</dt><dd>{t('common.minutes', { value: (profile.telemetry.elapsed_seconds / 60).toFixed(1) })}</dd></div><div><dt>{t('manifest.tokens')}</dt><dd>{profile.telemetry.total_tokens.toLocaleString()}</dd></div><div><dt>{t('manifest.throughput')}</dt><dd>{observedThroughput(profile).toFixed(1)} tok/s</dd></div><div><dt>{t('manifest.soft')}</dt><dd>{aggregate(profile, 'soft').score.toFixed(2)}</dd></div><div><dt>{t('manifest.hard')}</dt><dd>{aggregate(profile, 'hard').score.toFixed(2)}</dd></div>
-  </dl>{verified && <section className="manifest-note"><strong>{t('manifest.verified')}</strong><p>{t('manifest.verifiedCopy', { amount: verified.amount.toFixed(2), rate: verified.cny_per_usd, date: verified.converted_on })}</p></section>}<section className="manifest-identity"><h3>{t('manifest.repro')}</h3><dl><div><dt>{t('manifest.protocol')}</dt><dd>{artifact.protocol}</dd></div><div><dt>{t('manifest.source')}</dt><dd><code>{artifact.source_commit}</code></dd></div><div><dt>{t('manifest.identity')}</dt><dd><code>{profile.execution_identity_sha256}</code></dd></div><div><dt>{t('manifest.directions')}</dt><dd>zh-CN→en · en→zh-CN</dd></div></dl></section><p className="manifest-disclosure">{t('manifest.disclosure')}</p></aside></div>;
+  return (
+    <div className="manifest-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <aside className="manifest-drawer" role="dialog" aria-modal="true" aria-labelledby="manifest-title">
+        <header>
+          <div>
+            <span className="eyebrow">{t('manifest.eyebrow')}</span>
+            <h2 id="manifest-title">{zhEnProfileName(profile)}</h2>
+            <code>{profile.model_id}</code>
+          </div>
+          <button className="manifest-close" onClick={onClose} aria-label={t('a11y.closeManifest')}>
+            <X size={20} />
+          </button>
+        </header>
+        <div className="manifest-score">
+          <span>{t('manifest.zhEnScore')}</span>
+          <strong>{profile.zh_en_score.toFixed(2)}</strong>
+        </div>
+        <dl className="manifest-grid">
+          <div><dt>ZH→EN</dt><dd>{profile.directions['zh-CN->en'].score.toFixed(2)}</dd></div>
+          <div><dt>EN→ZH</dt><dd>{profile.directions['en->zh-CN'].score.toFixed(2)}</dd></div>
+          <div><dt>{t('manifest.observedCost')}</dt><dd>{profile.telemetry.cost_usd === null ? t('common.notMeasured') : `$${profile.telemetry.cost_usd.toFixed(4)}`}</dd></div>
+          <div><dt>{t('manifest.elapsed')}</dt><dd>{t('common.minutes', { value: (profile.telemetry.elapsed_seconds / 60).toFixed(1) })}</dd></div>
+          <div><dt>{t('manifest.tokens')}</dt><dd>{profile.telemetry.total_tokens.toLocaleString()}</dd></div>
+          <div><dt>{t('manifest.throughput')}</dt><dd>{observedThroughput(profile).toFixed(1)} tok/s</dd></div>
+          <div><dt>{t('manifest.soft')}</dt><dd>{aggregate(profile, 'soft').score.toFixed(2)}</dd></div>
+          <div><dt>{t('manifest.hard')}</dt><dd>{aggregate(profile, 'hard').score.toFixed(2)}</dd></div>
+        </dl>
+        {verified && (
+          <section className="manifest-note">
+            <strong>{t('manifest.verified')}</strong>
+            <p>{t('manifest.verifiedCopy', { amount: verified.amount.toFixed(2), rate: verified.cny_per_usd, date: verified.converted_on })}</p>
+          </section>
+        )}
+        <section className="manifest-identity">
+          <h3>{t('manifest.repro')}</h3>
+          <dl>
+            <div><dt>{t('manifest.protocol')}</dt><dd>{artifact.protocol}</dd></div>
+            <div><dt>{t('manifest.source')}</dt><dd><code>{artifact.source_commit}</code></dd></div>
+            <div><dt>{t('manifest.identity')}</dt><dd><code>{profile.execution_identity_sha256}</code></dd></div>
+            <div><dt>{t('manifest.directions')}</dt><dd>zh-CN→en · en→zh-CN</dd></div>
+          </dl>
+        </section>
+        <p className="manifest-disclosure">{t('manifest.disclosure')}</p>
+      </aside>
+    </div>
+  );
 }
 
 export function V03Visualizations({ artifact }: { artifact: ZhEnPreviewArtifact }) {
   const { t } = useI18n();
   const [openProfile, setOpenProfile] = useState<ZhEnPreviewProfile | null>(null);
-  return <section className="v03-analysis"><div className="section-title"><span>{t('analysis.title')}</span></div><div className="v03-analysis-stack"><Highlights profiles={artifact.profiles} onOpen={setOpenProfile} /><InteractivePareto profiles={artifact.profiles} onOpen={setOpenProfile} /><SixAxisRadar profiles={artifact.profiles} /></div><ManifestDrawer profile={openProfile} artifact={artifact} onClose={() => setOpenProfile(null)} /></section>;
+  return (
+    <section className="v03-analysis">
+      <div className="section-title"><span>{t('analysis.title')}</span></div>
+      <div className="v03-analysis-stack">
+        <Highlights profiles={artifact.profiles} onOpen={setOpenProfile} />
+        <InteractivePareto profiles={artifact.profiles} onOpen={setOpenProfile} />
+        <SoftHardScatter profiles={artifact.profiles} onOpen={setOpenProfile} />
+      </div>
+      <ManifestDrawer profile={openProfile} artifact={artifact} onClose={() => setOpenProfile(null)} />
+    </section>
+  );
 }

@@ -12,6 +12,15 @@ export function HeroSection({ onSelectTab, result }: HeroSectionProps) {
   return (
     <section className="hero-editorial">
       <div className="hero-copy-column">
+        {/* Seal watermark — sits behind text, never behind the benchmark card */}
+        <svg className="hero-seal-bg" viewBox="0 0 1024 1024" aria-hidden="true">
+          <circle cx="512" cy="512" r="455" fill="none" stroke="currentColor" strokeWidth="24" />
+          <g fill="currentColor">
+            <path d="M486 238 512 212 538 238 512 264Z" />
+            <path d="M502 258H522V374H502Z" />
+            <path d="M214 742 482 402Q512 364 542 402L810 742 764 779 512 461 260 779Z" />
+          </g>
+        </svg>
         <p className="hero-kicker">{t('hero.kicker')}</p>
         <h1 className="display-serif hero-title">
           {t('hero.titleBefore')}<em>{t('hero.titleEm')}</em>{t('hero.period')}
@@ -49,6 +58,26 @@ export function HeroSection({ onSelectTab, result }: HeroSectionProps) {
           <span>{t('benchmark.judges')}</span> {t('benchmark.judgeNames')}
         </p>
       </aside>
+    </section>
+  );
+}
+
+export function CredibilityStrip() {
+  const { t } = useI18n();
+  return (
+    <section className="credo-strip">
+      <div className="credo-item">
+        <h3>{t('credo.hardTitle')}</h3>
+        <p>{t('credo.hardBody')}</p>
+      </div>
+      <div className="credo-item">
+        <h3>{t('credo.judgeTitle')}</h3>
+        <p>{t('credo.judgeBody')}</p>
+      </div>
+      <div className="credo-item">
+        <h3>{t('credo.evidenceTitle')}</h3>
+        <p>{t('credo.evidenceBody')}</p>
+      </div>
     </section>
   );
 }
