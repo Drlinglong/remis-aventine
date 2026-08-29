@@ -386,9 +386,19 @@ def _emit(payload: dict[str, Any], *, as_json: bool, stream: Any | None = None) 
             print(f"- {name}: {check['status']} - {check['detail']}", file=output)
         return
 
-    print(f"error: {payload['error']}", file=output)
-    for issue in payload.get("issues", []):
-        print(f"- {issue}", file=output)
+    if "error" in payload:
+        print(f"error: {payload['error']}", file=output)
+        for issue in payload.get("issues", []):
+            print(f"- {issue}", file=output)
+        return
+
+    for key, value in payload.items():
+        rendered = (
+            json.dumps(value, ensure_ascii=False, sort_keys=True)
+            if isinstance(value, (dict, list))
+            else str(value)
+        )
+        print(f"{key.replace('_', ' ')}: {rendered}", file=output)
 
 
 def _validate(path: Path, schema_name: str, *, as_json: bool) -> int:

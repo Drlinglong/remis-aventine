@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -951,3 +952,466 @@ def test_estimate_v03_campaign_cli_reports_judges_separately(capsys) -> None:
     assert payload["expected_calls"]["contestant"] == 740
     assert payload["expected_calls"]["soft_judges"] == 1532
     assert payload["pricing_kind"] == "caller-supplied-reserve-not-provider-quote"
+
+
+def test_integrated_adapter_commands_emit_readable_text(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "run_remis_google_ai_studio_isolated",
+        lambda *_args, **_kwargs: {
+            "run_id": "google-run",
+            "case_count": 2,
+            "raw_output": "google-raw.json",
+            "run_output": "google-run.json",
+        },
+    )
+    google_args = SimpleNamespace(
+        runtime_python=Path("python.exe"),
+        remis_root=Path("remis"),
+        fixture=Path("fixture.json"),
+        raw_output=Path("raw.json"),
+        run_output=Path("run.json"),
+        model="gemini",
+        label=None,
+        reasoning_effort=None,
+        max_output_tokens=None,
+        track="stable",
+        case_ids=None,
+        env_file=None,
+        recipe_id=None,
+        json=False,
+    )
+    assert cli._run_remis_google(google_args) == 0
+    assert "Google AI Studio run: google-run" in capsys.readouterr().out
+
+    monkeypatch.setattr(
+        cli,
+        "run_remis_riva_lm_studio_isolated",
+        lambda *_args, **_kwargs: {
+            "run_id": "riva-run",
+            "model_id": "riva-v2",
+            "case_count": 3,
+            "raw_output": "riva-raw.json",
+            "run_output": "riva-run.json",
+        },
+    )
+    riva_args = SimpleNamespace(
+        runtime_python=Path("python.exe"),
+        remis_root=Path("remis"),
+        fixture=Path("fixture.json"),
+        raw_output=Path("raw.json"),
+        run_output=Path("run.json"),
+        model="auto",
+        label=None,
+        base_url="http://127.0.0.1:1234/v1",
+        max_output_tokens=512,
+        temperature=0.0,
+        request_timeout_seconds=30,
+        quantization="Q8_0",
+        track="stable",
+        case_ids=None,
+        recipe_id=None,
+        json=False,
+    )
+    assert cli._run_remis_riva(riva_args) == 0
+    output = capsys.readouterr().out
+    assert "Riva LM Studio run: riva-run" in output
+    assert "model: riva-v2" in output
+
+
+@pytest.mark.parametrize(
+    ("target", "error_type", "runner"),
+    [
+        ("run_remis_google_ai_studio_isolated", cli.GoogleAIStudioAdapterError, "google"),
+        ("run_remis_riva_lm_studio_isolated", cli.RivaLMStudioAdapterError, "riva"),
+    ],
+)
+def test_integrated_adapter_commands_report_runtime_errors(
+    monkeypatch, capsys, target, error_type, runner
+) -> None:
+    monkeypatch.setattr(
+        cli,
+        target,
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(error_type("runtime unavailable")),
+    )
+    common = {
+        "runtime_python": Path("python.exe"),
+        "remis_root": Path("remis"),
+        "fixture": Path("fixture.json"),
+        "raw_output": Path("raw.json"),
+        "run_output": Path("run.json"),
+        "model": "auto",
+        "label": None,
+        "max_output_tokens": 512,
+        "track": "stable",
+        "case_ids": None,
+        "recipe_id": None,
+        "json": False,
+    }
+    if runner == "google":
+        args = SimpleNamespace(**common, reasoning_effort=None, env_file=None)
+        exit_code = cli._run_remis_google(args)
+    else:
+        args = SimpleNamespace(
+            **common,
+            base_url="http://127.0.0.1:1234/v1",
+            temperature=0.0,
+            request_timeout_seconds=30,
+            quantization="Q8_0",
+        )
+        exit_code = cli._run_remis_riva(args)
+    assert exit_code == 2
+    assert "runtime unavailable" in capsys.readouterr().err
+
+
+def test_integrated_reporting_commands_emit_readable_text(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "build_remis_pairwise_pack",
+        lambda *_args: {"cases": [{}, {}], "policy_cases": [{}]},
+    )
+    assert (
+        cli._build_remis_pairwise(
+            SimpleNamespace(
+                left=Path("left.json"),
+                right=Path("right.json"),
+                output=tmp_path / "pairwise.json",
+                json=False,
+            )
+        )
+        == 0
+    )
+    assert "2 judge cases" in capsys.readouterr().out
+
+    monkeypatch.setattr(
+        cli,
+        "write_remis_pairwise_report",
+        lambda *_args: {
+            "summary": {"left_win_count": 2, "right_win_count": 1, "unresolved_count": 1}
+        },
+    )
+    assert (
+        cli._report_remis_pairwise(
+            SimpleNamespace(
+                input=Path("input.json"),
+                output_json=tmp_path / "report.json",
+                output_markdown=tmp_path / "report.md",
+                json=False,
+            )
+        )
+        == 0
+    )
+    assert "left 2, right 1, unresolved 1" in capsys.readouterr().out
+
+    monkeypatch.setattr(
+        cli,
+        "build_metric_pack_from_calibration",
+        lambda *_args: {
+            "id": "metric-pack",
+            "cases": [{}, {}],
+            "adapter": {
+                "source_case_count": 3,
+                "selected_source_case_count": 2,
+                "skipped_case_counts": {"missing_reference": 1},
+            },
+        },
+    )
+    assert (
+        cli._build_metric_pack(
+            SimpleNamespace(
+                input=Path("calibration.json"), output=tmp_path / "metric.json", json=False
+            )
+        )
+        == 0
+    )
+    assert "source cases: 2/3" in capsys.readouterr().out
+
+
+def test_integrated_analysis_reports_emit_readable_text(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "write_metric_calibration_report",
+        lambda *_args: {
+            "hypothesis_count": 4,
+            "single": {"case_count": 2},
+            "pairwise": {"case_count": 1, "accuracy": 0.75},
+        },
+    )
+    assert (
+        cli._report_metric_calibration(
+            SimpleNamespace(
+                pack=Path("pack.json"),
+                result=Path("result.json"),
+                output_json=tmp_path / "metric-report.json",
+                output_markdown=tmp_path / "metric-report.md",
+                json=False,
+            )
+        )
+        == 0
+    )
+    output = capsys.readouterr().out
+    assert "4 hypotheses" in output
+    assert "pairwise accuracy: 0.75" in output
+
+    monkeypatch.setattr(
+        cli,
+        "write_evidence_alignment_report",
+        lambda *_args: {
+            "judge": {"case_count": 5, "effective_accuracy": 0.8},
+            "review_queue": [{}, {}],
+            "metrics": {},
+        },
+    )
+    assert (
+        cli._report_evidence_alignment(
+            SimpleNamespace(
+                calibration_pack=Path("calibration.json"),
+                judge_result=Path("judge.json"),
+                metric=[],
+                output_json=tmp_path / "evidence.json",
+                output_markdown=tmp_path / "evidence.md",
+                json=False,
+            )
+        )
+        == 0
+    )
+    output = capsys.readouterr().out
+    assert "evidence alignment: 5 cases" in output
+    assert "review queue: 2" in output
+
+
+def test_v03_campaign_cli_reports_invalid_budget(capsys) -> None:
+    exit_code = main(["estimate-v03-campaign", "--contestants", "1"])
+
+    assert exit_code == 2
+    assert capsys.readouterr().err.startswith("error:")
+
+
+def test_integrated_pack_builders_emit_readable_text(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "build_calibration_pack",
+        lambda *_args: {
+            "id": "calibration-pack",
+            "cases": [{"partition": "calibration"}, {"partition": "holdout"}],
+        },
+    )
+    assert (
+        cli._build_pack(
+            SimpleNamespace(
+                source_root=tmp_path,
+                output=tmp_path / "calibration.json",
+                remis_fixture=None,
+                json=False,
+            )
+        )
+        == 0
+    )
+    assert "calibration/holdout: 1/1" in capsys.readouterr().out
+
+    monkeypatch.setattr(
+        cli,
+        "build_mtme_mqm_pack",
+        lambda *_args, **_kwargs: {
+            "id": "mtme-pack",
+            "cases": [{}, {}],
+            "adapter": {"available_rated_case_count": 8, "content_sha256": "a" * 64},
+        },
+    )
+    assert (
+        cli._build_mtme_pack(
+            SimpleNamespace(
+                test_set="wmt23",
+                language_pair="en-de",
+                rating_set="mqm",
+                dataset_revision="revision",
+                output=tmp_path / "mtme.json",
+                data_root=None,
+                limit=None,
+                systems=None,
+                json=False,
+            )
+        )
+        == 0
+    )
+    assert "selected cases: 2/8" in capsys.readouterr().out
+
+    monkeypatch.setattr(
+        cli,
+        "build_aces_pack",
+        lambda *_args, **_kwargs: {
+            "id": "aces-pack",
+            "cases": [{}],
+            "adapter": {"matching_row_count": 6, "content_sha256": "b" * 64},
+        },
+    )
+    assert (
+        cli._build_aces_pack(
+            SimpleNamespace(
+                input=tmp_path / "aces.jsonl",
+                output=tmp_path / "aces.json",
+                kind="span-aces",
+                dataset_revision="revision",
+                expected_sha256="b" * 64,
+                limit=None,
+                language_pairs=None,
+                phenomena=None,
+                json=False,
+            )
+        )
+        == 0
+    )
+    assert "selected cases: 1/6" in capsys.readouterr().out
+
+
+def test_integrated_adaptation_emits_readable_text(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "adapt_remis_result",
+        lambda *_args, **_kwargs: {"run_id": "adapted-run", "summary": {"case_count": 4}},
+    )
+    assert (
+        cli._adapt_remis(
+            tmp_path / "input.json",
+            tmp_path / "output.json",
+            recipe_id=None,
+            as_json=False,
+        )
+        == 0
+    )
+    output = capsys.readouterr().out
+    assert "run: adapted-run" in output
+    assert "cases: 4" in output
+
+
+def test_integrated_judge_emits_progress_and_exact_cost(monkeypatch, tmp_path, capsys) -> None:
+    monkeypatch.setattr(cli, "judge_from_environment", lambda *_args: object())
+
+    def fake_run(*_args, **kwargs):
+        kwargs["progress"]({"completed": 1})
+        return {
+            "cases": [{}],
+            "run": {
+                "planned_call_count": 2,
+                "failure_count": 0,
+                "exact_cost_usd": 0.02,
+            },
+        }
+
+    monkeypatch.setattr(cli, "run_judge_pack", fake_run)
+    args = SimpleNamespace(
+        env_file=None,
+        provider="openai",
+        input=tmp_path / "input.json",
+        output=tmp_path / "output.json",
+        limit=None,
+        case_ids=None,
+        max_calls=None,
+        workers=1,
+        resume_from=None,
+        logical_result_budget=None,
+        http_attempt_budget=None,
+        result_retry_budget=None,
+        checkpoint_path=None,
+        json=False,
+    )
+    assert cli._run_judge(args) == 0
+    captured = capsys.readouterr()
+    assert "judge run: 1 cases, 2 calls" in captured.out
+    assert "exact cost: USD 0.02" in captured.out
+    assert "judge progress:" in captured.err
+
+
+def test_v03_leaderboard_loads_structural_resolutions(monkeypatch, tmp_path, capsys) -> None:
+    (tmp_path / "run.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "pack.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "judge.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "structural.json").write_text(
+        '{"resolutions": [{"case_id": "case-1"}]}', encoding="utf-8"
+    )
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "runs": ["run.json"],
+                "matches": [{"pack": "pack.json", "judge_report": "judge.json"}],
+                "structural_resolutions": "structural.json",
+            }
+        ),
+        encoding="utf-8",
+    )
+    observed = {}
+
+    def fake_build(runs, matches, *, structural_resolutions):
+        observed.update(runs=runs, matches=matches, structural=structural_resolutions)
+        return {"status": "complete", "score_version": "score", "profiles": [{}]}
+
+    monkeypatch.setattr(cli, "build_v03_leaderboard", fake_build)
+    output = tmp_path / "leaderboard.json"
+    assert (
+        cli._build_v03_leaderboard(SimpleNamespace(manifest=manifest, output=output, json=False))
+        == 0
+    )
+    assert observed["structural"] == [{"case_id": "case-1"}]
+    assert output.is_file()
+    assert "profile_count" not in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("target", "helper", "namespace"),
+    [
+        (
+            "build_calibration_pack",
+            cli._build_pack,
+            SimpleNamespace(
+                source_root=Path("source"),
+                output=Path("output.json"),
+                remis_fixture=None,
+                json=False,
+            ),
+        ),
+        (
+            "build_mtme_mqm_pack",
+            cli._build_mtme_pack,
+            SimpleNamespace(
+                test_set="wmt23",
+                language_pair="en-de",
+                rating_set="mqm",
+                dataset_revision="revision",
+                output=Path("output.json"),
+                data_root=None,
+                limit=None,
+                systems=None,
+                json=False,
+            ),
+        ),
+        (
+            "build_aces_pack",
+            cli._build_aces_pack,
+            SimpleNamespace(
+                input=Path("input.jsonl"),
+                output=Path("output.json"),
+                kind="span-aces",
+                dataset_revision="revision",
+                expected_sha256="a" * 64,
+                limit=None,
+                language_pairs=None,
+                phenomena=None,
+                json=False,
+            ),
+        ),
+        (
+            "build_metric_pack_from_calibration",
+            cli._build_metric_pack,
+            SimpleNamespace(input=Path("input.json"), output=Path("output.json"), json=False),
+        ),
+    ],
+)
+def test_integrated_pack_builders_report_io_errors(
+    monkeypatch, capsys, target, helper, namespace
+) -> None:
+    monkeypatch.setattr(
+        cli, target, lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("read failed"))
+    )
+    assert helper(namespace) == 2
+    assert "read failed" in capsys.readouterr().err
