@@ -3,14 +3,9 @@ import { getVendorBrand } from '../data/vendorBrands';
 import { zhEnProfileName } from '../data/zhEnProfileName';
 import type { ZhEnDirection, ZhEnMeasure, ZhEnPreviewArtifact, ZhEnPreviewProfile } from '../types/zhEnPreview';
 import { VendorLogo } from './VendorLogo';
+import { useI18n } from '../i18n/I18nProvider';
 
 type View = 'overall' | ZhEnDirection;
-
-const VIEW_LABELS: Record<View, string> = {
-  overall: 'ZH–EN Core',
-  'zh-CN->en': '中文 → English',
-  'en->zh-CN': 'English → 中文',
-};
 
 function aggregateMeasure(profile: ZhEnPreviewProfile, kind: 'soft' | 'hard'): ZhEnMeasure {
   const measures = Object.values(profile.directions).map((direction) => direction[kind]);
@@ -38,32 +33,34 @@ function percent(value: number): string {
 }
 
 export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArtifact }) {
+  const { t } = useI18n();
   const [view, setView] = useState<View>('overall');
+  const viewLabels: Record<View, string> = { overall: t('leader.overall'), 'zh-CN->en': t('leader.zhEn'), 'en->zh-CN': t('leader.enZh') };
   const ranked = useMemo(() => [...artifact.profiles].sort((left, right) => metric(right, view).score - metric(left, view).score), [artifact.profiles, view]);
   const resolvedRate = artifact.soft_resolved_count / artifact.soft_case_count;
 
   return (
     <section className="zh-en-preview" style={{ marginTop: 24, marginBottom: 44 }}>
-      <div className="section-title"><span>Published results · ZH–EN Core v0.3</span></div>
+      <div className="section-title"><span>{t('leader.title')}</span></div>
       <div className="preview-disclosure">
         <div>
-          <strong>Officially published scope: zh-CN→en and en→zh-CN.</strong>
-          <p>Scores combine 60% sparse soft preference and 40% hard reliability. Unresolved judgments reduce coverage; they are not counted as failures.</p>
+          <strong>{t('leader.scope')}</strong>
+          <p>{t('leader.policy')}</p>
         </div>
-        <span className="badge badge-gold">PUBLISHED · 2026-08-30</span>
+        <span className="badge badge-gold">{t('leader.date')}</span>
       </div>
 
       <div className="preview-kpis">
-        <div className="v03-panel"><span>Contestants</span><strong>{artifact.contestant_count}</strong></div>
-        <div className="v03-panel"><span>Directions completed</span><strong>{artifact.direction_count} / 18</strong></div>
-        <div className="v03-panel"><span>Soft cases resolved</span><strong>{artifact.soft_resolved_count} / {artifact.soft_case_count}</strong><small>{(resolvedRate * 100).toFixed(1)}% coverage</small></div>
-        <div className="v03-panel"><span>Current leader</span><strong>{zhEnProfileName(ranked[0])}</strong><small>{metric(ranked[0], view).score.toFixed(2)}</small></div>
+        <div className="v03-panel"><span>{t('benchmark.contestants')}</span><strong>{artifact.contestant_count}</strong></div>
+        <div className="v03-panel"><span>{t('leader.completed')}</span><strong>{artifact.direction_count} / 18</strong></div>
+        <div className="v03-panel"><span>{t('leader.resolved')}</span><strong>{artifact.soft_resolved_count} / {artifact.soft_case_count}</strong><small>{t('leader.coverage', { value: (resolvedRate * 100).toFixed(1) })}</small></div>
+        <div className="v03-panel"><span>{t('leader.current')}</span><strong>{zhEnProfileName(ranked[0])}</strong><small>{metric(ranked[0], view).score.toFixed(2)}</small></div>
       </div>
 
       <div className="tab-group preview-tabs">
-        {(Object.keys(VIEW_LABELS) as View[]).map((key) => (
+        {(Object.keys(viewLabels) as View[]).map((key) => (
           <button key={key} className={`tab-btn ${view === key ? 'active' : ''}`} onClick={() => setView(key)}>
-            {VIEW_LABELS[key]}
+            {viewLabels[key]}
           </button>
         ))}
       </div>
@@ -72,7 +69,7 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
         <table className="preview-table">
           <thead>
             <tr>
-              <th>#</th><th>Recipe</th><th>Score</th><th>Soft preference</th><th>Hard reliability</th><th>Coverage</th><th>Observed cost</th><th>Elapsed</th><th>Tokens</th>
+              <th>#</th><th>{t('table.recipe')}</th><th>{t('table.score')}</th><th>{t('table.soft')}</th><th>{t('table.hard')}</th><th>{t('table.coverage')}</th><th>{t('table.cost')}</th><th>{t('table.elapsed')}</th><th>{t('table.tokens')}</th>
             </tr>
           </thead>
           <tbody>
@@ -95,17 +92,17 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
                   </td>
                   <td>{percent(result.soft.score)}</td>
                   <td>{percent(result.hard.score)}</td>
-                  <td><span>{result.soft.resolved}/{result.soft.total} soft</span><small>{result.hard.resolved}/{result.hard.total} hard</small></td>
+                  <td><span>{result.soft.resolved}/{result.soft.total} {t('table.softShort')}</span><small>{result.hard.resolved}/{result.hard.total} {t('table.hardShort')}</small></td>
                   <td>
                     {profile.telemetry.cost_rank_eligible && profile.telemetry.cost_usd !== null
                       ? profile.telemetry.verified_cost
-                        ? <><span>${profile.telemetry.cost_usd.toFixed(3)}</span><small style={{ display: 'block' }}>¥{profile.telemetry.verified_cost.amount.toFixed(2)} verified</small></>
+                        ? <><span>${profile.telemetry.cost_usd.toFixed(3)}</span><small style={{ display: 'block' }}>¥{profile.telemetry.verified_cost.amount.toFixed(2)} {t('table.verified')}</small></>
                         : `$${profile.telemetry.cost_usd.toFixed(3)}`
                       : profile.telemetry.verified_cost
-                        ? <><span>¥{profile.telemetry.verified_cost.amount.toFixed(2)} CNY</span><small>provider verified</small></>
-                        : 'Not rankable'}
+                        ? <><span>¥{profile.telemetry.verified_cost.amount.toFixed(2)} CNY</span><small>{t('table.providerVerified')}</small></>
+                        : t('table.notRankable')}
                   </td>
-                  <td>{(profile.telemetry.elapsed_seconds / 60).toFixed(1)} min</td>
+                  <td>{t('common.minutes', { value: (profile.telemetry.elapsed_seconds / 60).toFixed(1) })}</td>
                   <td>{profile.telemetry.total_tokens.toLocaleString()}</td>
                 </tr>
               );
@@ -115,10 +112,10 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
       </div>
 
       <div className="preview-footnote">
-        <span>Protocol: <code>{artifact.protocol}</code></span>
-        <span>Source: <code>{artifact.source_commit}</code></span>
-        <span>Judge cost: ${artifact.judge_cost_usd.toFixed(3)}</span>
-        <a href={`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`} target="_blank" rel="noreferrer">Download published result JSON ↗</a>
+        <span>{t('leader.protocol')} <code>{artifact.protocol}</code></span>
+        <span>{t('leader.source')} <code>{artifact.source_commit}</code></span>
+        <span>{t('leader.judgeCost')} ${artifact.judge_cost_usd.toFixed(3)}</span>
+        <a href={`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`} target="_blank" rel="noreferrer">{t('leader.download')}</a>
       </div>
     </section>
   );

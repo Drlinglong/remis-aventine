@@ -6,8 +6,10 @@ import { V03Visualizations } from './components/V03Visualizations';
 import { ZhEnPreviewLeaderboard } from './components/ZhEnPreviewLeaderboard';
 import { loadZhEnPreview } from './data/zhEnPreview';
 import type { ZhEnPreviewArtifact } from './types/zhEnPreview';
+import { useI18n } from './i18n/I18nProvider';
 
 export const App = () => {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('leaderboard');
   const [isDark, setIsDark] = useState(false);
   const [result, setResult] = useState<ZhEnPreviewArtifact | null>(null);
@@ -39,7 +41,7 @@ export const App = () => {
     </>
   ) : (
     <div className="v03-panel" style={{ padding: 20, marginTop: 24 }}>
-      <strong>ZH–EN v0.3 results are temporarily unavailable.</strong>
+      <strong>{t('results.unavailable')}</strong>
       {loadError && <p style={{ color: 'var(--text-secondary)', marginTop: 6 }}>{loadError}</p>}
     </div>
   );
@@ -64,12 +66,12 @@ export const App = () => {
         {activeTab === 'results' && (
           <div className="animate-fade-in" style={{ paddingTop: 32 }}>
             <div style={{ marginBottom: 24 }}>
-              <span className="badge badge-gold" style={{ marginBottom: 8 }}>PUBLISHED · 2 OF 18 DIRECTIONS</span>
+              <span className="badge badge-gold" style={{ marginBottom: 8 }}>{t('results.badge')}</span>
               <h1 className="display-serif" style={{ fontSize: 38, color: 'var(--text-primary)', marginBottom: 8 }}>
-                ZH–EN Core Results v0.3
+                {t('results.title')}
               </h1>
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 800, lineHeight: 1.5 }}>
-                Official results for zh-CN→en and en→zh-CN. The other 16 directions are omitted until they have measured results of their own.
+                {t('results.description')}
               </p>
             </div>
             {resultPanel}

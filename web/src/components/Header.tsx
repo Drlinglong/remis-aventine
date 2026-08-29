@@ -1,5 +1,6 @@
 import React from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Languages } from 'lucide-react';
+import { LOCALES, useI18n, type Locale } from '../i18n/I18nProvider';
 
 interface HeaderProps {
   activeTab: string;
@@ -14,9 +15,10 @@ export const Header: React.FC<HeaderProps> = ({
   isDark,
   onToggleTheme,
 }) => {
+  const { locale, setLocale, t } = useI18n();
   const navItems = [
-    { id: 'leaderboard', label: 'Overview' },
-    { id: 'results', label: 'ZH–EN Results' },
+    { id: 'leaderboard', label: t('nav.overview') },
+    { id: 'results', label: t('nav.results') },
   ];
 
   return (
@@ -96,6 +98,12 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <label className="language-picker" title={t('nav.language')}>
+            <Languages size={14} aria-hidden="true" />
+            <select aria-label={t('nav.language')} value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>
+              {LOCALES.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
+            </select>
+          </label>
           {/* Pilot Spec Badge */}
           <span
             style={{
@@ -115,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Theme Toggle */}
           <button
             onClick={onToggleTheme}
-            aria-label="Toggle theme"
+            aria-label={t('a11y.theme')}
             style={{
               width: '32px',
               height: '32px',
@@ -137,7 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
             href="https://github.com/Drlinglong/remis-aventine"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="GitHub Repository"
+            aria-label={t('a11y.github')}
             style={{
               width: '32px',
               height: '32px',

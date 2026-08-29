@@ -1,11 +1,14 @@
 import React from 'react';
 import { Shield, BookOpen, GitBranch, ExternalLink } from 'lucide-react';
+import { useI18n } from '../i18n/I18nProvider';
 
 interface FooterProps {
   onSelectTab: (tab: string) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
+  const { t } = useI18n();
+  const [aboutBefore, aboutAfter] = t('footer.about').split('{remis}');
   return (
     <footer
       style={{
@@ -22,67 +25,63 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
               <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Aventine</span>
-              <span className="badge badge-gold">ZH–EN v0.3 · PUBLISHED</span>
+              <span className="badge badge-gold">{t('footer.status')}</span>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>
-              A reproducible evaluation ground for translation recipes, born from <a href="https://github.com/Drlinglong/Remis" target="_blank" rel="noreferrer" style={{ color: 'var(--brand-gold)', textDecoration: 'underline' }}>Remis</a>.
-              Evaluating complete translation pipelines, not isolated model names.
+              {aboutBefore}<a href="https://github.com/Drlinglong/Remis" target="_blank" rel="noreferrer" style={{ color: 'var(--brand-gold)', textDecoration: 'underline' }}>Remis</a>{aboutAfter}
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
               <span className="badge badge-neutral">AGPL-3.0</span>
-              <span className="badge badge-emerald">JSON Schema Bound</span>
+              <span className="badge badge-emerald">{t('footer.schema')}</span>
             </div>
           </div>
 
           {/* Col 2: Four Core Rules */}
           <div>
             <h4 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Shield size={14} color="var(--brand-gold)" /> The 4 Hard Principles
+              <Shield size={14} color="var(--brand-gold)" /> {t('footer.principles')}
             </h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-              <li>1. Hard validators have veto power</li>
-              <li>2. Judge evaluates soft quality</li>
-              <li>3. Output is structured data</li>
-              <li>4. External datasets stay external</li>
+              <li>{t('footer.p1')}</li><li>{t('footer.p2')}</li><li>{t('footer.p3')}</li><li>{t('footer.p4')}</li>
             </ul>
           </div>
 
           {/* Col 3: Navigation & Sections */}
           <div>
             <h4 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <BookOpen size={14} color="var(--brand-blue)" /> Quick Links
+              <BookOpen size={14} color="var(--brand-blue)" /> {t('footer.quick')}
             </h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-              <li><button onClick={() => onSelectTab('leaderboard')} style={{ color: 'inherit', textAlign: 'left' }}>🏆 Overview</button></li>
-              <li><button onClick={() => onSelectTab('results')} style={{ color: 'inherit', textAlign: 'left' }}>🌐 ZH–EN Results (2/18)</button></li>
-              <li><a href={`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`} target="_blank" rel="noreferrer">📦 Published result JSON</a></li>
+              <li><button onClick={() => onSelectTab('leaderboard')} style={{ color: 'inherit', textAlign: 'left' }}>{t('footer.overview')}</button></li>
+              <li><button onClick={() => onSelectTab('results')} style={{ color: 'inherit', textAlign: 'left' }}>{t('footer.results')}</button></li>
+              <li><a href={`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`} target="_blank" rel="noreferrer">{t('footer.json')}</a></li>
             </ul>
           </div>
 
           {/* Col 4: Repository & Artifacts */}
           <div>
             <h4 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <GitBranch size={14} color="var(--brand-emerald)" /> Ecosystem & Code
+              <GitBranch size={14} color="var(--brand-emerald)" /> {t('footer.ecosystem')}
             </h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
               <li>
                 <a href="https://github.com/Drlinglong/remis-aventine" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  GitHub Repository <ExternalLink size={12} />
+                  {t('footer.repo')} <ExternalLink size={12} />
                 </a>
               </li>
               <li>
                 <a href="https://github.com/Drlinglong/remis-aventine/issues/6" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  Issue #6: 18-Lang Frontier Benchmark <ExternalLink size={12} />
+                  {t('footer.issue')} <ExternalLink size={12} />
                 </a>
               </li>
               <li>
                 <a href="https://github.com/Drlinglong/remis-aventine/tree/main/src/remis_aventine/schemas" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  JSON Schema Contracts <ExternalLink size={12} />
+                  {t('footer.contracts')} <ExternalLink size={12} />
                 </a>
               </li>
               <li>
                 <a href="https://artificialanalysis.ai" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
-                  Aesthetics Reference: Artificial Analysis <ExternalLink size={12} />
+                  {t('footer.reference')} <ExternalLink size={12} />
                 </a>
               </li>
             </ul>
@@ -104,11 +103,11 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
           }}
         >
           <div>
-            © 2026 Aventine Project. Released under AGPL-3.0 License. All evaluation artifacts are cryptographic SHA-256 bound.
+            {t('footer.copyright')}
           </div>
           <div style={{ display: 'flex', gap: '16px' }}>
-            <span>Score Policy: <code>v0.3-zh-en-60soft-40hard</code></span>
-            <span>Artifact: <code>v0.3-zh-en-results</code></span>
+            <span>{t('footer.scorePolicy')} <code>v0.3-zh-en-60soft-40hard</code></span>
+            <span>{t('footer.artifact')} <code>v0.3-zh-en-results</code></span>
           </div>
         </div>
       </div>
