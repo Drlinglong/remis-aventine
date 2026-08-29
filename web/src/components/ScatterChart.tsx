@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { BENCHMARK_RECIPES } from '../data/benchmarkData';
 import type { RecipeEntry } from '../types/benchmark';
 import { Zap, DollarSign, Brain, Info } from 'lucide-react';
+import { getVendorBrand } from '../data/vendorBrands';
+import { VendorLogo } from './VendorLogo';
 
 interface ScatterChartProps {
   onSelectModel: (recipe: RecipeEntry) => void;
@@ -77,18 +79,20 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({ onSelectModel }) => 
       return p.yVal > maxPriorY;
     });
 
-  // Color mapping by provider
-  const getProviderColor = (provider: string) => {
-    if (provider.includes('Google')) return 'var(--vendor-gemini)';
-    if (provider.includes('OpenRouter') || provider.includes('OpenAI')) return 'var(--vendor-openai)';
-    if (provider.includes('DeepSeek')) return 'var(--vendor-deepseek)';
-    if (provider.includes('Tencent')) return 'var(--vendor-tencent)';
-    if (provider.includes('Nvidia')) return 'var(--vendor-nvidia)';
-    return 'var(--vendor-neutral)';
-  };
+  const getProviderColor = (recipe: RecipeEntry) => getVendorBrand(
+    recipe.provider_icon,
+    recipe.model_id,
+    recipe.label,
+    recipe.provider,
+  ).color;
+
+  const legendBrands = [...new Map(BENCHMARK_RECIPES.map((recipe) => {
+    const brand = getVendorBrand(recipe.provider_icon, recipe.model_id, recipe.label, recipe.provider);
+    return [brand.id, { brand, recipe }];
+  })).values()];
 
   return (
-    <div className="av-card" style={{ padding: '24px', backgroundColor: 'var(--bg-card)', marginBottom: '32px' }}>
+    <div className="av-card scatter-card" style={{ padding: '24px', backgroundColor: 'var(--bg-card)', marginBottom: '32px' }}>
       {/* Header Controls */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '24px' }}>
         <div>
@@ -104,7 +108,7 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({ onSelectModel }) => 
         </div>
 
         {/* Metric Selector Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="scatter-controls" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div className="tab-group">
             <button
               className={`tab-btn ${metric === 'latency' ? 'active' : ''}`}
@@ -303,7 +307,7 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({ onSelectModel }) => 
             const cx = getX(p.xVal);
             const cy = getY(p.yVal);
             const isHovered = hoveredRecipe?.id === p.recipe.id;
-            const color = getProviderColor(p.recipe.provider);
+            const color = getProviderColor(p.recipe);
 
             return (
               <g
@@ -382,19 +386,13 @@ export const ScatterChart: React.FC<ScatterChartProps> = ({ onSelectModel }) => 
         )}
 
         {/* Legend */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--vendor-gemini)' }} /> Google AI Studio
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--vendor-openai)' }} /> OpenRouter / OpenAI
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--vendor-deepseek)' }} /> DeepSeek
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--vendor-tencent)' }} /> Tencent HY3
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          {legendBrands.map(({ brand, recipe }) => (
+            <span key={brand.id} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <VendorLogo signals={[recipe.provider_icon, recipe.model_id, recipe.label, recipe.provider]} size={18} />
+              {brand.label}
+            </span>
+          ))}
         </div>
       </div>
     </div>

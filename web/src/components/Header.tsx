@@ -18,7 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const navItems = [
     { id: 'leaderboard', label: 'Overview' },
-    { id: 'multilingual', label: '18 Directions' },
+    { id: 'multilingual', label: 'ZH–EN Preview' },
     { id: 'charts', label: 'Frontier Charts' },
     { id: 'arena', label: '9x9 Arena' },
     { id: 'calibration', label: 'Evidence' },
@@ -39,32 +39,27 @@ export const Header: React.FC<HeaderProps> = ({
       }}
     >
       <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '64px', gap: '16px' }}>
-        {/* Brand Lockup (Artificial Analysis style black pill / logo) */}
+        {/* Canonical Aventine brand lockup */}
         <button
+          className="header-brand"
           onClick={() => onSelectTab('leaderboard')}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '6px 14px',
-            backgroundColor: isDark ? '#2a2e35' : '#161c24',
-            color: '#ffffff',
-            borderRadius: 'var(--radius-full)',
+            padding: 0,
+            backgroundColor: 'transparent',
             border: 'none',
             cursor: 'pointer',
           }}
         >
           <img
-            src="./brand/aventine-mark-gold.svg"
+            src={isDark ? './brand/aventine-lockup-on-dark.svg' : './brand/aventine-lockup-on-light.svg'}
             alt="Aventine"
-            style={{ height: '18px', width: '18px' }}
+            className="header-brand-logo"
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
             }}
           />
-          <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '-0.02em' }}>
-            Aventine
-          </span>
         </button>
 
         {/* Center Pill Nav Bar (Artificial Analysis style) */}
@@ -78,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
             borderRadius: 'var(--radius-full)',
             border: '1px solid var(--border-subtle)',
           }}
-          className="hidden md:flex"
+          className="header-nav hidden md:flex"
         >
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
@@ -121,7 +116,7 @@ export const Header: React.FC<HeaderProps> = ({
             }}
             className="lg:inline-flex"
           >
-            Pilot v0.2
+            ZH–EN v0.3
           </span>
 
           {/* Search Trigger */}

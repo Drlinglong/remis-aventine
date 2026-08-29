@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { BENCHMARK_RECIPES } from '../data/benchmarkData';
 import type { RecipeEntry } from '../types/benchmark';
 import { ArrowUpRight } from 'lucide-react';
+import { getVendorBrand } from '../data/vendorBrands';
+import { VendorLogo } from './VendorLogo';
 
 interface HighlightsBarSectionProps {
   onSelectModel: (recipe: RecipeEntry) => void;
@@ -39,24 +41,7 @@ export const HighlightsBarSection: React.FC<HighlightsBarSectionProps> = ({
     if (hoveredRecipeId && hoveredRecipeId !== recipe.id && !isHighlighted) {
       return 'var(--bg-muted)';
     }
-    if (recipe.provider.includes('Google')) return 'var(--vendor-gemini)';
-    if (recipe.provider.includes('OpenAI') || recipe.provider.includes('Luna')) return 'var(--vendor-openai)';
-    if (recipe.provider.includes('DeepSeek')) return 'var(--vendor-deepseek)';
-    if (recipe.provider.includes('Tencent')) return 'var(--vendor-tencent)';
-    if (recipe.provider.includes('Nvidia')) return 'var(--vendor-nvidia)';
-    if (recipe.provider.includes('Qwen') || recipe.provider.includes('alibaba')) return 'var(--vendor-qwen)';
-    return 'var(--vendor-neutral)';
-  };
-
-  // Helper for provider icon / letter
-  const getProviderInitial = (provider: string) => {
-    if (provider.includes('Google')) return 'G';
-    if (provider.includes('OpenAI')) return 'O';
-    if (provider.includes('DeepSeek')) return 'D';
-    if (provider.includes('Tencent')) return 'T';
-    if (provider.includes('Nvidia')) return 'N';
-    if (provider.includes('Local')) return 'L';
-    return 'R';
+    return getVendorBrand(recipe.provider_icon, recipe.model_id, recipe.label, recipe.provider).color;
   };
 
   const chartHeight = 160;
@@ -67,7 +52,7 @@ export const HighlightsBarSection: React.FC<HighlightsBarSectionProps> = ({
         <span>Highlights</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+      <div className="highlights-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
         {/* CARD 1: Intelligence / Pilot Score */}
         <div
           className="av-card"
@@ -167,24 +152,7 @@ export const HighlightsBarSection: React.FC<HighlightsBarSectionProps> = ({
                 }}
                 onClick={() => onSelectModel(recipe)}
               >
-                <div
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--bg-card-elevated)',
-                    border: '1px solid var(--border-subtle)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '9px',
-                    fontWeight: 700,
-                    color: 'var(--text-secondary)',
-                    marginBottom: '4px',
-                  }}
-                >
-                  {getProviderInitial(recipe.provider)}
-                </div>
+                <VendorLogo signals={[recipe.provider_icon, recipe.model_id, recipe.label, recipe.provider]} size={18} />
                 <span
                   style={{
                     fontSize: '9px',
@@ -299,24 +267,7 @@ export const HighlightsBarSection: React.FC<HighlightsBarSectionProps> = ({
                 }}
                 onClick={() => onSelectModel(recipe)}
               >
-                <div
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--bg-card-elevated)',
-                    border: '1px solid var(--border-subtle)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '9px',
-                    fontWeight: 700,
-                    color: 'var(--text-secondary)',
-                    marginBottom: '4px',
-                  }}
-                >
-                  {getProviderInitial(recipe.provider)}
-                </div>
+                <VendorLogo signals={[recipe.provider_icon, recipe.model_id, recipe.label, recipe.provider]} size={18} />
                 <span
                   style={{
                     fontSize: '9px',
@@ -432,24 +383,7 @@ export const HighlightsBarSection: React.FC<HighlightsBarSectionProps> = ({
                 }}
                 onClick={() => onSelectModel(recipe)}
               >
-                <div
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--bg-card-elevated)',
-                    border: '1px solid var(--border-subtle)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '9px',
-                    fontWeight: 700,
-                    color: 'var(--text-secondary)',
-                    marginBottom: '4px',
-                  }}
-                >
-                  {getProviderInitial(recipe.provider)}
-                </div>
+                <VendorLogo signals={[recipe.provider_icon, recipe.model_id, recipe.label, recipe.provider]} size={18} />
                 <span
                   style={{
                     fontSize: '9px',

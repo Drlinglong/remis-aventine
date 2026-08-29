@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, ChevronDown, ChevronUp, Filter, Sparkles, Shield, Zap, Globe, HelpCircle } from 'lucide-react';
 import { BENCHMARK_RECIPES } from '../data/benchmarkData';
 import type { RecipeEntry } from '../types/benchmark';
+import { VendorLogo } from './VendorLogo';
 
 interface LeaderboardTableProps {
   onSelectModel: (recipe: RecipeEntry) => void;
@@ -126,7 +127,7 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ onSelectMode
   };
 
   return (
-    <div className="av-card" style={{ padding: '24px', backgroundColor: 'var(--bg-card)', marginBottom: '32px' }}>
+    <div className="av-card leaderboard-card" style={{ padding: '24px', backgroundColor: 'var(--bg-card)', marginBottom: '32px' }}>
       {/* Controls Top Bar */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '20px' }}>
         {/* View Mode Tabs */}
@@ -400,6 +401,10 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ onSelectMode
                 <td style={{ padding: '14px 12px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <VendorLogo
+                        signals={[recipe.provider_icon, recipe.model_id, recipe.label, recipe.provider]}
+                        size={18}
+                      />
                       <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{recipe.label}</span>
                       {recipe.is_anchor && (
                         <span className="badge badge-neutral" style={{ fontSize: '9px', padding: '0 4px' }}>

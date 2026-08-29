@@ -13,9 +13,12 @@ import { MethodologyView } from './components/MethodologyView';
 import { RecipeDrawer } from './components/RecipeDrawer';
 import { CommandPalette } from './components/CommandPalette';
 import { V03Leaderboard } from './components/V03Leaderboard';
+import { ZhEnPreviewLeaderboard } from './components/ZhEnPreviewLeaderboard';
 import { loadV03Leaderboard } from './data/v03Leaderboard';
+import { loadZhEnPreview } from './data/zhEnPreview';
 import type { RecipeEntry } from './types/benchmark';
 import type { V03LeaderboardArtifact } from './types/v03';
+import type { ZhEnPreviewArtifact } from './types/zhEnPreview';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('leaderboard');
@@ -24,6 +27,8 @@ export const App: React.FC = () => {
   const [isDark, setIsDark] = useState(false); // Default clean light/dark support
   const [v03Artifact, setV03Artifact] = useState<V03LeaderboardArtifact | null>(null);
   const [v03LoadError, setV03LoadError] = useState<string | null>(null);
+  const [zhEnPreview, setZhEnPreview] = useState<ZhEnPreviewArtifact | null>(null);
+  const [zhEnLoadError, setZhEnLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
@@ -37,6 +42,16 @@ export const App: React.FC = () => {
         if (!controller.signal.aborted) {
           setV03LoadError(error instanceof Error ? error.message : String(error));
         }
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadZhEnPreview(controller.signal)
+      .then(setZhEnPreview)
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) setZhEnLoadError(error instanceof Error ? error.message : String(error));
       });
     return () => controller.abort();
   }, []);
@@ -71,22 +86,25 @@ export const App: React.FC = () => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               artifact={v03Artifact}
+              preview={zhEnPreview}
             />
 
-            {v03Artifact ? (
+            {zhEnPreview ? (
+              <ZhEnPreviewLeaderboard artifact={zhEnPreview} />
+            ) : v03Artifact ? (
               <V03Leaderboard artifact={v03Artifact} />
             ) : (
               <div className="v03-panel" style={{ padding: '14px 16px', marginTop: 20, marginBottom: 24 }}>
                 <strong>Multilingual v0.3 · awaiting public artifact</strong>
                 <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>
-                  No public v0.3 result artifact was found at <code>web/public/data/v03-public-result.json</code>
-                  {v03LoadError ? ` (${v03LoadError})` : ''}.
+                  No public result artifact was found.
+                  {zhEnLoadError || v03LoadError ? ` (${zhEnLoadError || v03LoadError})` : ''}
                 </p>
               </div>
             )}
 
             <div className="section-title" style={{ marginTop: 28 }}>
-              <span>Historical nine-model pilot · v0.2</span>
+              <span>Historical pilot · v0.1 + anchored v0.2</span>
             </div>
 
             {/* 2. Highlights Visual Vertical Bar Cards (Pilot Score / Speed / Cost) */}
@@ -128,15 +146,17 @@ export const App: React.FC = () => {
         {activeTab === 'multilingual' && (
           <div className="animate-fade-in" style={{ paddingTop: '32px' }}>
             <div style={{ marginBottom: '24px' }}>
-              <span className="badge badge-purple" style={{ marginBottom: '8px' }}>ISSUE #6 REGIONAL SPEC</span>
+              <span className="badge badge-purple" style={{ marginBottom: '8px' }}>2 OF 18 DIRECTIONS COMPLETE</span>
               <h1 className="display-serif" style={{ fontSize: '38px', color: 'var(--text-primary)', marginBottom: '8px' }}>
-                18-Direction Multilingual Leaderboard
+                ZH–EN Core Preview
               </h1>
               <p style={{ fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '800px', lineHeight: 1.5 }}>
-                Equal-weighted ZH↔EN (2), ZH/EN→JA·KO (4), and ZH/EN→DE·RU·FR·ES·PT-BR·TR (12). Missing directions are never renormalized.
+                The two highest-priority directions are measured now: zh-CN→en and en→zh-CN. The remaining 16 directions stay unmeasured and are never estimated or renormalized into this preview.
               </p>
             </div>
-            {v03Artifact ? (
+            {zhEnPreview ? (
+              <ZhEnPreviewLeaderboard artifact={zhEnPreview} />
+            ) : v03Artifact ? (
               <V03Leaderboard artifact={v03Artifact} />
             ) : (
               <div className="v03-panel" style={{ padding: 20 }}>

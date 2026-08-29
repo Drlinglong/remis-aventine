@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BENCHMARK_RECIPES } from '../data/benchmarkData';
 import type { RecipeEntry } from '../types/benchmark';
+import { VendorLogo } from './VendorLogo';
 
 interface RadarComparisonProps {
   onSelectModel: (recipe: RecipeEntry) => void;
@@ -110,6 +111,10 @@ export const RadarComparison: React.FC<RadarComparisonProps> = ({ onSelectModel:
                         borderRadius: '50%',
                         backgroundColor: isSelected ? color : 'var(--border-medium)',
                       }}
+                    />
+                    <VendorLogo
+                      signals={[recipe.provider_icon, recipe.model_id, recipe.label, recipe.provider]}
+                      size={18}
                     />
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: isSelected ? 700 : 500, color: 'var(--text-primary)' }}>

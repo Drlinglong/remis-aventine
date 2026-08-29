@@ -22,7 +22,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
               <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Aventine</span>
-              <span className="badge badge-gold">PREVIEW v0.2</span>
+              <span className="badge badge-gold">ZH–EN PREVIEW v0.3</span>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>
               A reproducible evaluation ground for translation recipes, born from <a href="https://github.com/Drlinglong/Remis" target="_blank" rel="noreferrer" style={{ color: 'var(--brand-gold)', textDecoration: 'underline' }}>Remis</a>.
@@ -54,9 +54,9 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
             </h4>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
               <li><button onClick={() => onSelectTab('leaderboard')} style={{ color: 'inherit', textAlign: 'left' }}>🏆 Comprehensive Leaderboard</button></li>
-              <li><button onClick={() => onSelectTab('multilingual')} style={{ color: 'inherit', textAlign: 'left' }}>🌐 18-Direction Matrix</button></li>
+              <li><button onClick={() => onSelectTab('multilingual')} style={{ color: 'inherit', textAlign: 'left' }}>🌐 ZH–EN Results (2/18)</button></li>
               <li><button onClick={() => onSelectTab('charts')} style={{ color: 'inherit', textAlign: 'left' }}>📈 Pareto Frontier & Charts</button></li>
-              <li><button onClick={() => onSelectTab('arena')} style={{ color: 'inherit', textAlign: 'left' }}>⚔️ 9x9 Pairwise Arena</button></li>
+              <li><button onClick={() => onSelectTab('arena')} style={{ color: 'inherit', textAlign: 'left' }}>⚔️ Historical 9×9 Arena</button></li>
               <li><button onClick={() => onSelectTab('calibration')} style={{ color: 'inherit', textAlign: 'left' }}>🎯 MQM / ACES Calibration</button></li>
               <li><button onClick={() => onSelectTab('methodology')} style={{ color: 'inherit', textAlign: 'left' }}>📖 Scoring Methodology</button></li>
             </ul>
@@ -110,8 +110,8 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
             © 2026 Aventine Project. Released under AGPL-3.0 License. All evaluation artifacts are cryptographic SHA-256 bound.
           </div>
           <div style={{ display: 'flex', gap: '16px' }}>
-            <span>Score Policy: <code>pilot-score-v0.2-anchored</code></span>
-            <span>Schema: <code>tournament-aggregate.v1</code></span>
+            <span>Score Policy: <code>v0.3-zh-en-60soft-40hard</code></span>
+            <span>Artifact: <code>zh-en-preview.v1</code></span>
           </div>
         </div>
       </div>

@@ -1,0 +1,829 @@
+{
+  "contestant_count": 17,
+  "direction_count": 2,
+  "judge_cost_usd": 6.30487791,
+  "profiles": [
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 0.95,
+            "points": 34,
+            "resolved": 38,
+            "score": 89.4737,
+            "total": 40
+          },
+          "score": 86.3158,
+          "soft": {
+            "coverage": 0.95,
+            "points": 32.0,
+            "resolved": 38,
+            "score": 84.2105,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 0.916667,
+            "points": 33,
+            "resolved": 33,
+            "score": 100.0,
+            "total": 36
+          },
+          "score": 96.0526,
+          "soft": {
+            "coverage": 0.95,
+            "points": 35.5,
+            "resolved": 38,
+            "score": 93.4211,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "d5b93e9cbd657f4583ad6524d92f6f7c64187d4d70c51e090d452a02b126ac86",
+      "model_family": "openai-gpt",
+      "model_id": "openai/gpt-5.6-sol-pro",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 2.9724815,
+        "elapsed_seconds": 1874.019,
+        "total_tokens": 613688
+      },
+      "zh_en_score": 91.1842
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 33,
+            "resolved": 40,
+            "score": 82.5,
+            "total": 40
+          },
+          "score": 76.7838,
+          "soft": {
+            "coverage": 0.973684,
+            "points": 27.0,
+            "resolved": 37,
+            "score": 72.973,
+            "total": 38
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 34,
+            "resolved": 36,
+            "score": 94.4444,
+            "total": 36
+          },
+          "score": 89.4444,
+          "soft": {
+            "coverage": 0.9,
+            "points": 31.0,
+            "resolved": 36,
+            "score": 86.1111,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "79ce2783881f128945e998ec89b5d30ac35d629dc442527fc96fec1767c120b9",
+      "model_family": "alibaba-qwen",
+      "model_id": "qwen/qwen3.8-max",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 1.779704,
+        "elapsed_seconds": 7015.01,
+        "total_tokens": 322748
+      },
+      "zh_en_score": 83.1141
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 34,
+            "resolved": 40,
+            "score": 85.0,
+            "total": 40
+          },
+          "score": 72.6842,
+          "soft": {
+            "coverage": 0.95,
+            "points": 24.5,
+            "resolved": 38,
+            "score": 64.4737,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 36,
+            "resolved": 36,
+            "score": 100.0,
+            "total": 36
+          },
+          "score": 83.7838,
+          "soft": {
+            "coverage": 0.925,
+            "points": 27.0,
+            "resolved": 37,
+            "score": 72.973,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "57d3c729c2836b8be6b50942cea1b5fe3a89928c687864abdd15f1cb66ba21ba",
+      "model_family": "meituan-longcat",
+      "model_id": "meituan/longcat-2.0",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.25251612,
+        "elapsed_seconds": 4570.863,
+        "total_tokens": 240945
+      },
+      "zh_en_score": 78.234
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 0.975,
+            "points": 34,
+            "resolved": 39,
+            "score": 87.1795,
+            "total": 40
+          },
+          "score": 77.5034,
+          "soft": {
+            "coverage": 0.95,
+            "points": 27.0,
+            "resolved": 38,
+            "score": 71.0526,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 0.916667,
+            "points": 32,
+            "resolved": 33,
+            "score": 96.9697,
+            "total": 36
+          },
+          "score": 78.4938,
+          "soft": {
+            "coverage": 0.85,
+            "points": 22.5,
+            "resolved": 34,
+            "score": 66.1765,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "5e75a3727649372c9bfe420a4fafd05fee17858346f389a9a1fea68c133273da",
+      "model_family": "google-gemini",
+      "model_id": "google/gemini-3.7-flash",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.6205905,
+        "elapsed_seconds": 1264.641,
+        "total_tokens": 195886
+      },
+      "zh_en_score": 77.9986
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 0.975,
+            "points": 38,
+            "resolved": 39,
+            "score": 97.4359,
+            "total": 40
+          },
+          "score": 74.5007,
+          "soft": {
+            "coverage": 0.95,
+            "points": 22.5,
+            "resolved": 38,
+            "score": 59.2105,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 0.916667,
+            "points": 33,
+            "resolved": 33,
+            "score": 100.0,
+            "total": 36
+          },
+          "score": 81.0526,
+          "soft": {
+            "coverage": 0.95,
+            "points": 26.0,
+            "resolved": 38,
+            "score": 68.4211,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "ecb278a7f3c43c052aed11203237be381a0e9c3536a954ee7f49f9c12cbeef76",
+      "model_family": "deepseek",
+      "model_id": "deepseek/deepseek-v4-pro-0813",
+      "telemetry": {
+        "cost_rank_eligible": false,
+        "cost_usd": null,
+        "elapsed_seconds": 5132.861,
+        "total_tokens": 328730
+      },
+      "zh_en_score": 77.7766
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 36,
+            "resolved": 40,
+            "score": 90.0,
+            "total": 40
+          },
+          "score": 78.1622,
+          "soft": {
+            "coverage": 0.925,
+            "points": 26.0,
+            "resolved": 37,
+            "score": 70.2703,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 34,
+            "resolved": 36,
+            "score": 94.4444,
+            "total": 36
+          },
+          "score": 70.9357,
+          "soft": {
+            "coverage": 0.95,
+            "points": 21.0,
+            "resolved": 38,
+            "score": 55.2632,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "7acb32080602f8e366580b26bdaeff2e429d94f611b57c3485970276d63d62a3",
+      "model_family": "moonshot-kimi",
+      "model_id": "moonshotai/kimi-k3",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.68912878,
+        "elapsed_seconds": 1544.952,
+        "total_tokens": 86186
+      },
+      "zh_en_score": 74.5489
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 0.775,
+            "points": 31,
+            "resolved": 31,
+            "score": 100.0,
+            "total": 40
+          },
+          "score": 79.4737,
+          "soft": {
+            "coverage": 0.95,
+            "points": 25.0,
+            "resolved": 38,
+            "score": 65.7895,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 0.888889,
+            "points": 25,
+            "resolved": 32,
+            "score": 78.125,
+            "total": 36
+          },
+          "score": 67.7365,
+          "soft": {
+            "coverage": 0.925,
+            "points": 22.5,
+            "resolved": 37,
+            "score": 60.8108,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "90ac0401bb4e3393a20b37beac3efe3bd34d871a735e20f4b9df0b3c3f6faa67",
+      "model_family": "openai-gpt",
+      "model_id": "openai/gpt-5.6-terra",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.4542294,
+        "elapsed_seconds": 574.179,
+        "total_tokens": 70170
+      },
+      "zh_en_score": 73.6051
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 40,
+            "resolved": 40,
+            "score": 100.0,
+            "total": 40
+          },
+          "score": 71.6216,
+          "soft": {
+            "coverage": 0.925,
+            "points": 19.5,
+            "resolved": 37,
+            "score": 52.7027,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 35,
+            "resolved": 36,
+            "score": 97.2222,
+            "total": 36
+          },
+          "score": 70.4274,
+          "soft": {
+            "coverage": 0.975,
+            "points": 20.5,
+            "resolved": 39,
+            "score": 52.5641,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "ac23669eaf9530fe11533fee0f8b87fdc1659d31520223ef0ec9f6870578a7c6",
+      "model_family": "xai-grok",
+      "model_id": "x-ai/grok-4.6",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 1.674322,
+        "elapsed_seconds": 4612.71,
+        "total_tokens": 310807
+      },
+      "zh_en_score": 71.0245
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 38,
+            "resolved": 40,
+            "score": 95.0,
+            "total": 40
+          },
+          "score": 77.2308,
+          "soft": {
+            "coverage": 0.975,
+            "points": 25.5,
+            "resolved": 39,
+            "score": 65.3846,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 28,
+            "resolved": 36,
+            "score": 77.7778,
+            "total": 36
+          },
+          "score": 64.4444,
+          "soft": {
+            "coverage": 0.9,
+            "points": 20.0,
+            "resolved": 36,
+            "score": 55.5556,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "42b60b7dac9c19174d66ef84bd34ce9091c6f4dfd9657d69b0ffff4f819def06",
+      "model_family": "tencent-hunyuan",
+      "model_id": "tencent/hy3",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.1056689946,
+        "elapsed_seconds": 1819.71,
+        "total_tokens": 232859
+      },
+      "zh_en_score": 70.8376
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 25,
+            "resolved": 40,
+            "score": 62.5,
+            "total": 40
+          },
+          "score": 66.5385,
+          "soft": {
+            "coverage": 0.975,
+            "points": 27.0,
+            "resolved": 39,
+            "score": 69.2308,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 33,
+            "resolved": 36,
+            "score": 91.6667,
+            "total": 36
+          },
+          "score": 73.5238,
+          "soft": {
+            "coverage": 0.875,
+            "points": 21.5,
+            "resolved": 35,
+            "score": 61.4286,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "1699ecfd2f2760e56d1381c7506d53467ad1dc1d4d3dfc3d5d8100ac2712a585",
+      "model_family": "meta-muse",
+      "model_id": "meta/muse-spark-1.2",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.4957225,
+        "elapsed_seconds": 932.4,
+        "total_tokens": 142744
+      },
+      "zh_en_score": 70.0311
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 33,
+            "resolved": 40,
+            "score": 82.5,
+            "total": 40
+          },
+          "score": 70.2973,
+          "soft": {
+            "coverage": 0.948718,
+            "points": 23.0,
+            "resolved": 37,
+            "score": 62.1622,
+            "total": 39
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 32,
+            "resolved": 36,
+            "score": 88.8889,
+            "total": 36
+          },
+          "score": 67.1772,
+          "soft": {
+            "coverage": 0.925,
+            "points": 19.5,
+            "resolved": 37,
+            "score": 52.7027,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "35091c75fca7012121185fa9f6283abb34ba76e383afe822e80229a2cbc0c7c2",
+      "model_family": "minimax",
+      "model_id": "minimax/minimax-m3",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.12064384,
+        "elapsed_seconds": 693.82,
+        "total_tokens": 161035
+      },
+      "zh_en_score": 68.7373
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 0.925,
+            "points": 30,
+            "resolved": 37,
+            "score": 81.0811,
+            "total": 40
+          },
+          "score": 58.1467,
+          "soft": {
+            "coverage": 0.875,
+            "points": 15.0,
+            "resolved": 35,
+            "score": 42.8571,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 0.861111,
+            "points": 27,
+            "resolved": 31,
+            "score": 87.0968,
+            "total": 36
+          },
+          "score": 55.365,
+          "soft": {
+            "coverage": 0.95,
+            "points": 13.0,
+            "resolved": 38,
+            "score": 34.2105,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "96c760e1919ebc634a6b83e4e5f78b1f267d4cce9b1656f1013a91e4bcc563f9",
+      "model_family": "openai-gpt",
+      "model_id": "openai/gpt-5.6-luna",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.09616254,
+        "elapsed_seconds": 858.454,
+        "total_tokens": 112453
+      },
+      "zh_en_score": 56.7559
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 33,
+            "resolved": 40,
+            "score": 82.5,
+            "total": 40
+          },
+          "score": 52.4118,
+          "soft": {
+            "coverage": 0.85,
+            "points": 11.0,
+            "resolved": 34,
+            "score": 32.3529,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 30,
+            "resolved": 36,
+            "score": 83.3333,
+            "total": 36
+          },
+          "score": 61.0833,
+          "soft": {
+            "coverage": 1.0,
+            "points": 18.5,
+            "resolved": 40,
+            "score": 46.25,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "c59494c4fc408a06e2cee89a3d17cecdf40ef5e0d338bf3d82fe3e859db9f846",
+      "model_family": "alibaba-qwen",
+      "model_id": "qwen/qwen3.8-27b",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.2223813,
+        "elapsed_seconds": 1619.331,
+        "total_tokens": 119582
+      },
+      "zh_en_score": 56.7476
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 0.9,
+            "points": 32,
+            "resolved": 36,
+            "score": 88.8889,
+            "total": 40
+          },
+          "score": 44.7863,
+          "soft": {
+            "coverage": 0.975,
+            "points": 6.0,
+            "resolved": 39,
+            "score": 15.3846,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 0.861111,
+            "points": 27,
+            "resolved": 31,
+            "score": 87.0968,
+            "total": 36
+          },
+          "score": 49.4541,
+          "soft": {
+            "coverage": 0.975,
+            "points": 9.5,
+            "resolved": 39,
+            "score": 24.359,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "c6d6c074943b505bb61559f43060baea04c92c92c76942ba351be51bee2c0534",
+      "model_family": "deepseek",
+      "model_id": "deepseek/deepseek-v4-flash-0731",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.01144104,
+        "elapsed_seconds": 4040.896,
+        "total_tokens": 140064
+      },
+      "zh_en_score": 47.1202
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 38,
+            "resolved": 40,
+            "score": 95.0,
+            "total": 40
+          },
+          "score": 44.1538,
+          "soft": {
+            "coverage": 0.975,
+            "points": 4.0,
+            "resolved": 39,
+            "score": 10.2564,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 27,
+            "resolved": 36,
+            "score": 75.0,
+            "total": 36
+          },
+          "score": 37.6923,
+          "soft": {
+            "coverage": 0.975,
+            "points": 5.0,
+            "resolved": 39,
+            "score": 12.8205,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "e9cfbe5c874d8c497142559e8a84b1968c2452a5b70a655ac9165b1c6883f32d",
+      "model_family": "xiaomi-mimo",
+      "model_id": "xiaomi/mimo-v2.5",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.07187734,
+        "elapsed_seconds": 5842.627,
+        "total_tokens": 142883
+      },
+      "zh_en_score": 40.9231
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 29,
+            "resolved": 40,
+            "score": 72.5,
+            "total": 40
+          },
+          "score": 36.5,
+          "soft": {
+            "coverage": 1.0,
+            "points": 5.0,
+            "resolved": 40,
+            "score": 12.5,
+            "total": 40
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 16,
+            "resolved": 36,
+            "score": 44.4444,
+            "total": 36
+          },
+          "score": 25.2778,
+          "soft": {
+            "coverage": 1.0,
+            "points": 5.0,
+            "resolved": 40,
+            "score": 12.5,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "144bd2291cb97f1873403bc69ad5ce9c7a55bd5692c6bf3b17a75023c6a27457",
+      "model_family": "upstage-solar",
+      "model_id": "upstage/solar-pro4",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.00300702,
+        "elapsed_seconds": 955.727,
+        "total_tokens": 55180
+      },
+      "zh_en_score": 30.8889
+    },
+    {
+      "directions": {
+        "en->zh-CN": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 11,
+            "resolved": 40,
+            "score": 27.5,
+            "total": 40
+          },
+          "score": 11.0,
+          "soft": {
+            "coverage": 1.0,
+            "points": 0.0,
+            "resolved": 37,
+            "score": 0.0,
+            "total": 37
+          }
+        },
+        "zh-CN->en": {
+          "hard": {
+            "coverage": 1.0,
+            "points": 20,
+            "resolved": 36,
+            "score": 55.5556,
+            "total": 36
+          },
+          "score": 25.2991,
+          "soft": {
+            "coverage": 0.975,
+            "points": 2.0,
+            "resolved": 39,
+            "score": 5.1282,
+            "total": 40
+          }
+        }
+      },
+      "execution_identity_sha256": "c5415394e317a78d394d1f16049700fce6d67ff0444c7a3da352bdc392d4bc9d",
+      "model_family": "nvidia-nemotron",
+      "model_id": "nvidia/nemotron-3.5-lightning",
+      "telemetry": {
+        "cost_rank_eligible": true,
+        "cost_usd": 0.0062488,
+        "elapsed_seconds": 357.543,
+        "total_tokens": 55628
+      },
+      "zh_en_score": 18.1495
+    }
+  ],
+  "protocol": "aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard",
+  "schema_version": 1,
+  "soft_case_count": 677,
+  "soft_resolved_count": 640,
+  "soft_unresolved_count": 37,
+  "status": "complete-preview"
+}

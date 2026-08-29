@@ -6,6 +6,8 @@ import type {
   V03ScoreMeasure,
 } from '../types/v03';
 import { V03_SCORE_KEYS } from '../types/v03';
+import { getVendorBrand } from '../data/vendorBrands';
+import { VendorLogo } from './VendorLogo';
 
 type Metric = 'cost' | 'elapsed' | 'tokens';
 
@@ -21,7 +23,7 @@ const SCORE_LABELS: Record<V03ScoreKey, string> = {
 const METRICS: Record<Metric, { title: string; value: (profile: V03Profile) => number | null; format: (value: number) => string }> = {
   cost: {
     title: 'Intelligence vs. observed cost',
-    value: (profile) => (profile.telemetry.rank_eligible ? profile.telemetry.cost_usd : null),
+    value: (profile) => (profile.telemetry.cost.rank_eligible ? profile.telemetry.cost.observed_usd : null),
     format: (value) => `$${value.toFixed(3)}`,
   },
   elapsed: {
@@ -36,18 +38,8 @@ const METRICS: Record<Metric, { title: string; value: (profile: V03Profile) => n
   },
 };
 
-const FAMILY_COLORS: Record<string, string> = {
-  gemini: 'var(--vendor-gemini)',
-  openai: 'var(--vendor-openai)',
-  qwen: 'var(--vendor-qwen)',
-  deepseek: 'var(--vendor-deepseek)',
-  nvidia: 'var(--vendor-nvidia)',
-  tencent: 'var(--vendor-tencent)',
-  local: 'var(--vendor-local)',
-};
-
 function modelName(profile: V03Profile): string {
-  return profile.recipe.requested_model || profile.execution_identity_sha256.slice(0, 12);
+  return profile.label;
 }
 
 function score(value: number | null): string {
@@ -61,13 +53,11 @@ function percent(value: number | null): string {
 }
 
 function colorForProfile(profile: V03Profile): string {
-  const family = (profile.recipe.model_family || profile.recipe.provider || '').toLowerCase();
-  const token = Object.entries(FAMILY_COLORS).find(([key]) => family.includes(key));
-  return token ? token[1] : 'var(--vendor-neutral)';
+  return getVendorBrand(profile.model_family, profile.model_id, profile.label, profile.provider).color;
 }
 
-function measureStatus(measure: V03ScoreMeasure): string {
-  return `${percent(measure.coverage)} coverage · ${percent(measure.judge_agreement)} agreement · ${measure.unresolved_signals ?? 'unmeasured'} unresolved`;
+function measureStatus(profile: V03Profile, measure: V03ScoreMeasure): string {
+  return `${percent(measure.coverage)} coverage · ${percent(profile.evidence_summary.soft.judge_agreement)} agreement · ${profile.evidence_summary.soft.unresolved} unresolved`;
 }
 
 function FrontierScatter({
@@ -109,7 +99,7 @@ function FrontierScatter({
         <line x1="38" y1="28" x2="38" y2="178" stroke="var(--border-medium)" />
         {points.map((point) => {
           const color = colorForProfile(point.profile);
-          const id = point.profile.execution_identity_sha256;
+          const id = point.profile.profile_id;
           const isPareto = paretoMembers.has(id);
           return (
             <g key={id}>
@@ -135,8 +125,7 @@ export function V03Leaderboard({ artifact }: { artifact: V03LeaderboardArtifact 
     (left, right) => (right.scores[activeScore].score ?? -1) - (left.scores[activeScore].score ?? -1),
   ), [artifact.profiles, activeScore]);
 
-  const anchorSet = useMemo(() => new Set(artifact.anchors), [artifact.anchors]);
-  const watchSet = useMemo(() => new Set(artifact.watchlist), [artifact.watchlist]);
+  const anchorSet = useMemo(() => new Set(artifact.anchors.map((anchor) => anchor.profile_id).filter((id): id is string => id !== null)), [artifact.anchors]);
 
   const paretoByMetric = useMemo(() => {
     const byMetric: Record<Metric, Set<string>> = {
@@ -149,8 +138,8 @@ export function V03Leaderboard({ artifact }: { artifact: V03LeaderboardArtifact 
       const normalized = key.toLowerCase();
       if (normalized.includes('cost')) {
         for (const id of members) {
-          const profile = artifact.profiles.find((entry) => entry.execution_identity_sha256 === id);
-          if (profile?.telemetry.rank_eligible !== false) byMetric.cost.add(id);
+          const profile = artifact.profiles.find((entry) => entry.profile_id === id);
+          if (profile?.telemetry.cost.rank_eligible !== false) byMetric.cost.add(id);
         }
       }
       if (normalized.includes('elapsed') || normalized.includes('latency') || normalized.includes('time')) {
@@ -199,7 +188,7 @@ export function V03Leaderboard({ artifact }: { artifact: V03LeaderboardArtifact 
           </thead>
           <tbody>
             {ranked.map((profile) => {
-              const identity = profile.execution_identity_sha256;
+              const identity = profile.profile_id;
               const activeMeasure = profile.scores[activeScore];
               const rankVisible = artifact.status === 'complete' && profile.profile_status === 'complete';
               const color = colorForProfile(profile);
@@ -210,27 +199,26 @@ export function V03Leaderboard({ artifact }: { artifact: V03LeaderboardArtifact 
                   </td>
                   <td style={{ padding: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                      <VendorLogo signals={[profile.model_family, profile.model_id, profile.label, profile.provider]} />
                       <strong>{modelName(profile)}</strong>
                     </div>
                     <small style={{ color: 'var(--text-secondary)' }}>
-                      {profile.recipe.model_family || 'unknown family'} · {profile.recipe.reasoning_effort || 'unspecified'}
+                      {profile.model_family} · {profile.reasoning_effort || 'unspecified'}
                     </small>
                   </td>
                   <td style={{ padding: 10 }}>
                     <span className="mono">{score(activeMeasure.score)}</span>
                   </td>
-                  <td style={{ padding: 10, color: 'var(--text-secondary)', fontSize: 12 }}>{measureStatus(activeMeasure)}</td>
+                  <td style={{ padding: 10, color: 'var(--text-secondary)', fontSize: 12 }}>{measureStatus(profile, activeMeasure)}</td>
                   <td style={{ padding: 10 }}>
-                    {profile.telemetry.cost_usd === null ? 'Unmeasured' : `$${profile.telemetry.cost_usd.toFixed(3)}`}
-                    {profile.telemetry.rank_eligible ? '' : <span style={{ color: 'var(--text-muted)' }}> (ineligible)</span>}
+                    {profile.telemetry.cost.observed_usd === null ? 'Unmeasured' : `$${profile.telemetry.cost.observed_usd.toFixed(3)}`}
+                    {profile.telemetry.cost.rank_eligible ? '' : <span style={{ color: 'var(--text-muted)' }}> (ineligible)</span>}
                   </td>
                   <td style={{ padding: 10 }}>{profile.telemetry.elapsed_seconds === null ? 'Unmeasured' : `${profile.telemetry.elapsed_seconds.toFixed(1)}s`}</td>
                   <td style={{ padding: 10 }}>{profile.telemetry.tokens.total === null ? 'Unmeasured' : profile.telemetry.tokens.total.toLocaleString()}</td>
                   <td style={{ padding: 10 }}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {anchorSet.has(identity) && <span className="badge badge-provider" style={{ borderColor: color, color }}>Anchor</span>}
-                      {watchSet.has(identity) && <span className="badge badge-provider" style={{ borderColor: color, color }}>Watchlist</span>}
                       {paretoByMetric.cost.has(identity) && <span className="badge badge-neutral">Cost Pareto</span>}
                       {paretoByMetric.elapsed.has(identity) && <span className="badge badge-neutral">Time Pareto</span>}
                       {paretoByMetric.tokens.has(identity) && <span className="badge badge-neutral">Token Pareto</span>}
@@ -252,13 +240,22 @@ export function V03Leaderboard({ artifact }: { artifact: V03LeaderboardArtifact 
       <details className="v03-panel" style={{ padding: '14px 16px' }}>
         <summary style={{ cursor: 'pointer', fontWeight: 700 }}>Technical details (fixed conditions)</summary>
         <div style={{ marginTop: 12, color: 'var(--text-secondary)', display: 'grid', gap: 8 }}>
-          <div><strong style={{ color: 'var(--text-primary)' }}>Fixed recipe:</strong> {artifact.technical_details.fixed_recipe}</div>
-          <div><strong style={{ color: 'var(--text-primary)' }}>Provenance:</strong> {artifact.technical_details.provenance}</div>
-          <div><strong style={{ color: 'var(--text-primary)' }}>Validator:</strong> {artifact.technical_details.validator}</div>
-          <div><strong style={{ color: 'var(--text-primary)' }}>Judge panel:</strong> {artifact.technical_details.judge_panel}</div>
-          <div><strong style={{ color: 'var(--text-primary)' }}>Contract:</strong> {artifact.technical_details.contract}</div>
+          <div><strong style={{ color: 'var(--text-primary)' }}>Artifact:</strong> {artifact.artifact_id}</div>
+          <div><strong style={{ color: 'var(--text-primary)' }}>Exam SHA:</strong> {artifact.exam.sha256 ?? 'Not published'}</div>
+          <div><strong style={{ color: 'var(--text-primary)' }}>Direction weighting:</strong> {artifact.topology.direction_weighting}</div>
+          <div><strong style={{ color: 'var(--text-primary)' }}>Judge panel:</strong> {artifact.judge_panel.map((judge) => `${judge.model_id} (${judge.qualification.status})`).join(' + ')}</div>
+          <div><strong style={{ color: 'var(--text-primary)' }}>Contract:</strong> schema {artifact.schema_version} · {artifact.protocol} · {artifact.score_version}</div>
         </div>
       </details>
+
+      {artifact.watchlist.length > 0 && (
+        <div className="v03-panel" style={{ padding: '14px 16px', marginTop: 12 }}>
+          <strong>Watchlist</strong>
+          <p style={{ color: 'var(--text-secondary)', marginTop: 6 }}>
+            {artifact.watchlist.map((entry) => `${entry.label} (${entry.status})`).join(' · ')}
+          </p>
+        </div>
+      )}
     </section>
   );
 }
