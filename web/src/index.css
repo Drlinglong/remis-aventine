@@ -343,6 +343,20 @@ body {
   outline-offset: 3px;
 }
 
+.header-actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.model-search { position: relative; display: flex; align-items: center; gap: 7px; width: clamp(156px, 19vw, 240px); height: 34px; padding: 0 11px; color: var(--text-muted); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-full); }
+.model-search:focus-within { border-color: var(--brand-gold); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-gold) 18%, transparent); }
+.model-search input { width: 100%; min-width: 0; padding: 0; color: var(--text-primary); background: transparent; border: 0; outline: 0; font-size: 11px; }
+.model-search input::placeholder { color: var(--text-muted); }
+.model-search input::-webkit-search-cancel-button { opacity: .55; }
+.model-search-results { position: absolute; z-index: 150; top: calc(100% + 9px); right: 0; width: min(360px, calc(100vw - 32px)); padding: 6px; background: var(--bg-card); border: 1px solid var(--border-medium); border-radius: var(--radius-sm); box-shadow: var(--shadow-xl); }
+.model-search-results a { display: flex; align-items: center; gap: 10px; padding: 9px; color: var(--text-primary); border-radius: 7px; text-decoration: none; }
+.model-search-results a:hover, .model-search-results a:focus-visible { background: var(--bg-card-elevated); outline: none; }
+.model-search-results a > span { display: flex; min-width: 0; flex-direction: column; }
+.model-search-results strong { font-size: 12px; }
+.model-search-results small { overflow: hidden; color: var(--text-muted); font-family: var(--font-mono); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.model-search-results p { padding: 12px; color: var(--text-muted); font-size: 11px; }
+
 .hero-editorial {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.85fr);
@@ -885,6 +899,11 @@ body {
     height: 34px;
   }
 
+  .language-picker { padding: 0 6px; }
+  .language-picker select { width: 44px; }
+  .model-search { width: min(34vw, 150px); }
+  .header-github { display: none !important; }
+
   .hero-editorial {
     padding-top: 38px;
   }
@@ -920,6 +939,12 @@ body {
   .preview-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+@media (max-width: 430px) {
+  .header-brand-logo { width: 96px; }
+  .language-picker { display: none; }
+  .model-search { width: 150px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

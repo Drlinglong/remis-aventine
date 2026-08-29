@@ -1,12 +1,17 @@
-import React from 'react';
-import { Sun, Moon, Languages } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Sun, Moon, Languages, Search } from 'lucide-react';
+import { modelDetailHref } from '../data/modelDetailUrl';
+import { zhEnProfileName } from '../data/zhEnProfileName';
 import { LOCALES, useI18n, type Locale } from '../i18n/I18nProvider';
+import type { ZhEnPreviewProfile } from '../types/zhEnPreview';
+import { VendorLogo } from './VendorLogo';
 
 interface HeaderProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  profiles: ZhEnPreviewProfile[];
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -14,8 +19,17 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectTab,
   isDark,
   onToggleTheme,
+  profiles,
 }) => {
   const { locale, setLocale, t } = useI18n();
+  const [query, setQuery] = useState('');
+  const matches = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return [];
+    return profiles.filter((profile) => (
+      `${zhEnProfileName(profile)} ${profile.model_id} ${profile.model_family}`.toLowerCase().includes(needle)
+    )).slice(0, 8);
+  }, [profiles, query]);
   const navItems = [
     { id: 'leaderboard', label: t('nav.overview') },
     { id: 'results', label: t('nav.results') },
@@ -98,28 +112,45 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
 
         {/* Right Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="header-actions">
           <label className="language-picker" title={t('nav.language')}>
             <Languages size={14} aria-hidden="true" />
             <select aria-label={t('nav.language')} value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>
               {LOCALES.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
             </select>
           </label>
-          {/* Published scope badge */}
-          <span
-            style={{
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-full)',
-              backgroundColor: 'color-mix(in srgb, var(--brand-purple) 18%, transparent)',
-              color: 'var(--brand-purple)',
-              fontSize: '12px',
-              fontWeight: 700,
-              display: 'none',
-            }}
-            className="lg:inline-flex"
-          >
-            {t('benchmark.scope')}
-          </span>
+          <div className="model-search">
+            <Search size={14} aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => { if (event.key === 'Escape') setQuery(''); }}
+              placeholder={t('search.placeholder')}
+              aria-label={t('search.label')}
+              aria-expanded={Boolean(query)}
+              aria-controls="model-search-results"
+            />
+            {query && (
+              <div className="model-search-results" id="model-search-results" role="listbox">
+                {matches.length > 0 ? matches.map((profile) => {
+                  const name = zhEnProfileName(profile);
+                  return (
+                    <a
+                      key={profile.execution_identity_sha256}
+                      href={modelDetailHref(profile.model_id, locale)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      role="option"
+                    >
+                      <VendorLogo signals={[profile.model_family, profile.model_id]} size={24} fallback={name} />
+                      <span><strong>{name}</strong><small>{profile.model_id}</small></span>
+                    </a>
+                  );
+                }) : <p>{t('search.empty')}</p>}
+              </div>
+            )}
+          </div>
 
           {/* Theme Toggle */}
           <button
@@ -143,6 +174,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* GitHub Link */}
           <a
+            className="header-github"
             href="https://github.com/Drlinglong/remis-aventine"
             target="_blank"
             rel="noopener noreferrer"

@@ -11,6 +11,7 @@ export type Locale = (typeof LOCALES)[number]['code'];
 const en = {
   'nav.overview': 'Overview', 'nav.results': 'ZH–EN Results', 'nav.arena': '9×9 Arena', 'nav.methodology': 'Methodology', 'nav.changelog': 'Changelog', 'nav.language': 'Language',
   'a11y.theme': 'Toggle theme', 'a11y.github': 'GitHub Repository', 'a11y.closeManifest': 'Close recipe manifest',
+  'search.placeholder': 'Search models', 'search.label': 'Search evaluated models', 'search.empty': 'No evaluated model found.',
   'common.published': 'Published', 'common.top9': 'Top 9', 'common.score': 'Score', 'common.minutes': '{value} min', 'common.notMeasured': 'Not measured',
   'hero.kicker': 'Aventine · AI-native translation benchmark', 'hero.titleBefore': 'Toward a world ', 'hero.titleEm': 'without language barriers', 'hero.period': '.',
   'hero.vision': 'Aventine is the AI-native translation leaderboard. We benchmark complete translation recipes — model, prompt, glossary, validation, repair — because knowing how to make AI translate best means measuring the whole system, not just the model.',
@@ -70,6 +71,7 @@ type TranslationKey = keyof typeof en;
 const zh: Record<TranslationKey, string> = {
   'nav.overview': '概览', 'nav.results': '中英结果', 'nav.arena': '9×9 对战矩阵', 'nav.methodology': '方法论', 'nav.changelog': '更新日志', 'nav.language': '语言',
   'a11y.theme': '切换明暗主题', 'a11y.github': 'GitHub 代码仓库', 'a11y.closeManifest': '关闭翻译配方清单',
+  'search.placeholder': '搜索模型', 'search.label': '搜索已评测模型', 'search.empty': '没有找到已评测模型。',
   'common.published': '已发布', 'common.top9': '前 9 名', 'common.score': '得分', 'common.minutes': '{value} 分钟', 'common.notMeasured': '未测量',
   'hero.kicker': 'Aventine · AI 原生翻译基准', 'hero.titleBefore': '迈向一个', 'hero.titleEm': '没有语言壁垒的世界', 'hero.period': '。',
   'hero.vision': 'Aventine 是面向 AI 原生翻译的排行榜。我们评测完整的翻译配方——模型、提示词、术语表、校验与修复——因为要知道怎样让 AI 翻译得最好，就必须衡量整个系统，而不只是模型本身。',

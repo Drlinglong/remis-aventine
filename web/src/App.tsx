@@ -64,6 +64,7 @@ export const App = () => {
         onSelectTab={selectTab}
         isDark={isDark}
         onToggleTheme={() => setIsDark((current) => !current)}
+        profiles={result?.profiles ?? []}
       />
 
       <main className="container" style={{ flex: 1 }}>
