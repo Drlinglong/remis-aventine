@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://drlinglong.github.io/remis-aventine/schemas/v03-zh-en-public-result.schema.json",
+  "title": "Aventine v0.3 ZH-EN Published Result Slice",
+  "description": "Strict public contract for the published zh-CN to en and en to zh-CN result slice. This is distinct from the 18-direction multilingual tournament contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "artifact_id",
+    "protocol",
+    "score_version",
+    "status",
+    "source_commit",
+    "direction_count",
+    "contestant_count",
+    "judge_cost_usd",
+    "soft_case_count",
+    "soft_resolved_count",
+    "soft_unresolved_count",
+    "profiles"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://drlinglong.github.io/remis-aventine/schemas/v03-zh-en-public-result.schema.json"
+    },
+    "schema_version": { "const": 1 },
+    "artifact_id": { "const": "v0.3-zh-en-results" },
+    "protocol": { "const": "aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard" },
+    "score_version": { "const": "v0.3-zh-en-60soft-40hard" },
+    "status": { "const": "published-partial" },
+    "source_commit": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+    "direction_count": { "const": 2 },
+    "contestant_count": { "type": "integer", "minimum": 1 },
+    "judge_cost_usd": { "type": "number", "minimum": 0 },
+    "soft_case_count": { "type": "integer", "minimum": 0 },
+    "soft_resolved_count": { "type": "integer", "minimum": 0 },
+    "soft_unresolved_count": { "type": "integer", "minimum": 0 },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/profile" }
+    }
+  },
+  "$defs": {
+    "measure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverage", "points", "resolved", "score", "total"],
+      "properties": {
+        "coverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "points": { "type": "number", "minimum": 0 },
+        "resolved": { "type": "integer", "minimum": 0 },
+        "score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "total": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "direction_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["soft", "hard", "score"],
+      "properties": {
+        "soft": { "$ref": "#/$defs/measure" },
+        "hard": { "$ref": "#/$defs/measure" },
+        "score": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "directions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zh-CN->en", "en->zh-CN"],
+      "properties": {
+        "zh-CN->en": { "$ref": "#/$defs/direction_result" },
+        "en->zh-CN": { "$ref": "#/$defs/direction_result" }
+      }
+    },
+    "verified_cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amount",
+        "currency",
+        "cny_per_usd",
+        "converted_on",
+        "observed_date",
+        "rate_date",
+        "rate_source",
+        "source"
+      ],
+      "properties": {
+        "amount": { "type": "number", "minimum": 0 },
+        "currency": { "const": "CNY" },
+        "cny_per_usd": { "type": "number", "exclusiveMinimum": 0 },
+        "converted_on": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "observed_date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "rate_date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "rate_source": { "const": "CFETS central parity" },
+        "source": { "const": "provider-dashboard" }
+      }
+    },
+    "telemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cost_rank_eligible", "cost_usd", "elapsed_seconds", "total_tokens"],
+      "properties": {
+        "cost_rank_eligible": { "type": "boolean" },
+        "cost_usd": { "type": ["number", "null"], "minimum": 0 },
+        "elapsed_seconds": { "type": "number", "minimum": 0 },
+        "total_tokens": { "type": "integer", "minimum": 0 },
+        "verified_cost": { "$ref": "#/$defs/verified_cost" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "cost_rank_eligible": { "const": true } }, "required": ["cost_rank_eligible"] },
+          "then": { "properties": { "cost_usd": { "type": "number" } } }
+        }
+      ]
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "execution_identity_sha256",
+        "model_family",
+        "model_id",
+        "zh_en_score",
+        "directions",
+        "telemetry"
+      ],
+      "properties": {
+        "execution_identity_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "model_family": { "type": "string", "minLength": 1 },
+        "model_id": { "type": "string", "minLength": 1 },
+        "zh_en_score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "directions": { "$ref": "#/$defs/directions" },
+        "telemetry": { "$ref": "#/$defs/telemetry" }
+      }
+    }
+  }
+}

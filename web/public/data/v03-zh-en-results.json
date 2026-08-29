@@ -1,4 +1,6 @@
 {
+  "$schema": "https://drlinglong.github.io/remis-aventine/schemas/v03-zh-en-public-result.schema.json",
+  "artifact_id": "v0.3-zh-en-results",
   "contestant_count": 17,
   "direction_count": 2,
   "judge_cost_usd": 6.30487791,
@@ -832,6 +834,7 @@
   ],
   "protocol": "aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard",
   "schema_version": 1,
+  "score_version": "v0.3-zh-en-60soft-40hard",
   "source_commit": "c734ac4",
   "soft_case_count": 677,
   "soft_resolved_count": 640,

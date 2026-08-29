@@ -39,12 +39,15 @@ export interface ZhEnPreviewProfile {
 }
 
 export interface ZhEnPreviewArtifact {
+  $schema: 'https://drlinglong.github.io/remis-aventine/schemas/v03-zh-en-public-result.schema.json';
+  artifact_id: 'v0.3-zh-en-results';
   contestant_count: number;
   direction_count: 2;
   judge_cost_usd: number;
   profiles: ZhEnPreviewProfile[];
-  protocol: string;
+  protocol: 'aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard';
   schema_version: 1;
+  score_version: 'v0.3-zh-en-60soft-40hard';
   source_commit: string;
   soft_case_count: number;
   soft_resolved_count: number;

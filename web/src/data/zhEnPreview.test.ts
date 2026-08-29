@@ -10,12 +10,15 @@ describe('ZH-EN published result artifact', () => {
     const ranked = [...result.profiles].sort((left, right) => right.zh_en_score - left.zh_en_score);
 
     expect(result).toMatchObject({
+      $schema: 'https://drlinglong.github.io/remis-aventine/schemas/v03-zh-en-public-result.schema.json',
+      artifact_id: 'v0.3-zh-en-results',
       contestant_count: 17,
       direction_count: 2,
       soft_case_count: 677,
       soft_resolved_count: 640,
       soft_unresolved_count: 37,
       source_commit: 'c734ac4',
+      score_version: 'v0.3-zh-en-60soft-40hard',
       status: 'published-partial',
     });
     expect(ranked[0]).toMatchObject({ model_id: 'openai/gpt-5.6-sol-pro', zh_en_score: 91.1842 });
@@ -33,6 +36,12 @@ describe('ZH-EN published result artifact', () => {
         source: 'provider-dashboard',
       },
     });
+  });
+
+  it('rejects a result that does not declare the published slice contract', () => {
+    const withoutSchema = structuredClone(fixture) as Record<string, unknown>;
+    delete withoutSchema.$schema;
+    expect(() => parseZhEnPreview(withoutSchema)).toThrow('must be a non-empty string');
   });
 
   it('contains no exam text, source text, candidate output, or judge rationale', () => {

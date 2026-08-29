@@ -101,7 +101,16 @@ function profile(value: unknown, index: number): ZhEnPreviewProfile {
 
 export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
   const source = object(value, 'ZH-EN results');
+  const schema = text(source.$schema, '$schema');
+  if (schema !== 'https://drlinglong.github.io/remis-aventine/schemas/v03-zh-en-public-result.schema.json') {
+    throw new Error('ZH-EN results must declare the v0.3 ZH-EN public result schema');
+  }
   if (source.schema_version !== 1) throw new Error('ZH-EN results schema_version must be 1');
+  if (source.artifact_id !== 'v0.3-zh-en-results') throw new Error('ZH-EN results artifact_id must be v0.3-zh-en-results');
+  if (source.protocol !== 'aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard') {
+    throw new Error('ZH-EN results protocol is unsupported');
+  }
+  if (source.score_version !== 'v0.3-zh-en-60soft-40hard') throw new Error('ZH-EN results score_version is unsupported');
   if (source.status !== 'published-partial') throw new Error('ZH-EN results must have status published-partial');
   if (source.direction_count !== 2) throw new Error('ZH-EN results must contain exactly two directions');
   if (!Array.isArray(source.profiles)) throw new Error('ZH-EN results profiles must be an array');
@@ -110,12 +119,15 @@ export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
   if (profiles.length !== contestantCount) throw new Error('contestant_count does not match profiles length');
 
   return {
+    $schema: schema,
+    artifact_id: 'v0.3-zh-en-results',
     contestant_count: contestantCount,
     direction_count: 2,
     judge_cost_usd: finite(source.judge_cost_usd, 'judge_cost_usd'),
     profiles,
-    protocol: text(source.protocol, 'protocol'),
+    protocol: 'aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard',
     schema_version: 1,
+    score_version: 'v0.3-zh-en-60soft-40hard',
     source_commit: text(source.source_commit, 'source_commit'),
     soft_case_count: integer(source.soft_case_count, 'soft_case_count'),
     soft_resolved_count: integer(source.soft_resolved_count, 'soft_resolved_count'),

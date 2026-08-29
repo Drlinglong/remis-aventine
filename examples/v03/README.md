@@ -21,3 +21,21 @@
 
 正式网站文件建议放在 `web/public/data/v03-public-result.json`。结构约束位于
 `src/remis_aventine/schemas/v03-public-result.schema.json`。
+
+## 已发布的中英结果切片
+
+当前 `2/18` 正式成果使用独立的紧凑契约：
+
+- artifact：`web/public/data/v03-zh-en-results.json`
+- protocol：`aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard`
+- schema：`src/remis_aventine/schemas/v03-zh-en-public-result.schema.json`
+
+该文件是已经完成的 `zh-CN->en` 与 `en->zh-CN` 结果切片，不是
+`aventine-multilingual-tournament-v0.3` 完整 18 方向 artifact 的第二种形状。它保留扁平的
+`telemetry.cost_usd`、`elapsed_seconds` 和 `total_tokens`，并通过自己的严格 JSON Schema
+正式描述。完整锦标赛契约仍由 `v03-public-result.schema.json` 独立约束；不得使用
+`oneOf` 将两种协议混为同一个宽松契约。
+
+中英切片不声明季度 `anchors`，也不伪造尚未发布的完整 `judge_panel`。当前网站的
+质量—成本、质量—耗时和质量—Token 前沿属于对已发布切片的确定性派生视图。将来发布
+18/18 结果时，网站应切换到完整契约中预计算的 `pareto_frontiers`。
