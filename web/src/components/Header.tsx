@@ -1,12 +1,11 @@
 import React from 'react';
-import { Search, Sun, Moon } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
   isDark: boolean;
   onToggleTheme: () => void;
-  onOpenSearch: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -14,16 +13,10 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectTab,
   isDark,
   onToggleTheme,
-  onOpenSearch,
 }) => {
   const navItems = [
     { id: 'leaderboard', label: 'Overview' },
-    { id: 'multilingual', label: 'ZH–EN Preview' },
-    { id: 'charts', label: 'Frontier Charts' },
-    { id: 'arena', label: '9x9 Arena' },
-    { id: 'calibration', label: 'Evidence' },
-    { id: 'changelog', label: 'Changelog' },
-    { id: 'methodology', label: 'Methodology' },
+    { id: 'results', label: 'ZH–EN Results' },
   ];
 
   return (
@@ -118,37 +111,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             ZH–EN v0.3
           </span>
-
-          {/* Search Trigger */}
-          <button
-            onClick={onOpenSearch}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-full)',
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-muted)',
-              fontSize: '12px',
-              cursor: 'pointer',
-            }}
-          >
-            <Search size={13} />
-            <kbd
-              style={{
-                fontSize: '10px',
-                padding: '1px 4px',
-                backgroundColor: 'var(--bg-card-elevated)',
-                border: '1px solid var(--border-medium)',
-                borderRadius: '3px',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              ⌘K
-            </kbd>
-          </button>
 
           {/* Theme Toggle */}
           <button

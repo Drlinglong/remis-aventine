@@ -236,10 +236,20 @@
       "model_family": "deepseek",
       "model_id": "deepseek/deepseek-v4-pro-0813",
       "telemetry": {
-        "cost_rank_eligible": false,
-        "cost_usd": null,
+        "cost_rank_eligible": true,
+        "cost_usd": 0.70195101,
         "elapsed_seconds": 5132.861,
-        "total_tokens": 328730
+        "total_tokens": 328730,
+        "verified_cost": {
+          "amount": 4.76,
+          "currency": "CNY",
+          "cny_per_usd": 6.7811,
+          "converted_on": "2026-08-30",
+          "observed_date": "2026-08-29",
+          "rate_date": "2026-08-28",
+          "rate_source": "CFETS central parity",
+          "source": "provider-dashboard"
+        }
       },
       "zh_en_score": 77.7766
     },
@@ -822,8 +832,9 @@
   ],
   "protocol": "aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard",
   "schema_version": 1,
+  "source_commit": "c734ac4",
   "soft_case_count": 677,
   "soft_resolved_count": 640,
   "soft_unresolved_count": 37,
-  "status": "complete-preview"
+  "status": "published-partial"
 }

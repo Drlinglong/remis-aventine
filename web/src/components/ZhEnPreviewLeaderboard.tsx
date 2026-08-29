@@ -1,5 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { getVendorBrand } from '../data/vendorBrands';
+import { zhEnProfileName } from '../data/zhEnProfileName';
 import type { ZhEnDirection, ZhEnMeasure, ZhEnPreviewArtifact, ZhEnPreviewProfile } from '../types/zhEnPreview';
 import { VendorLogo } from './VendorLogo';
 
@@ -10,30 +11,6 @@ const VIEW_LABELS: Record<View, string> = {
   'zh-CN->en': '中文 → English',
   'en->zh-CN': 'English → 中文',
 };
-
-const DISPLAY_NAMES: Record<string, string> = {
-  'openai/gpt-5.6-sol-pro': 'GPT-5.6 Sol Pro',
-  'qwen/qwen3.8-max': 'Qwen 3.8 Max',
-  'meituan/longcat-2.0': 'LongCat 2.0',
-  'google/gemini-3.7-flash': 'Gemini 3.7 Flash',
-  'deepseek/deepseek-v4-pro-0813': 'DeepSeek V4 Pro',
-  'moonshotai/kimi-k3': 'Kimi K3',
-  'openai/gpt-5.6-terra': 'GPT-5.6 Terra',
-  'x-ai/grok-4.6': 'Grok 4.6',
-  'tencent/hy3': 'HY3',
-  'meta/muse-spark-1.2': 'Muse Spark 1.2',
-  'minimax/minimax-m3': 'MiniMax M3',
-  'openai/gpt-5.6-luna': 'GPT-5.6 Luna',
-  'qwen/qwen3.8-27b': 'Qwen 3.8 27B',
-  'deepseek/deepseek-v4-flash-0731': 'DeepSeek V4 Flash',
-  'xiaomi/mimo-v2.5': 'MiMo V2.5',
-  'upstage/solar-pro4': 'Solar Pro 4',
-  'nvidia/nemotron-3.5-lightning': 'Nemotron 3.5 Lightning',
-};
-
-function name(profile: ZhEnPreviewProfile): string {
-  return DISPLAY_NAMES[profile.model_id] ?? profile.model_id.split('/').pop() ?? profile.model_id;
-}
 
 function aggregateMeasure(profile: ZhEnPreviewProfile, kind: 'soft' | 'hard'): ZhEnMeasure {
   const measures = Object.values(profile.directions).map((direction) => direction[kind]);
@@ -67,20 +44,20 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
 
   return (
     <section className="zh-en-preview" style={{ marginTop: 24, marginBottom: 44 }}>
-      <div className="section-title"><span>Live results · ZH–EN Core Preview</span></div>
+      <div className="section-title"><span>Published results · ZH–EN Core v0.3</span></div>
       <div className="preview-disclosure">
         <div>
-          <strong>Two measured directions, not the full 18-direction leaderboard.</strong>
+          <strong>Officially published scope: zh-CN→en and en→zh-CN.</strong>
           <p>Scores combine 60% sparse soft preference and 40% hard reliability. Unresolved judgments reduce coverage; they are not counted as failures.</p>
         </div>
-        <span className="badge badge-gold">PREVIEW · 2026-08-30</span>
+        <span className="badge badge-gold">PUBLISHED · 2026-08-30</span>
       </div>
 
       <div className="preview-kpis">
         <div className="v03-panel"><span>Contestants</span><strong>{artifact.contestant_count}</strong></div>
         <div className="v03-panel"><span>Directions completed</span><strong>{artifact.direction_count} / 18</strong></div>
         <div className="v03-panel"><span>Soft cases resolved</span><strong>{artifact.soft_resolved_count} / {artifact.soft_case_count}</strong><small>{(resolvedRate * 100).toFixed(1)}% coverage</small></div>
-        <div className="v03-panel"><span>Current leader</span><strong>{name(ranked[0])}</strong><small>{metric(ranked[0], view).score.toFixed(2)}</small></div>
+        <div className="v03-panel"><span>Current leader</span><strong>{zhEnProfileName(ranked[0])}</strong><small>{metric(ranked[0], view).score.toFixed(2)}</small></div>
       </div>
 
       <div className="tab-group preview-tabs">
@@ -107,8 +84,8 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
                   <td className="preview-rank">{index + 1}</td>
                   <td>
                     <div className="preview-model">
-                      <VendorLogo signals={[profile.model_family, profile.model_id]} fallback={name(profile)} />
-                      <div><strong>{name(profile)}</strong><small>{profile.model_id}</small></div>
+                      <VendorLogo signals={[profile.model_family, profile.model_id]} fallback={zhEnProfileName(profile)} />
+                      <div><strong>{zhEnProfileName(profile)}</strong><small>{profile.model_id}</small></div>
                     </div>
                   </td>
                   <td>
@@ -119,7 +96,15 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
                   <td>{percent(result.soft.score)}</td>
                   <td>{percent(result.hard.score)}</td>
                   <td><span>{result.soft.resolved}/{result.soft.total} soft</span><small>{result.hard.resolved}/{result.hard.total} hard</small></td>
-                  <td>{profile.telemetry.cost_rank_eligible && profile.telemetry.cost_usd !== null ? `$${profile.telemetry.cost_usd.toFixed(3)}` : 'Not rankable'}</td>
+                  <td>
+                    {profile.telemetry.cost_rank_eligible && profile.telemetry.cost_usd !== null
+                      ? profile.telemetry.verified_cost
+                        ? <><span>${profile.telemetry.cost_usd.toFixed(3)}</span><small style={{ display: 'block' }}>¥{profile.telemetry.verified_cost.amount.toFixed(2)} verified</small></>
+                        : `$${profile.telemetry.cost_usd.toFixed(3)}`
+                      : profile.telemetry.verified_cost
+                        ? <><span>¥{profile.telemetry.verified_cost.amount.toFixed(2)} CNY</span><small>provider verified</small></>
+                        : 'Not rankable'}
+                  </td>
                   <td>{(profile.telemetry.elapsed_seconds / 60).toFixed(1)} min</td>
                   <td>{profile.telemetry.total_tokens.toLocaleString()}</td>
                 </tr>
@@ -131,8 +116,9 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
 
       <div className="preview-footnote">
         <span>Protocol: <code>{artifact.protocol}</code></span>
+        <span>Source: <code>{artifact.source_commit}</code></span>
         <span>Judge cost: ${artifact.judge_cost_usd.toFixed(3)}</span>
-        <a href={`${import.meta.env.BASE_URL}data/v03-zh-en-preview.json`} target="_blank" rel="noreferrer">Download sanitized result JSON ↗</a>
+        <a href={`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`} target="_blank" rel="noreferrer">Download published result JSON ↗</a>
       </div>
     </section>
   );

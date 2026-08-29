@@ -61,6 +61,24 @@ function profile(value: unknown, index: number): ZhEnPreviewProfile {
   if (typeof telemetry.cost_rank_eligible !== 'boolean') {
     throw new Error(`${path}.telemetry.cost_rank_eligible must be a boolean`);
   }
+  const verifiedCostSource = telemetry.verified_cost === undefined
+    ? null
+    : object(telemetry.verified_cost, `${path}.telemetry.verified_cost`);
+  const verifiedCost = verifiedCostSource
+    ? {
+        amount: finite(verifiedCostSource.amount, `${path}.telemetry.verified_cost.amount`),
+        currency: text(verifiedCostSource.currency, `${path}.telemetry.verified_cost.currency`),
+        cny_per_usd: finite(verifiedCostSource.cny_per_usd, `${path}.telemetry.verified_cost.cny_per_usd`),
+        converted_on: text(verifiedCostSource.converted_on, `${path}.telemetry.verified_cost.converted_on`),
+        observed_date: text(verifiedCostSource.observed_date, `${path}.telemetry.verified_cost.observed_date`),
+        rate_date: text(verifiedCostSource.rate_date, `${path}.telemetry.verified_cost.rate_date`),
+        rate_source: text(verifiedCostSource.rate_source, `${path}.telemetry.verified_cost.rate_source`),
+        source: text(verifiedCostSource.source, `${path}.telemetry.verified_cost.source`),
+      }
+    : undefined;
+  if (verifiedCost && (verifiedCost.currency !== 'CNY' || verifiedCost.rate_source !== 'CFETS central parity' || verifiedCost.source !== 'provider-dashboard')) {
+    throw new Error(`${path}.telemetry.verified_cost has an unsupported currency or source`);
+  }
 
   return {
     directions: Object.fromEntries((['zh-CN->en', 'en->zh-CN'] as ZhEnDirection[]).map((key) => [
@@ -75,17 +93,18 @@ function profile(value: unknown, index: number): ZhEnPreviewProfile {
       cost_usd: cost,
       elapsed_seconds: finite(telemetry.elapsed_seconds, `${path}.telemetry.elapsed_seconds`),
       total_tokens: integer(telemetry.total_tokens, `${path}.telemetry.total_tokens`),
+      verified_cost: verifiedCost as ZhEnPreviewProfile['telemetry']['verified_cost'],
     },
     zh_en_score: finite(source.zh_en_score, `${path}.zh_en_score`),
   };
 }
 
 export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
-  const source = object(value, 'ZH-EN preview');
-  if (source.schema_version !== 1) throw new Error('ZH-EN preview schema_version must be 1');
-  if (source.status !== 'complete-preview') throw new Error('ZH-EN preview must have status complete-preview');
-  if (source.direction_count !== 2) throw new Error('ZH-EN preview must contain exactly two directions');
-  if (!Array.isArray(source.profiles)) throw new Error('ZH-EN preview profiles must be an array');
+  const source = object(value, 'ZH-EN results');
+  if (source.schema_version !== 1) throw new Error('ZH-EN results schema_version must be 1');
+  if (source.status !== 'published-partial') throw new Error('ZH-EN results must have status published-partial');
+  if (source.direction_count !== 2) throw new Error('ZH-EN results must contain exactly two directions');
+  if (!Array.isArray(source.profiles)) throw new Error('ZH-EN results profiles must be an array');
   const profiles = source.profiles.map(profile);
   const contestantCount = integer(source.contestant_count, 'contestant_count');
   if (profiles.length !== contestantCount) throw new Error('contestant_count does not match profiles length');
@@ -97,17 +116,18 @@ export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
     profiles,
     protocol: text(source.protocol, 'protocol'),
     schema_version: 1,
+    source_commit: text(source.source_commit, 'source_commit'),
     soft_case_count: integer(source.soft_case_count, 'soft_case_count'),
     soft_resolved_count: integer(source.soft_resolved_count, 'soft_resolved_count'),
     soft_unresolved_count: integer(source.soft_unresolved_count, 'soft_unresolved_count'),
-    status: 'complete-preview',
+    status: 'published-partial',
   };
 }
 
 export async function loadZhEnPreview(signal?: AbortSignal): Promise<ZhEnPreviewArtifact | null> {
-  const response = await fetch(`${import.meta.env.BASE_URL}data/v03-zh-en-preview.json`, { signal });
+  const response = await fetch(`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`, { signal });
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`ZH-EN preview request failed: ${response.status}`);
+  if (!response.ok) throw new Error(`ZH-EN results request failed: ${response.status}`);
   if ((response.headers.get('content-type') || '').includes('text/html')) return null;
   return parseZhEnPreview(await response.json());
 }
