@@ -14,6 +14,8 @@ from remis_aventine.judge import (
     JudgeRunError,
     OpenRouterGeminiHighJudge,
     OpenRouterGeminiJudge,
+    OpenRouterLunaJudge,
+    OpenRouterDeepSeekFlashJudge,
     OpenRouterJudge,
     XAIJudge,
     judge_from_environment,
@@ -622,6 +624,66 @@ def test_judge_from_environment_selects_openrouter_gemini_profiles(
     assert isinstance(judge, judge_type)
     assert judge.reasoning_effort == effort
     assert judge.api_key == "openrouter-test"
+
+
+@pytest.mark.parametrize(
+    ("provider", "judge_type", "model"),
+    [
+        ("openrouter-luna", OpenRouterLunaJudge, "openai/gpt-5.6-luna"),
+        (
+            "openrouter-deepseek-flash",
+            OpenRouterDeepSeekFlashJudge,
+            "deepseek/deepseek-v4-flash-0731",
+        ),
+    ],
+)
+def test_judge_from_environment_selects_v03_normal_route_panel(
+    tmp_path, monkeypatch, provider, judge_type, model
+) -> None:
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    env_path = tmp_path / ".env"
+    env_path.write_text("OPENROUTER_API_KEY=openrouter-test\n", encoding="utf-8")
+
+    judge = judge_from_environment(env_path, provider)
+
+    assert isinstance(judge, judge_type)
+    assert judge.model_id == model
+    assert judge.reasoning_effort == "high"
+    body = judge.request_body(_case())
+    assert body["model"] == model
+    assert body["reasoning"] == {"effort": "high", "exclude": True}
+    assert ":batch" not in body["model"]
+    if provider == "openrouter-luna":
+        assert "seed" not in body
+        assert "response_format" not in body
+
+
+def test_openrouter_luna_drops_non_contract_pairwise_dimensions() -> None:
+    evaluation = _evaluation(mode="pairwise", verdict="candidate_a")["evaluation"]
+    evaluation["dimensions"] = {
+        "candidate_a": {"semantic_accuracy": 90},
+        "candidate_b": {"semantic_accuracy": 80},
+    }
+
+    def opener(_request, **_kwargs):
+        payload = {
+            "choices": [{"message": {"content": json.dumps({"evaluation": evaluation})}}],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 10, "cost": 0.0001},
+        }
+        return _Response(json.dumps(payload).encode())
+
+    case = _case()
+    case["evaluation_mode"] = "pairwise"
+    case["input"] = {
+        "language_pair": "en-zh",
+        "source": "Hello",
+        "candidate_a": "你好",
+        "candidate_b": "您好",
+    }
+    result, _usage = OpenRouterLunaJudge("test-key", opener=opener).evaluate(case)
+
+    assert result["evaluation"]["verdict"] == "candidate_a"
+    assert "dimensions" not in result["evaluation"]
 
 
 def test_google_gemma_judge_uses_generate_content_schema_and_free_cost() -> None:

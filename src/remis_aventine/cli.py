@@ -269,6 +269,8 @@ def build_parser() -> argparse.ArgumentParser:
             "openrouter",
             "openrouter-gemini",
             "openrouter-gemini-high",
+            "openrouter-luna",
+            "openrouter-deepseek-flash",
         ),
         default="deepseek",
     )

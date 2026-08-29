@@ -62,6 +62,12 @@ OPENROUTER_GEMINI_PRICING_USD_PER_MILLION = {
     "cache_miss_input": 0.375,
     "output_including_reasoning": 1.875,
 }
+OPENROUTER_LUNA_MODEL_ID = "openai/gpt-5.6-luna"
+OPENROUTER_LUNA_PROFILE = "openrouter-gpt-5.6-luna-reasoning-high-structured-v2"
+OPENROUTER_LUNA_MAX_TOKENS = 8000
+OPENROUTER_DS_FLASH_MODEL_ID = "deepseek/deepseek-v4-flash-0731"
+OPENROUTER_DS_FLASH_PROFILE = "openrouter-deepseek-v4-flash-0731-reasoning-high-structured-v2"
+OPENROUTER_DS_FLASH_MAX_TOKENS = 8000
 
 
 FAILURE_TYPES = (
@@ -422,6 +428,11 @@ class DeepSeekJudge:
     def response_judge_metadata(self, response: dict[str, Any]) -> dict[str, str]:
         return {}
 
+    def normalize_evaluation(
+        self, evaluation: dict[str, Any], case: dict[str, Any]
+    ) -> dict[str, Any]:
+        return evaluation
+
     def cost_fields(self, usage: dict[str, int], prior_run: dict[str, Any]) -> dict[str, Any]:
         current = _cost(usage)
         prior = float(
@@ -484,7 +495,9 @@ class DeepSeekJudge:
             self._raise_if_truncated(response)
             content = self.extract_content(response)
             model_payload = json.loads(content)
-            evaluation = _without_nulls(model_payload["evaluation"])
+            evaluation = self.normalize_evaluation(
+                _without_nulls(model_payload["evaluation"]), case
+            )
             result = {
                 "schema_version": 1,
                 "case_id": case["id"],
@@ -877,6 +890,49 @@ class OpenRouterGeminiHighJudge(OpenRouterGeminiJudge):
 
     provider = "openrouter-gemini-high"
     profile = OPENROUTER_GEMINI_HIGH_PROFILE
+    reasoning_effort = "high"
+
+
+class OpenRouterLunaJudge(OpenRouterGeminiJudge):
+    """Primary v0.3 judge: Luna high over the normal OpenRouter endpoint."""
+
+    provider = "openrouter-luna"
+    provider_label = "OpenRouter GPT-5.6 Luna"
+    model_id = OPENROUTER_LUNA_MODEL_ID
+    canonical_model_id = OPENROUTER_LUNA_MODEL_ID
+    profile = OPENROUTER_LUNA_PROFILE
+    max_tokens = OPENROUTER_LUNA_MAX_TOKENS
+    reasoning_effort = "high"
+
+    def request_body(self, case: dict[str, Any]) -> dict[str, Any]:
+        body = super().request_body(case)
+        body.pop("seed", None)
+        # Luna's current OpenRouter route rejects response_format despite returning
+        # reliable JSON under the schema-explicit system prompt. The local validator
+        # remains the contract boundary.
+        body.pop("response_format", None)
+        return body
+
+    def normalize_evaluation(
+        self, evaluation: dict[str, Any], case: dict[str, Any]
+    ) -> dict[str, Any]:
+        # Without provider-side response_format Luna sometimes returns useful
+        # per-candidate dimension objects that the public scalar schema does not
+        # represent. Verdict/errors/rationale remain schema-bound evidence.
+        if _case_mode(case) == "pairwise":
+            evaluation.pop("dimensions", None)
+        return evaluation
+
+
+class OpenRouterDeepSeekFlashJudge(OpenRouterGeminiJudge):
+    """Low-cost third-family fallback over the normal OpenRouter endpoint."""
+
+    provider = "openrouter-deepseek-flash"
+    provider_label = "OpenRouter DeepSeek V4 Flash"
+    model_id = OPENROUTER_DS_FLASH_MODEL_ID
+    canonical_model_id = OPENROUTER_DS_FLASH_MODEL_ID
+    profile = OPENROUTER_DS_FLASH_PROFILE
+    max_tokens = OPENROUTER_DS_FLASH_MAX_TOKENS
     reasoning_effort = "high"
 
 
@@ -1525,6 +1581,11 @@ def judge_from_environment(
         "openrouter": ("OPENROUTER_API_KEY", OpenRouterJudge),
         "openrouter-gemini": ("OPENROUTER_API_KEY", OpenRouterGeminiJudge),
         "openrouter-gemini-high": ("OPENROUTER_API_KEY", OpenRouterGeminiHighJudge),
+        "openrouter-luna": ("OPENROUTER_API_KEY", OpenRouterLunaJudge),
+        "openrouter-deepseek-flash": (
+            "OPENROUTER_API_KEY",
+            OpenRouterDeepSeekFlashJudge,
+        ),
     }
     try:
         credential_name, client_type = clients[provider]
