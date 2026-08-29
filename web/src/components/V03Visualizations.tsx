@@ -39,14 +39,14 @@ function HighlightCard({ metric, profiles, onOpen }: { metric: HighlightMetric; 
     .slice(0, 9);
   const max = Math.max(...ranked.map((item) => item.value));
   const copy = {
-    score: { title: t('highlight.score'), subtitle: t('highlight.scoreSub'), color: 'var(--brand-purple)' },
-    throughput: { title: t('highlight.throughput'), subtitle: t('highlight.throughputSub'), color: 'var(--brand-emerald)' },
-    cost: { title: t('highlight.cost'), subtitle: t('highlight.costSub'), color: 'var(--brand-orange)' },
+    score: { title: t('highlight.score'), subtitle: t('highlight.scoreSub'), tooltip: undefined, color: 'var(--brand-purple)' },
+    throughput: { title: t('highlight.throughput'), subtitle: t('highlight.throughputSub'), tooltip: t('highlight.throughputDefinition'), color: 'var(--brand-emerald)' },
+    cost: { title: t('highlight.cost'), subtitle: t('highlight.costSub'), tooltip: undefined, color: 'var(--brand-orange)' },
   }[metric];
   return (
     <article className="av-card highlight-card">
       <header className="highlight-card-header">
-        <div><h2><i style={{ background: copy.color }} />{copy.title}</h2><p>{copy.subtitle}</p></div>
+        <div title={copy.tooltip}><h2><i style={{ background: copy.color }} />{copy.title}</h2><p>{copy.subtitle}</p></div>
         <span className="highlight-count">{t('common.top9')} <ArrowUpRight size={13} /></span>
       </header>
       <div className="hbar-rows" aria-label={`${copy.title}, top nine recipes`}>

@@ -11,6 +11,10 @@ describe('Aventine i18n', () => {
   it('translates and interpolates interface copy', () => {
     expect(translate('zh-CN', 'leader.coverage', { value: '94.5' })).toBe('覆盖率 94.5%');
     expect(translate('en', 'leader.coverage', { value: '94.5' })).toBe('94.5% coverage');
+    expect(translate('zh-CN', 'highlight.throughput')).toBe('端到端 Token 吞吐');
+    expect(translate('zh-CN', 'highlight.throughputDefinition')).toBe('总输入与输出 Token ÷ 完整运行耗时');
+    expect(translate('en', 'highlight.throughput')).toBe('End-to-end token throughput');
+    expect(translate('en', 'highlight.throughputDefinition')).toBe('Total input and output tokens ÷ complete run elapsed time');
   });
 
   it('describes the published evaluation protocol accurately in both locales', () => {
