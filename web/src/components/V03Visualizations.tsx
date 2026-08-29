@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { ArrowUpRight, X } from 'lucide-react';
 import { getVendorBrand } from '../data/vendorBrands';
 import { observedThroughput, paretoFrontier, paretoValue, type ParetoMetric } from '../data/v03VisualMetrics';
@@ -211,9 +211,11 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
         {active && (
           <div className="pareto-active">
             <VendorLogo signals={[active.model_family, active.model_id]} size={32} fallback={zhEnProfileName(active)} />
-            <span>
+            <span className="pareto-active-copy">
               <strong>{zhEnProfileName(active)}</strong>
-              <small>{t('common.score')} {active.zh_en_score.toFixed(2)} · {paretoCopy[metric].format(paretoValue(active, metric) as number)}</small>
+              <small>{t('common.score')} {active.zh_en_score.toFixed(2)} · {paretoCopy[metric].label} {paretoCopy[metric].format(paretoValue(active, metric) as number)}</small>
+              <small>ZH→EN {active.directions['zh-CN->en'].score.toFixed(2)} · EN→ZH {active.directions['en->zh-CN'].score.toFixed(2)} · {t('manifest.soft')} {aggregate(active, 'soft').score.toFixed(1)} · {t('manifest.hard')} {aggregate(active, 'hard').score.toFixed(1)}</small>
+              <small>{t('manifest.observedCost')} {active.telemetry.cost_usd === null ? t('common.notMeasured') : `$${active.telemetry.cost_usd.toFixed(3)}`} · {t('manifest.elapsed')} {t('common.minutes', { value: (active.telemetry.elapsed_seconds / 60).toFixed(1) })} · {active.telemetry.total_tokens.toLocaleString()} {t('table.tokens')}</small>
             </span>
           </div>
         )}
@@ -327,7 +329,7 @@ function ManifestDrawer({ profile, artifact, onClose }: { profile: ZhEnPreviewPr
     document.body.style.overflow = 'hidden';
     const drawer = document.querySelector<HTMLElement>('.manifest-drawer');
     drawer?.scrollTo({ top: 0 });
-    drawer?.querySelector<HTMLButtonElement>('.manifest-close')?.focus();
+    drawer?.querySelector<HTMLButtonElement>('.manifest-close')?.focus({ preventScroll: true });
     const close = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
     document.addEventListener('keydown', close);
     return () => { document.removeEventListener('keydown', close); document.body.style.overflow = previousOverflow; };
@@ -384,15 +386,29 @@ function ManifestDrawer({ profile, artifact, onClose }: { profile: ZhEnPreviewPr
 export function V03Visualizations({ artifact }: { artifact: ZhEnPreviewArtifact }) {
   const { t } = useI18n();
   const [openProfile, setOpenProfile] = useState<ZhEnPreviewProfile | null>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const returnScrollY = useRef(0);
+  const openDetails = (profile: ZhEnPreviewProfile) => {
+    returnScrollY.current = window.scrollY;
+    returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setOpenProfile(profile);
+  };
+  const closeDetails = () => {
+    setOpenProfile(null);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: returnScrollY.current, behavior: 'instant' });
+      returnFocus.current?.focus({ preventScroll: true });
+    });
+  };
   return (
     <section className="v03-analysis">
       <div className="section-title"><span>{t('analysis.title')}</span></div>
       <div className="v03-analysis-stack">
-        <Highlights profiles={artifact.profiles} onOpen={setOpenProfile} />
-        <InteractivePareto profiles={artifact.profiles} onOpen={setOpenProfile} />
-        <SoftHardScatter profiles={artifact.profiles} onOpen={setOpenProfile} />
+        <Highlights profiles={artifact.profiles} onOpen={openDetails} />
+        <InteractivePareto profiles={artifact.profiles} onOpen={openDetails} />
+        <SoftHardScatter profiles={artifact.profiles} onOpen={openDetails} />
       </div>
-      <ManifestDrawer profile={openProfile} artifact={artifact} onClose={() => setOpenProfile(null)} />
+      <ManifestDrawer profile={openProfile} artifact={artifact} onClose={closeDetails} />
     </section>
   );
 }
