@@ -4,6 +4,8 @@ export type VendorBrandId =
   | 'deepseek'
   | 'moonshot'
   | 'tencent'
+  | 'longcat'
+  | 'upstage'
   | 'nvidia'
   | 'alibaba'
   | 'inclusionai'
@@ -26,7 +28,9 @@ const BRAND_DEFINITIONS: Record<VendorBrandId, Omit<VendorBrand, 'id'>> = {
   openai: { label: 'OpenAI', logo: 'openai.png', color: 'var(--vendor-openai)' },
   deepseek: { label: 'DeepSeek', logo: 'deepseek.png', color: 'var(--vendor-deepseek)' },
   moonshot: { label: 'Moonshot AI', logo: 'moonshot-ai.png', color: 'var(--vendor-moonshot)' },
-  tencent: { label: 'Tencent', logo: 'tencent.png', color: 'var(--vendor-moonshot)' },
+  tencent: { label: 'Tencent', logo: 'tencent.png', color: 'var(--vendor-tencent)' },
+  longcat: { label: 'LongCat / Meituan', logo: 'longcat.svg', color: 'var(--vendor-longcat)' },
+  upstage: { label: 'Upstage', logo: 'upstage.png', color: 'var(--vendor-upstage)' },
   nvidia: { label: 'NVIDIA', logo: 'nvidia.png', color: 'var(--vendor-nvidia)' },
   alibaba: { label: 'Alibaba / Qwen', logo: 'alibaba.png', color: 'var(--vendor-alibaba)' },
   inclusionai: { label: 'InclusionAI / Ling', logo: 'inclusionai.png', color: 'var(--vendor-alibaba)' },
@@ -49,8 +53,10 @@ export function getVendorBrand(...signals: Array<string | null | undefined>): Ve
   if (value.includes('gemini') || value.includes('gemma') || value.includes('google')) id = 'google';
   else if (value.includes('openai') || value.includes('gpt-')) id = 'openai';
   else if (value.includes('deepseek')) id = 'deepseek';
-  else if (value.includes('moonshot') || value.includes('kimi') || value.includes('hy3')) id = 'moonshot';
-  else if (value.includes('tencent')) id = 'tencent';
+  else if (value.includes('tencent') || value.includes('hy3')) id = 'tencent';
+  else if (value.includes('moonshot') || value.includes('kimi')) id = 'moonshot';
+  else if (value.includes('longcat') || value.includes('meituan')) id = 'longcat';
+  else if (value.includes('upstage') || value.includes('solar')) id = 'upstage';
   else if (value.includes('nvidia') || value.includes('nemotron')) id = 'nvidia';
   else if (value.includes('qwen') || value.includes('alibaba')) id = 'alibaba';
   else if (value.includes('ling') || value.includes('inclusionai')) id = 'inclusionai';

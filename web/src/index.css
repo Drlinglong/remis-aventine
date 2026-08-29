@@ -36,7 +36,9 @@
   --vendor-xai: #555a61;
   --vendor-gemini: var(--vendor-google);
   --vendor-qwen: var(--vendor-alibaba);
-  --vendor-tencent: var(--vendor-moonshot);
+  --vendor-tencent: #356fa8;
+  --vendor-longcat: #238456;
+  --vendor-upstage: #6657a8;
   --vendor-local: #7b5e3e;
   --vendor-neutral: #6d7076;
 
@@ -92,7 +94,9 @@
   --vendor-xai: #c8cdd2;
   --vendor-gemini: var(--vendor-google);
   --vendor-qwen: var(--vendor-alibaba);
-  --vendor-tencent: var(--vendor-moonshot);
+  --vendor-tencent: #75a9dc;
+  --vendor-longcat: #69b98d;
+  --vendor-upstage: #aaa1e8;
   --vendor-local: #d3b590;
   --vendor-neutral: #adb4bf;
 
