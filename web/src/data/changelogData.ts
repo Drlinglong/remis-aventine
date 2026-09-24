@@ -2,6 +2,20 @@ import type { ChangelogItem } from '../types/benchmark';
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    id: 'ch-2026-09-25-gpt6-luna',
+    date: '25 Sep 2026',
+    title: 'GPT-6 Luna Added to the ZH–EN Evaluation',
+    category: 'Model Releases',
+    summary: 'Ran OpenRouter GPT-6 Luna on the frozen bilingual exam: 44 matching prompts, 76 translation entries, and two repetitions in each direction. Directional scores are published as a focused follow-up, separate from the 17-model leaderboard.',
+    model_tag: 'GPT-6 Luna',
+    provider: 'OpenRouter',
+    highlights: [
+      'Hard/structural score: 76.47% for Chinese to English (26/34 resolved) and 89.19% for English to Chinese (33/37 resolved).',
+      'Against GPT-5.6 Luna, English to Chinese improved on the resolved checks; Chinese to English remains mixed, with five of ten sampled soft cases unresolved.',
+      'Gemini 3.8 Flash and Grok 4.5 reviewed disputed cases without client-side output caps; unresolved decisions remain outside the score denominator.',
+    ],
+  },
+  {
     id: 'ch-2026-08-02-anchored',
     date: '02 Aug 2026',
     title: 'Anchored Panel Benchmark v0.2: Qwen 3.7 Plus & TranslateGemma Placement',

@@ -1,0 +1,37 @@
+/** Focused 2026-09-25 follow-up; not part of the 17-model v0.3 leaderboard. */
+export const GPT6_LUNA_FOCUSED = {
+  modelId: 'openai/gpt-6-luna',
+  baselineId: 'openai/gpt-5.6-luna',
+  examSha256: '7b62edfd33d350743ba957f9117d7f7c7ac15fbd7066711cd5125719b5459294',
+  planSha256: '65801eafc5b4aca7d1974364454604c68333763356864db21810b8f43866bd69',
+  matchingPrompts: 44,
+  entries: 76,
+  directions: [
+    {
+      id: 'zh-CN->en',
+      score: 76.4706,
+      points: 26,
+      resolved: 34,
+      total: 36,
+      baselineScore: 81.8182,
+      pairwiseWins: 5,
+      pairwiseLosses: 0,
+      pairwiseUnresolved: 5,
+    },
+    {
+      id: 'en->zh-CN',
+      score: 89.1892,
+      points: 33,
+      resolved: 37,
+      total: 40,
+      baselineScore: 79.4872,
+      pairwiseWins: 6,
+      pairwiseLosses: 3,
+      pairwiseUnresolved: 1,
+    },
+  ],
+  softCasesResolved: 14,
+  softCasesTotal: 20,
+  structuralCasesResolved: 32,
+  structuralCasesTotal: 41,
+} as const;

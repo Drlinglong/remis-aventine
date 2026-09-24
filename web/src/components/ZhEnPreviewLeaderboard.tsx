@@ -1,5 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { getVendorBrand } from '../data/vendorBrands';
+import { GPT6_LUNA_FOCUSED } from '../data/gpt6LunaFocused';
 import { zhEnProfileName } from '../data/zhEnProfileName';
 import type { ZhEnDirection, ZhEnMeasure, ZhEnPreviewArtifact, ZhEnPreviewProfile } from '../types/zhEnPreview';
 import { VendorLogo } from './VendorLogo';
@@ -55,6 +56,27 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
         <div className="v03-panel"><span>{t('leader.completed')}</span><strong>{artifact.direction_count} / 18</strong></div>
         <div className="v03-panel"><span>{t('leader.resolved')}</span><strong>{artifact.soft_resolved_count} / {artifact.soft_case_count}</strong><small>{t('leader.coverage', { value: (resolvedRate * 100).toFixed(1) })}</small></div>
         <div className="v03-panel"><span>{t('leader.current')}</span><strong>{zhEnProfileName(ranked[0])}</strong><small>{metric(ranked[0], view).score.toFixed(2)}</small></div>
+      </div>
+
+      <div className="v03-panel" style={{ marginTop: 20, padding: 20 }}>
+        <div className="section-title"><span>{t('focused.title')}</span></div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, marginBottom: 16 }}>
+          {t('focused.scope', { prompts: GPT6_LUNA_FOCUSED.matchingPrompts, entries: GPT6_LUNA_FOCUSED.entries })}
+        </p>
+        <div className="preview-kpis">
+          {GPT6_LUNA_FOCUSED.directions.map((direction) => (
+            <div className="v03-panel" key={direction.id}>
+              <span>{direction.id === 'zh-CN->en' ? t('leader.zhEn') : t('leader.enZh')}</span>
+              <strong>{percent(direction.score)}</strong>
+              <small>{t('focused.resolved', { points: direction.points, resolved: direction.resolved, total: direction.total })}</small>
+              <small>{t('focused.baseline', { score: direction.baselineScore.toFixed(2) })}</small>
+              <small>{t('focused.pairwise', { wins: direction.pairwiseWins, losses: direction.pairwiseLosses, unresolved: direction.pairwiseUnresolved })}</small>
+            </div>
+          ))}
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: 12, lineHeight: 1.6, marginTop: 14 }}>
+          {t('focused.coverage', { soft: GPT6_LUNA_FOCUSED.softCasesResolved, softTotal: GPT6_LUNA_FOCUSED.softCasesTotal, structural: GPT6_LUNA_FOCUSED.structuralCasesResolved, structuralTotal: GPT6_LUNA_FOCUSED.structuralCasesTotal })}
+        </p>
       </div>
 
       <div className="tab-group preview-tabs">
