@@ -5,8 +5,10 @@ The sealed v0.3 exam, 44 translation prompts, two repetitions, deterministic
 validators, and 60% soft / 40% hard formula remain unchanged. A new judge panel
 and a new opponent panel require a new score version. Historical scores remain
 available under `v0.3-zh-en-60soft-40hard`; incremental placements use
-`v0.3-zh-en-anchors-20260925-v1`. Scores from these versions must not be mixed
-into one ranking or Pareto frontier.
+`v0.3-zh-en-anchors-20260925-v1`. The website appends four new models to the
+original 17-model catalog, with per-model version labels in the shared table
+and chart inspectors. Cross-version ordering and Pareto geometry are exploratory:
+the two opponent schedules have not been calibrated to a common score scale.
 
 ## Independent judges and cost accounting
 
@@ -80,8 +82,15 @@ The website defaults to the newest available version within each explicit
 product line. A searchable selector can add/remove individual models, select
 all, clear, or restore defaults. The selection applies jointly to tables,
 ranked charts, and the Pareto frontier and persists per score version. Historical
-data remain accessible in a separate view. Vendor identity alone is not a
-product line: Pro, Flash, and small models may coexist.
+data retain their original values in the unified catalog, with a separate
+original-snapshot view for reference. Vendor identity alone is not a
+product line: Pro, Flash, and small models may coexist. The two old models
+rechecked in this round are not duplicated or overwritten: their original
+scores remain in the catalog, and their detail pages offer both score versions.
+The catalog is a display union, not a new scoring artifact. JSON downloads
+retain both original source files; observation totals in the unified view count
+model-side records, and cumulative judging fees include both complete batches,
+including anchor reviews and rechecks.
 
 Public artifacts contain scores, coverage, telemetry, model IDs, and provenance
 hashes only. Sealed questions, translations, raw receipts, and judge rationales

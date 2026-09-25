@@ -4,6 +4,7 @@ import { GPT6_LUNA_FOCUSED } from '../data/gpt6LunaFocused';
 import { zhEnProfileName } from '../data/zhEnProfileName';
 import type { ZhEnDirection, ZhEnMeasure, ZhEnPreviewArtifact, ZhEnPreviewProfile } from '../types/zhEnPreview';
 import { VendorLogo } from './VendorLogo';
+import { ScoreVersionTag } from './ScoreVersionTag';
 import { useI18n } from '../i18n/I18nProvider';
 
 type View = 'overall' | ZhEnDirection;
@@ -47,7 +48,7 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
       <div className="preview-disclosure">
         <div>
           <strong>{t('leader.scope')}</strong>
-          <p>{anchored ? (locale === 'zh-CN' ? '固定高、中、低三个锚点，60% 软性偏好 + 40% 硬性可靠性；排名仅限当前面板，未裁定项单列。' : 'Three frozen high/middle/low anchors; 60% soft preference + 40% hard reliability. Ranks are within this panel; unresolved items remain separate.') : t('leader.policy')}</p>
+          <p>{artifact.catalog ? (locale === 'zh-CN' ? '原始成绩与固定锚点增量成绩共同展示，均为 60% 软性偏好 + 40% 硬性可靠性；评测版本见各行，未裁定项单列。' : 'Original and fixed-anchor incremental scores share this view. Both use 60% soft preference + 40% hard reliability; each row retains its evaluation version and unresolved coverage.') : anchored ? (locale === 'zh-CN' ? '固定高、中、低三个锚点，60% 软性偏好 + 40% 硬性可靠性；排名仅限当前面板，未裁定项单列。' : 'Three frozen high/middle/low anchors; 60% soft preference + 40% hard reliability. Ranks are within this panel; unresolved items remain separate.') : t('leader.policy')}</p>
         </div>
         <span className="badge badge-gold">{anchored ? '2026-09-25' : t('leader.date')}</span>
       </div>
@@ -55,7 +56,7 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
       <div className="preview-kpis">
         <div className="v03-panel"><span>{t('benchmark.contestants')}</span><strong>{artifact.contestant_count}</strong></div>
         <div className="v03-panel"><span>{t('leader.completed')}</span><strong>{artifact.direction_count} / 18</strong></div>
-        <div className="v03-panel"><span>{t('leader.resolved')}</span><strong>{artifact.soft_resolved_count} / {artifact.soft_case_count}</strong><small>{t('leader.coverage', { value: (resolvedRate * 100).toFixed(1) })}</small></div>
+        <div className="v03-panel"><span>{artifact.catalog ? (locale === 'zh-CN' ? '已判定模型侧软评测记录' : 'Resolved model-side soft observations') : t('leader.resolved')}</span><strong>{artifact.soft_resolved_count} / {artifact.soft_case_count}</strong><small>{t('leader.coverage', { value: (resolvedRate * 100).toFixed(1) })}</small></div>
         <div className="v03-panel"><span>{t('leader.current')}</span><strong>{zhEnProfileName(ranked[0])}</strong><small>{metric(ranked[0], view).score.toFixed(2)}</small></div>
       </div>
 
@@ -105,7 +106,7 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
                   <td>
                     <div className="preview-model">
                       <VendorLogo signals={[profile.model_family, profile.model_id]} fallback={zhEnProfileName(profile)} />
-                      <div><strong>{zhEnProfileName(profile)}</strong><small>{profile.model_id}</small></div>
+                      <div><strong>{zhEnProfileName(profile)}</strong><small>{profile.model_id}</small><ScoreVersionTag profile={profile} /></div>
                     </div>
                   </td>
                   <td>
@@ -135,11 +136,12 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
       </div>
 
       <div className="preview-footnote">
-        <span>{t('leader.source')} <code>{artifact.source_commit}</code></span>
-        <span>{t('leader.judgeCost')} {(artifact.judge_cost_missing_calls ?? 0) > 0 ? '≥ ' : ''}${artifact.judge_cost_usd.toFixed(3)}
+        <span>{artifact.catalog ? (locale === 'zh-CN' ? '各模型来源提交见详情；原始与增量 JSON 分别保留。' : 'Source commits are recorded per model; original and incremental JSON remain separate.') : <>{t('leader.source')} <code>{artifact.source_commit}</code></>}</span>
+        <span>{artifact.catalog ? (locale === 'zh-CN' ? '两批评测累计裁判费（含锚点与复核）：' : 'Both evaluation batches: judging incl. anchors and rechecks: ') : t('leader.judgeCost')} {(artifact.judge_cost_missing_calls ?? 0) > 0 ? '≥ ' : ''}${artifact.judge_cost_usd.toFixed(3)}
           {(artifact.judge_cost_missing_calls ?? 0) > 0 && <small style={{ display: 'block' }}>{locale === 'zh-CN' ? `另有 ${artifact.judge_cost_missing_calls} 次调用费用待核实` : `${artifact.judge_cost_missing_calls} calls have unverified cost`}</small>}
         </span>
-        <a href={`${import.meta.env.BASE_URL}data/${artifact.anchor_panel ? 'v03-zh-en-anchors-20260925.json' : 'v03-zh-en-results.json'}`} target="_blank" rel="noreferrer">{t('leader.download')}</a>
+        <a href={`${import.meta.env.BASE_URL}data/${artifact.anchor_panel ? 'v03-zh-en-anchors-20260925.json' : 'v03-zh-en-results.json'}`} target="_blank" rel="noreferrer">{artifact.catalog ? (locale === 'zh-CN' ? '增量结果 JSON ↗' : 'Incremental results JSON ↗') : t('leader.download')}</a>
+        {artifact.catalog && <a href={`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`} target="_blank" rel="noreferrer">{locale === 'zh-CN' ? '原始结果 JSON ↗' : 'Original results JSON ↗'}</a>}
       </div>
     </section>
   );

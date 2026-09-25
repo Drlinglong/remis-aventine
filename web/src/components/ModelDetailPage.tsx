@@ -4,6 +4,7 @@ import { zhEnProfileName } from '../data/zhEnProfileName';
 import { useI18n } from '../i18n/I18nProvider';
 import type { ZhEnMeasure, ZhEnPreviewArtifact, ZhEnPreviewProfile } from '../types/zhEnPreview';
 import { VendorLogo } from './VendorLogo';
+import { modelDetailHref } from '../data/modelDetailUrl';
 
 function aggregate(profile: ZhEnPreviewProfile, kind: 'soft' | 'hard'): ZhEnMeasure {
   const values = Object.values(profile.directions).map((direction) => direction[kind]);
@@ -22,10 +23,12 @@ export function ModelDetailPage({
   artifact,
   profile,
   onBack,
+  versions = [],
 }: {
   artifact: ZhEnPreviewArtifact;
   profile: ZhEnPreviewProfile;
   onBack: () => void;
+  versions?: ZhEnPreviewArtifact[];
 }) {
   const { t, locale } = useI18n();
   const verified = profile.telemetry.verified_cost;
@@ -48,6 +51,11 @@ export function ModelDetailPage({
         <span>{t('manifest.zhEnScore')}</span>
         <strong>{profile.zh_en_score.toFixed(2)}</strong>
       </div>
+      {versions.length > 1 && <nav className="tab-group" aria-label={locale === 'zh-CN' ? '该模型的成绩版本' : 'Score versions for this model'}>
+        {versions.map((version) => <a className={`tab-btn ${version.score_version === artifact.score_version ? 'active' : ''}`} key={version.score_version} href={modelDetailHref(profile.model_id, locale, undefined, undefined, version.score_version)}>
+          {version.anchor_panel ? (locale === 'zh-CN' ? '本轮锚点复核' : 'Anchor recheck') : (locale === 'zh-CN' ? '原始成绩' : 'Original score')}
+        </a>)}
+      </nav>}
       <dl className="manifest-grid">
         <div><dt>{locale === 'zh-CN' ? '评分版本' : 'Score version'}</dt><dd>{artifact.score_version}</dd></div>
         <div><dt>ZH→EN</dt><dd>{profile.directions['zh-CN->en'].score.toFixed(2)}</dd></div>

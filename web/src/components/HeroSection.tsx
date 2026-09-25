@@ -34,7 +34,7 @@ export function HeroSection({ onSelectTab, result }: HeroSectionProps) {
             {t('hero.explore')} <ArrowDown size={16} />
           </button>
           <a className="hero-cta hero-cta-secondary" href={`${import.meta.env.BASE_URL}data/${anchored ? 'v03-zh-en-anchors-20260925.json' : 'v03-zh-en-results.json'}`} target="_blank" rel="noreferrer">
-            {t('hero.download')} <ArrowUpRight size={16} />
+            {result?.catalog ? (locale === 'zh-CN' ? '下载本轮增量结果' : 'Download incremental results') : t('hero.download')} <ArrowUpRight size={16} />
           </a>
         </div>
       </div>
@@ -57,7 +57,7 @@ export function HeroSection({ onSelectTab, result }: HeroSectionProps) {
           <div><dt>{t('benchmark.framework')}</dt><dd className="benchmark-framework"><a href="https://drlinglong.github.io/Remis/" target="_blank" rel="noreferrer">Remis <ArrowUpRight size={15} /></a></dd></div>
         </dl>
         <p className="benchmark-judges">
-          <span>{t('benchmark.judges')}</span> {anchored ? (locale === 'zh-CN' ? 'MiMo 2.6 Pro / GPT-6 Luna / DeepSeek V4.1 Flash；家族回避，Gemini 3.8 备用' : 'MiMo 2.6 Pro / GPT-6 Luna / DeepSeek V4.1 Flash; family recusal, Gemini 3.8 fallback') : t('benchmark.judgeNames')}
+          <span>{result?.catalog ? (locale === 'zh-CN' ? '本轮增量裁判：' : 'Incremental judges:') : t('benchmark.judges')}</span> {anchored ? (locale === 'zh-CN' ? 'MiMo 2.6 Pro / GPT-6 Luna / DeepSeek V4.1 Flash；家族回避，Gemini 3.8 备用' : 'MiMo 2.6 Pro / GPT-6 Luna / DeepSeek V4.1 Flash; family recusal, Gemini 3.8 fallback') : t('benchmark.judgeNames')}
         </p>
       </aside>
     </section>

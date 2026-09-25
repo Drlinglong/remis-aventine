@@ -6,6 +6,7 @@ import { observedThroughput, paretoFrontier, paretoValue, type ParetoMetric } fr
 import { zhEnProfileName } from '../data/zhEnProfileName';
 import type { ZhEnMeasure, ZhEnPreviewArtifact, ZhEnPreviewProfile } from '../types/zhEnPreview';
 import { VendorLogo } from './VendorLogo';
+import { ScoreVersionTag } from './ScoreVersionTag';
 import { useI18n } from '../i18n/I18nProvider';
 
 function aggregate(profile: ZhEnPreviewProfile, kind: 'soft' | 'hard'): ZhEnMeasure {
@@ -225,6 +226,7 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
             <span className="pareto-active-copy">
               <strong>{zhEnProfileName(active)}</strong>
               <small>{t('common.score')} {active.zh_en_score.toFixed(2)} · {paretoCopy[metric].label} {paretoCopy[metric].format(paretoValue(active, metric) as number)}</small>
+              <ScoreVersionTag profile={active} />
               <small>ZH→EN {active.directions['zh-CN->en'].score.toFixed(2)} · EN→ZH {active.directions['en->zh-CN'].score.toFixed(2)} · {t('manifest.soft')} {aggregate(active, 'soft').score.toFixed(1)} · {t('manifest.hard')} {aggregate(active, 'hard').score.toFixed(1)}</small>
               <small>{t('manifest.observedCost')} {active.telemetry.cost_usd === null ? t('common.notMeasured') : `$${active.telemetry.cost_usd.toFixed(3)}`} · {t('manifest.elapsed')} {t('common.minutes', { value: (active.telemetry.elapsed_seconds / 60).toFixed(1) })} · {active.telemetry.total_tokens.toLocaleString()} {t('table.tokens')}</small>
             </span>
@@ -343,6 +345,7 @@ function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[];
           <span>
             <strong>{zhEnProfileName(active)}</strong>
             <small>{t('common.score')} {active.zh_en_score.toFixed(2)} · {t('manifest.soft')} {activeSoft.toFixed(1)} · {t('manifest.hard')} {activeHard.toFixed(1)}</small>
+            <ScoreVersionTag profile={active} />
           </span>
         </div>
       </footer>
@@ -353,7 +356,7 @@ function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[];
 export function V03Visualizations({ artifact }: { artifact: ZhEnPreviewArtifact }) {
   const { locale, t } = useI18n();
   const openDetails = (profile: ZhEnPreviewProfile) => {
-    window.open(modelDetailHref(profile.model_id, locale, undefined, undefined, artifact.score_version), '_blank', 'noopener,noreferrer');
+    window.open(modelDetailHref(profile.model_id, locale, undefined, undefined, profile.score_version ?? artifact.score_version), '_blank', 'noopener,noreferrer');
   };
   return (
     <section className="v03-analysis">

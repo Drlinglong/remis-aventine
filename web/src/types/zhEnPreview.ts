@@ -15,6 +15,9 @@ export interface ZhEnDirectionResult {
 }
 
 export interface ZhEnPreviewProfile {
+  /** Display provenance added when composing the catalog; raw scores stay immutable. */
+  score_version?: ZhEnPreviewArtifact['score_version'];
+  source_commit?: string;
   directions: Record<ZhEnDirection, ZhEnDirectionResult>;
   execution_identity_sha256: string;
   model_family: string;
@@ -39,6 +42,8 @@ export interface ZhEnPreviewProfile {
 }
 
 export interface ZhEnPreviewArtifact {
+  /** A UI union of versioned sources, never exported as a single-score artifact. */
+  catalog?: { source_versions: string[]; original_count: number; added_count: number };
   $schema: 'https://drlinglong.github.io/remis-aventine/schemas/v03-zh-en-public-result.schema.json';
   artifact_id: 'v0.3-zh-en-results';
   contestant_count: number;

@@ -9,7 +9,7 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onSelectTab, result }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [aboutBefore, aboutAfter] = t('footer.about').split('{remis}');
   return (
     <footer
@@ -56,7 +56,8 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab, result }) => {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
               <li><button onClick={() => onSelectTab('leaderboard')} style={{ color: 'inherit', textAlign: 'left' }}>{t('footer.overview')}</button></li>
               <li><button onClick={() => onSelectTab('results')} style={{ color: 'inherit', textAlign: 'left' }}>{t('footer.results')}</button></li>
-              <li><a href={`${import.meta.env.BASE_URL}data/${result?.anchor_panel ? 'v03-zh-en-anchors-20260925.json' : 'v03-zh-en-results.json'}`} target="_blank" rel="noreferrer">{t('footer.json')}</a></li>
+              <li><a href={`${import.meta.env.BASE_URL}data/${result?.anchor_panel ? 'v03-zh-en-anchors-20260925.json' : 'v03-zh-en-results.json'}`} target="_blank" rel="noreferrer">{result?.catalog ? (locale === 'zh-CN' ? '📦 增量结果 JSON' : '📦 Incremental results JSON') : t('footer.json')}</a></li>
+              {result?.catalog && <li><a href={`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`} target="_blank" rel="noreferrer">{locale === 'zh-CN' ? '📦 原始结果 JSON' : '📦 Original results JSON'}</a></li>}
             </ul>
           </div>
 
@@ -107,7 +108,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab, result }) => {
           <div>
             {t('footer.copyright')}
           </div>
-          <span>{t('footer.source')} <code>{result?.source_commit.slice(0, 7) ?? 'c734ac4'}</code></span>
+          <span>{result?.catalog ? (locale === 'zh-CN' ? '最近增量结果来源：' : 'Latest incremental source:') : t('footer.source')} <code>{result?.source_commit.slice(0, 7) ?? 'c734ac4'}</code></span>
         </div>
       </div>
     </footer>

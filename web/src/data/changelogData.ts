@@ -2,6 +2,17 @@ import type { ChangelogItem } from '../types/benchmark';
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    id: 'ch-2026-09-25-unified-catalog',
+    date: '25 Sep 2026',
+    title: 'Four New Models Join the Original 17-Model Leaderboard',
+    category: 'Tournaments',
+    summary: 'The main table and Pareto chart now share a 21-model catalog. Nineteen latest product-line models are selected by default; older Luna and DeepSeek Flash remain available through the model selector.',
+    highlights: [
+      'All original scores remain unchanged. New model rows retain their incremental score version; cross-version ordering is exploratory rather than calibrated.',
+      'Rechecked older models keep both score versions on their detail pages without appearing twice in the model catalog.',
+    ],
+  },
+  {
     id: 'ch-2026-09-25-priority-anchors',
     date: '25 Sep 2026',
     title: 'Fixed-Anchor ZH–EN Scores and Selectable Model Generations',

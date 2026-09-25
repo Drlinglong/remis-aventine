@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { ModelDetailPage } from './components/ModelDetailPage';
@@ -9,6 +9,7 @@ import { PairwiseHeatmap } from './components/PairwiseHeatmap';
 import { ChangelogTimeline } from './components/ChangelogTimeline';
 import { RecipeDrawer } from './components/RecipeDrawer';
 import { loadZhEnPreview } from './data/zhEnPreview';
+import { buildZhEnCatalog } from './data/zhEnCatalog';
 import type { ZhEnPreviewArtifact } from './types/zhEnPreview';
 import type { RecipeEntry } from './types/benchmark';
 import { useI18n } from './i18n/I18nProvider';
@@ -19,20 +20,24 @@ export const App = () => {
   const [isDark, setIsDark] = useState(false);
   const [historical, setHistorical] = useState<ZhEnPreviewArtifact | null>(null);
   const [current, setCurrent] = useState<ZhEnPreviewArtifact | null>(null);
-  const [showHistory, setShowHistory] = useState(() => new URLSearchParams(window.location.search).get('score_version') === 'v0.3-zh-en-60soft-40hard');
-  const result = showHistory ? historical : current ?? historical;
+  const [showHistory, setShowHistory] = useState(() => new URLSearchParams(window.location.search).get('view') === 'history');
+  const catalog = useMemo(() => historical && current ? buildZhEnCatalog(historical, current) : current ?? historical, [historical, current]);
+  const result = showHistory ? historical : catalog;
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<RecipeEntry | null>(null);
-  const requestedModelId = new URLSearchParams(window.location.search).get('model');
-  const detailArtifact = [result, current, historical].find((artifact) => artifact?.profiles.some((profile) => profile.model_id === requestedModelId));
-  const searchProfiles = [...(current?.profiles ?? []), ...(historical?.profiles ?? [])].filter((profile, index, all) => all.findIndex((other) => other.model_id === profile.model_id) === index);
+  const [requestedModelId, setRequestedModelId] = useState(() => new URLSearchParams(window.location.search).get('model'));
+  const requestedVersion = new URLSearchParams(window.location.search).get('score_version');
+  const sources = [historical, current];
+  const detailArtifact = sources.find((artifact) => artifact?.score_version === requestedVersion && artifact.profiles.some((profile) => profile.model_id === requestedModelId))
+    ?? sources.find((artifact) => artifact?.profiles.some((profile) => profile.model_id === requestedModelId));
+  const searchProfiles = catalog?.profiles ?? [];
   const scoreVersions = new Map<string, string>();
-  for (const artifact of [historical, current, result]) {
-    for (const profile of artifact?.profiles ?? []) scoreVersions.set(profile.model_id, artifact!.score_version);
-  }
+  for (const profile of searchProfiles) scoreVersions.set(profile.model_id, profile.score_version ?? catalog!.score_version);
   const selectCohort = (history: boolean) => {
     const url = new URL(window.location.href);
-    url.searchParams.set('score_version', history ? 'v0.3-zh-en-60soft-40hard' : 'v0.3-zh-en-anchors-20260925-v1');
+    url.searchParams.delete('score_version');
+    if (history) url.searchParams.set('view', 'history');
+    else url.searchParams.delete('view');
     window.history.replaceState({}, '', url);
     setShowHistory(history);
   };
@@ -60,18 +65,20 @@ export const App = () => {
   const selectTab = (tab: string) => {
     const url = new URL(window.location.href);
     url.searchParams.delete('model');
+    url.searchParams.delete('score_version');
     window.history.replaceState({}, '', url);
+    setRequestedModelId(null);
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resultPanel = result ? (
     <>
-      {current && historical && <div className="tab-group cohort-tabs" aria-label={locale === 'zh-CN' ? '评分版本' : 'Score version'}>
-        <button className={`tab-btn ${!showHistory ? 'active' : ''}`} onClick={() => selectCohort(false)}>{locale === 'zh-CN' ? '当前增量榜' : 'Current placements'}</button>
-        <button className={`tab-btn ${showHistory ? 'active' : ''}`} onClick={() => selectCohort(true)}>{locale === 'zh-CN' ? '历史榜单 · 2026-08' : 'Historical · Aug 2026'}</button>
+      {current && historical && <div className="tab-group cohort-tabs" aria-label={locale === 'zh-CN' ? '榜单视图' : 'Leaderboard view'}>
+        <button className={`tab-btn ${!showHistory ? 'active' : ''}`} onClick={() => selectCohort(false)}>{locale === 'zh-CN' ? `完整榜单 · ${catalog?.contestant_count} 个模型` : `All models · ${catalog?.contestant_count}`}</button>
+        <button className={`tab-btn ${showHistory ? 'active' : ''}`} onClick={() => selectCohort(true)}>{locale === 'zh-CN' ? '原始快照 · 2026-08' : 'Original snapshot · Aug 2026'}</button>
       </div>}
-      <ResultsExplorer key={result.score_version} artifact={result} />
+      <ResultsExplorer key={result.catalog ? 'unified-catalog' : result.score_version} artifact={result} />
     </>
   ) : (
     <div className="v03-panel" style={{ padding: 20, marginTop: 24 }}>
@@ -96,6 +103,7 @@ export const App = () => {
           <ModelDetailPage
             artifact={detailArtifact}
             profile={detailArtifact.profiles.find((profile) => profile.model_id === requestedModelId)!}
+            versions={sources.filter((artifact): artifact is ZhEnPreviewArtifact => Boolean(artifact?.profiles.some((profile) => profile.model_id === requestedModelId)))}
             onBack={() => selectTab('leaderboard')}
           />
         )}
