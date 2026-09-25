@@ -48,6 +48,7 @@ def test_anchor_protocol_requires_its_own_version_and_three_distinct_anchors() -
     payload = json.loads(RESULT.read_text(encoding="utf-8"))
     payload["protocol"] = "aventine-v0.3-zh-en-fixed-anchors-priority-dual"
     payload["score_version"] = "v0.3-zh-en-anchors-20260925-v1"
+    payload["judge_cost_missing_calls"] = 0
     with pytest.raises(DocumentValidationError):
         validate_payload(payload, SCHEMA_NAME)
     payload["anchor_panel"] = {

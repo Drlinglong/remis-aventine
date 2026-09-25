@@ -2,6 +2,19 @@ import type { ChangelogItem } from '../types/benchmark';
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    id: 'ch-2026-09-25-priority-anchors',
+    date: '25 Sep 2026',
+    title: 'Fixed-Anchor ZH–EN Scores and Selectable Model Generations',
+    category: 'Tournaments',
+    summary: 'Evaluated MiMo V2.6 Pro, DeepSeek V4.1 Flash, and GPT-6 Sol; placed existing GPT-6 Luna and two earlier generations against the same three frozen anchors. The new score version is separate from the historical 17-model board.',
+    provider: 'OpenRouter',
+    highlights: [
+      'MiMo, GPT-6 Luna, and DeepSeek V4.1 Flash are priority judges with contestant-family recusal; Gemini 3.8 Flash handles missing or disputed votes. Two matching votes are required.',
+      'Tables and charts share a searchable model selector, defaulting to the latest product-line generation, with add/remove, select all, clear, and reset controls.',
+      'Historical scores retain their version. Unresolved cases and unverified judge costs remain visible; Step 5 Preview was skipped.',
+    ],
+  },
+  {
     id: 'ch-2026-09-25-gpt6-luna',
     date: '25 Sep 2026',
     title: 'GPT-6 Luna Added to the ZH–EN Evaluation',

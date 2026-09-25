@@ -44,6 +44,7 @@ export interface ZhEnPreviewArtifact {
   contestant_count: number;
   direction_count: 2;
   judge_cost_usd: number;
+  judge_cost_missing_calls?: number;
   profiles: ZhEnPreviewProfile[];
   protocol: 'aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard' | 'aventine-v0.3-zh-en-fixed-anchors-priority-dual';
   schema_version: 1;

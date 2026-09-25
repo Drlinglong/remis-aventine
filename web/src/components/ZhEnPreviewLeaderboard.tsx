@@ -136,7 +136,9 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
 
       <div className="preview-footnote">
         <span>{t('leader.source')} <code>{artifact.source_commit}</code></span>
-        <span>{t('leader.judgeCost')} ${artifact.judge_cost_usd.toFixed(3)}</span>
+        <span>{t('leader.judgeCost')} {(artifact.judge_cost_missing_calls ?? 0) > 0 ? '≥ ' : ''}${artifact.judge_cost_usd.toFixed(3)}
+          {(artifact.judge_cost_missing_calls ?? 0) > 0 && <small style={{ display: 'block' }}>{locale === 'zh-CN' ? `另有 ${artifact.judge_cost_missing_calls} 次调用费用待核实` : `${artifact.judge_cost_missing_calls} calls have unverified cost`}</small>}
+        </span>
         <a href={`${import.meta.env.BASE_URL}data/${artifact.anchor_panel ? 'v03-zh-en-anchors-20260925.json' : 'v03-zh-en-results.json'}`} target="_blank" rel="noreferrer">{t('leader.download')}</a>
       </div>
     </section>

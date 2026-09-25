@@ -1,0 +1,316 @@
+{
+  "$schema": "https://drlinglong.github.io/remis-aventine/schemas/v03-zh-en-public-result.schema.json",
+  "schema_version": 1,
+  "artifact_id": "v0.3-zh-en-results",
+  "protocol": "aventine-v0.3-zh-en-fixed-anchors-priority-dual",
+  "score_version": "v0.3-zh-en-anchors-20260925-v1",
+  "status": "published-partial",
+  "source_commit": "573eb5adbd0aec7c32ffe2476ff76722f4995326",
+  "direction_count": 2,
+  "contestant_count": 6,
+  "judge_cost_usd": 3.2871662072,
+  "judge_cost_missing_calls": 3,
+  "soft_case_count": 360,
+  "soft_resolved_count": 308,
+  "soft_unresolved_count": 52,
+  "anchor_panel": {
+    "revision": "v0.3-zh-en-anchors-20260925-v1",
+    "models": [
+      "qwen/qwen3.8-max",
+      "meta/muse-spark-1.2",
+      "upstage/solar-pro4"
+    ],
+    "manifest_sha256": "55b8cc1ab8a3d13022f1083ea00db6f1d1b9737e1b6100225b4609b48fae4a3a",
+    "judge_revision": "priority-mimo26-luna6-ds41-gemini38-20260925-v1"
+  },
+  "profiles": [
+    {
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "model_family": "deepseek",
+      "execution_identity_sha256": "75f471cc5dc08205aaa5fc1bff85011d6556fd28d92003b04c24f0b2b9363a6d",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 35,
+            "resolved": 36,
+            "total": 36,
+            "coverage": 1.0,
+            "score": 97.2222
+          },
+          "soft": {
+            "points": 15,
+            "resolved": 27,
+            "total": 30,
+            "coverage": 0.9,
+            "score": 55.5556
+          },
+          "score": 72.2222
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 40,
+            "resolved": 40,
+            "total": 40,
+            "coverage": 1.0,
+            "score": 100.0
+          },
+          "soft": {
+            "points": 22.5,
+            "resolved": 27,
+            "total": 30,
+            "coverage": 0.9,
+            "score": 83.3333
+          },
+          "score": 90.0
+        }
+      },
+      "zh_en_score": 81.1111,
+      "telemetry": {
+        "cost_usd": 0.1038145528,
+        "cost_rank_eligible": true,
+        "elapsed_seconds": 3233.843,
+        "total_tokens": 276635
+      }
+    },
+    {
+      "model_id": "openai/gpt-6-sol",
+      "model_family": "openai-gpt",
+      "execution_identity_sha256": "a5f7cf27dbea889b4bead6f300cf1d6fdf26251ca78422908f5ed54d0847f3c1",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 31,
+            "resolved": 36,
+            "total": 36,
+            "coverage": 1.0,
+            "score": 86.1111
+          },
+          "soft": {
+            "points": 19.5,
+            "resolved": 24,
+            "total": 30,
+            "coverage": 0.8,
+            "score": 81.25
+          },
+          "score": 83.1944
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 37,
+            "resolved": 40,
+            "total": 40,
+            "coverage": 1.0,
+            "score": 92.5
+          },
+          "soft": {
+            "points": 14,
+            "resolved": 25,
+            "total": 30,
+            "coverage": 0.833333,
+            "score": 56.0
+          },
+          "score": 70.6
+        }
+      },
+      "zh_en_score": 76.8972,
+      "telemetry": {
+        "cost_usd": 0.6520294,
+        "cost_rank_eligible": true,
+        "elapsed_seconds": 992.465,
+        "total_tokens": 96414
+      }
+    },
+    {
+      "model_id": "xiaomi/mimo-v2.6-pro",
+      "model_family": "xiaomi-mimo",
+      "execution_identity_sha256": "8ec758db43a41bd030006b573b2df6300bb8c08111cf2e9d9944e9459d48e5ad",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 33,
+            "resolved": 36,
+            "total": 36,
+            "coverage": 1.0,
+            "score": 91.6667
+          },
+          "soft": {
+            "points": 13,
+            "resolved": 25,
+            "total": 30,
+            "coverage": 0.833333,
+            "score": 52.0
+          },
+          "score": 67.8667
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 39,
+            "resolved": 40,
+            "total": 40,
+            "coverage": 1.0,
+            "score": 97.5
+          },
+          "soft": {
+            "points": 18,
+            "resolved": 26,
+            "total": 30,
+            "coverage": 0.866667,
+            "score": 69.2308
+          },
+          "score": 80.5385
+        }
+      },
+      "zh_en_score": 74.2026,
+      "telemetry": {
+        "cost_usd": 0.0693196644,
+        "cost_rank_eligible": true,
+        "elapsed_seconds": 1521.507,
+        "total_tokens": 100772
+      }
+    },
+    {
+      "model_id": "openai/gpt-6-luna",
+      "model_family": "openai-gpt",
+      "execution_identity_sha256": "cee50d1699336c0d604f5c816ec6b416aa082bdc99dfe637fa34222da11b71fc",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 26,
+            "resolved": 36,
+            "total": 36,
+            "coverage": 1.0,
+            "score": 72.2222
+          },
+          "soft": {
+            "points": 10,
+            "resolved": 21,
+            "total": 30,
+            "coverage": 0.7,
+            "score": 47.619
+          },
+          "score": 57.4603
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 34,
+            "resolved": 40,
+            "total": 40,
+            "coverage": 1.0,
+            "score": 85.0
+          },
+          "soft": {
+            "points": 16,
+            "resolved": 26,
+            "total": 30,
+            "coverage": 0.866667,
+            "score": 61.5385
+          },
+          "score": 70.9231
+        }
+      },
+      "zh_en_score": 64.1917,
+      "telemetry": {
+        "cost_usd": 0.02492947,
+        "cost_rank_eligible": true,
+        "elapsed_seconds": 928.654,
+        "total_tokens": 81070
+      }
+    },
+    {
+      "model_id": "openai/gpt-5.6-luna",
+      "model_family": "openai-gpt",
+      "execution_identity_sha256": "96c760e1919ebc634a6b83e4e5f78b1f267d4cce9b1656f1013a91e4bcc563f9",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 29,
+            "resolved": 36,
+            "total": 36,
+            "coverage": 1.0,
+            "score": 80.5556
+          },
+          "soft": {
+            "points": 12.5,
+            "resolved": 25,
+            "total": 30,
+            "coverage": 0.833333,
+            "score": 50.0
+          },
+          "score": 62.2222
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 30,
+            "resolved": 40,
+            "total": 40,
+            "coverage": 1.0,
+            "score": 75.0
+          },
+          "soft": {
+            "points": 13.5,
+            "resolved": 24,
+            "total": 30,
+            "coverage": 0.8,
+            "score": 56.25
+          },
+          "score": 63.75
+        }
+      },
+      "zh_en_score": 62.9861,
+      "telemetry": {
+        "cost_usd": 0.09616254,
+        "cost_rank_eligible": true,
+        "elapsed_seconds": 858.454,
+        "total_tokens": 112453
+      }
+    },
+    {
+      "model_id": "deepseek/deepseek-v4-flash-0731",
+      "model_family": "deepseek",
+      "execution_identity_sha256": "c6d6c074943b505bb61559f43060baea04c92c92c76942ba351be51bee2c0534",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 27,
+            "resolved": 36,
+            "total": 36,
+            "coverage": 1.0,
+            "score": 75.0
+          },
+          "soft": {
+            "points": 7,
+            "resolved": 28,
+            "total": 30,
+            "coverage": 0.933333,
+            "score": 25.0
+          },
+          "score": 45.0
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 34,
+            "resolved": 40,
+            "total": 40,
+            "coverage": 1.0,
+            "score": 85.0
+          },
+          "soft": {
+            "points": 11,
+            "resolved": 30,
+            "total": 30,
+            "coverage": 1.0,
+            "score": 36.6667
+          },
+          "score": 56.0
+        }
+      },
+      "zh_en_score": 50.5,
+      "telemetry": {
+        "cost_usd": 0.01144104,
+        "cost_rank_eligible": true,
+        "elapsed_seconds": 4040.896,
+        "total_tokens": 140064
+      }
+    }
+  ]
+}

@@ -113,6 +113,9 @@ export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
   }
   if (source.score_version !== (anchored ? 'v0.3-zh-en-anchors-20260925-v1' : 'v0.3-zh-en-60soft-40hard')) throw new Error('ZH-EN results score_version is unsupported');
   const anchor = anchored ? object(source.anchor_panel, 'anchor_panel') : undefined;
+  const missingCosts = anchored ? integer(source.judge_cost_missing_calls, 'judge_cost_missing_calls') : undefined;
+  if (missingCosts !== undefined && missingCosts < 0) throw new Error('judge_cost_missing_calls must be nonnegative');
+  if (!anchored && source.judge_cost_missing_calls !== undefined) throw new Error('Historical cost metadata must retain its original contract');
   if (!anchored && source.anchor_panel !== undefined) throw new Error('Historical scores cannot declare an anchor panel');
   if (anchor && (!Array.isArray(anchor.models) || anchor.models.length !== 3 || new Set(anchor.models).size !== 3)) throw new Error('Exactly three distinct anchors required');
   if (source.status !== 'published-partial') throw new Error('ZH-EN results must have status published-partial');
@@ -128,6 +131,7 @@ export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
     contestant_count: contestantCount,
     direction_count: 2,
     judge_cost_usd: finite(source.judge_cost_usd, 'judge_cost_usd'),
+    ...(missingCosts !== undefined ? { judge_cost_missing_calls: missingCosts } : {}),
     profiles,
     protocol: source.protocol as ZhEnPreviewArtifact['protocol'],
     schema_version: 1,

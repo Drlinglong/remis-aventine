@@ -30,6 +30,11 @@ Uncertain in-flight calls are not silently repeated. Pre-dispatch budget guards
 are estimates, not a guarantee on uncapped provider charges. Exact observed
 OpenRouter costs and token estimates are distinct; missing costs are not zero.
 Translation cost is the chart's x-axis; judge cost is reported separately.
+The incremental artifact reports `judge_cost_missing_calls`. When nonzero, the
+website labels the judge total as a lower bound and shows the unverified count.
+Generation billing metadata can reconcile a missing fee without resending the
+request. Persisted responses can likewise restore an interrupted checkpoint
+through local schema validation; recovered responses do not become extra votes.
 
 The synthetic contract smoke checks JSON compliance and obvious correct/wrong
 translations. Passing it is not evidence of human-calibrated judge accuracy or
@@ -83,6 +88,19 @@ hashes only. Sealed questions, translations, raw receipts, and judge rationales
 remain in the private benchmark corpus.
 
 ## Reproduction
+
+The completed six-profile publication contains 360 soft cases, with unresolved
+cases retained. Scores are DS V4.1 Flash 81.11, GPT-6 Sol 76.90, MiMo V2.6 Pro
+74.20, GPT-6 Luna 64.19, GPT-5.6 Luna 62.99, and DS V4 Flash 50.50. These are
+coverage-qualified placements, not significance claims.
+
+Verified panel judging cost is at least $3.287166, including $0.289058 of shared
+anchor review; three calls still have unverified cost. Gemini fallback accounts
+for $1.619114, about 49% of verified judging cost. The Luna placement costs
+$0.593558 in judging versus $0.02492947 for its reused translation run, so the
+cost inversion remains despite the cheaper priority pool. Comparison with the
+previous $1.811030 judging ledger uses different sample sizes and is not a
+controlled savings estimate.
 
 Public panel adapter: `src/remis_aventine/priority_panel.py`.
 Private corpus scripts: `run_priority_candidates.py`,

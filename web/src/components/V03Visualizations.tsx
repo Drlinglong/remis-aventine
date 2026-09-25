@@ -27,7 +27,7 @@ function highlightValue(profile: ZhEnPreviewProfile, metric: HighlightMetric): n
 function formatHighlight(value: number, metric: HighlightMetric): string {
   if (metric === 'score') return value.toFixed(1);
   if (metric === 'throughput') return value >= 100 ? value.toFixed(0) : value.toFixed(1);
-  return value < 0.01 ? `$${value.toFixed(3)}` : `$${value.toFixed(2)}`;
+  return value < 0.1 ? `$${value.toFixed(3)}` : `$${value.toFixed(2)}`;
 }
 
 function HighlightCard({ metric, profiles, onOpen }: { metric: HighlightMetric; profiles: ZhEnPreviewProfile[]; onOpen: (profile: ZhEnPreviewProfile) => void }) {
@@ -92,7 +92,7 @@ function Highlights({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[]; onOp
 function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[]; onOpen: (profile: ZhEnPreviewProfile) => void }) {
   const { t } = useI18n();
   const paretoCopy: Record<ParetoMetric, { label: string; axis: string; format: (value: number) => string }> = {
-    cost: { label: t('pareto.cost'), axis: t('pareto.costAxis'), format: (value) => `$${value.toFixed(value < 0.01 ? 3 : 2)}` },
+    cost: { label: t('pareto.cost'), axis: t('pareto.costAxis'), format: (value) => `$${value.toFixed(value < 0.1 ? 3 : 2)}` },
     latency: { label: t('pareto.elapsed'), axis: t('pareto.elapsedAxis'), format: (value) => t('common.minutes', { value: (value / 60).toFixed(1) }) },
     tokens: { label: t('pareto.tokens'), axis: t('pareto.tokensAxis'), format: (value) => `${Math.round(value / 1000)}k` },
   };
@@ -106,7 +106,13 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
   const frontier = paretoFrontier(profiles, metric);
   const width = 940, height = 430, pad = { top: 38, right: 58, bottom: 66, left: 62 };
   const values = points.map((profile) => paretoValue(profile, metric) as number);
-  const minValue = Math.min(...values), maxValue = Math.max(...values), useLog = metric === 'cost';
+  let minValue = Math.min(...values), maxValue = Math.max(...values);
+  const useLog = metric === 'cost';
+  if (minValue === maxValue) {
+    const padding = Math.max(maxValue * 0.25, useLog ? 0.001 : 1);
+    minValue = Math.max(useLog ? 0.0001 : 0, minValue - padding);
+    maxValue += padding;
+  }
   const project = (value: number) => (useLog ? Math.log10(Math.max(value, 0.0001)) : value);
   const projectedMin = project(minValue), projectedMax = project(maxValue);
   const x = (value: number) => pad.left + ((project(value) - projectedMin) / Math.max(0.0001, projectedMax - projectedMin)) * (width - pad.left - pad.right);

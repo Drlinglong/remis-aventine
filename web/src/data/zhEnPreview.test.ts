@@ -9,9 +9,11 @@ describe('ZH-EN published result artifact', () => {
     const next = structuredClone(fixture) as Record<string, unknown>;
     next.protocol = 'aventine-v0.3-zh-en-fixed-anchors-priority-dual';
     next.score_version = 'v0.3-zh-en-anchors-20260925-v1';
+    next.judge_cost_missing_calls = 2;
     expect(() => parseZhEnPreview(next)).toThrow('anchor_panel');
     next.anchor_panel = { revision: next.score_version, models: ['qwen/qwen3.8-max', 'meta/muse-spark-1.2', 'upstage/solar-pro4'], manifest_sha256: 'a'.repeat(64), judge_revision: 'priority-v1' };
     expect(parseZhEnPreview(next).anchor_panel?.models).toHaveLength(3);
+    expect(parseZhEnPreview(next).judge_cost_missing_calls).toBe(2);
     next.score_version = 'v0.3-zh-en-60soft-40hard';
     expect(() => parseZhEnPreview(next)).toThrow('score_version');
   });

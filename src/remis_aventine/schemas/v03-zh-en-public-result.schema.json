@@ -61,6 +61,11 @@
       "type": "number",
       "minimum": 0
     },
+    "judge_cost_missing_calls": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Logical judge calls whose cost remains unverified; judge_cost_usd is a lower bound when this count is positive."
+    },
     "soft_case_count": {
       "type": "integer",
       "minimum": 0
@@ -337,7 +342,8 @@
       },
       "then": {
         "required": [
-          "anchor_panel"
+          "anchor_panel",
+          "judge_cost_missing_calls"
         ],
         "properties": {
           "score_version": {
@@ -347,6 +353,7 @@
       },
       "else": {
         "properties": {
+          "judge_cost_missing_calls": false,
           "score_version": {
             "const": "v0.3-zh-en-60soft-40hard"
           }
