@@ -107,10 +107,14 @@ export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
   }
   if (source.schema_version !== 1) throw new Error('ZH-EN results schema_version must be 1');
   if (source.artifact_id !== 'v0.3-zh-en-results') throw new Error('ZH-EN results artifact_id must be v0.3-zh-en-results');
-  if (source.protocol !== 'aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard') {
+  const anchored = source.protocol === 'aventine-v0.3-zh-en-fixed-anchors-priority-dual';
+  if (!anchored && source.protocol !== 'aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard') {
     throw new Error('ZH-EN results protocol is unsupported');
   }
-  if (source.score_version !== 'v0.3-zh-en-60soft-40hard') throw new Error('ZH-EN results score_version is unsupported');
+  if (source.score_version !== (anchored ? 'v0.3-zh-en-anchors-20260925-v1' : 'v0.3-zh-en-60soft-40hard')) throw new Error('ZH-EN results score_version is unsupported');
+  const anchor = anchored ? object(source.anchor_panel, 'anchor_panel') : undefined;
+  if (!anchored && source.anchor_panel !== undefined) throw new Error('Historical scores cannot declare an anchor panel');
+  if (anchor && (!Array.isArray(anchor.models) || anchor.models.length !== 3 || new Set(anchor.models).size !== 3)) throw new Error('Exactly three distinct anchors required');
   if (source.status !== 'published-partial') throw new Error('ZH-EN results must have status published-partial');
   if (source.direction_count !== 2) throw new Error('ZH-EN results must contain exactly two directions');
   if (!Array.isArray(source.profiles)) throw new Error('ZH-EN results profiles must be an array');
@@ -125,9 +129,15 @@ export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
     direction_count: 2,
     judge_cost_usd: finite(source.judge_cost_usd, 'judge_cost_usd'),
     profiles,
-    protocol: 'aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard',
+    protocol: source.protocol as ZhEnPreviewArtifact['protocol'],
     schema_version: 1,
-    score_version: 'v0.3-zh-en-60soft-40hard',
+    score_version: source.score_version as ZhEnPreviewArtifact['score_version'],
+    ...(anchor ? { anchor_panel: {
+      revision: text(anchor.revision, 'anchor_panel.revision'),
+      models: (anchor.models as unknown[]).map((m) => text(m, 'anchor model')),
+      manifest_sha256: text(anchor.manifest_sha256, 'anchor_panel.manifest_sha256'),
+      judge_revision: text(anchor.judge_revision, 'anchor_panel.judge_revision'),
+    } } : {}),
     source_commit: text(source.source_commit, 'source_commit'),
     soft_case_count: integer(source.soft_case_count, 'soft_case_count'),
     soft_resolved_count: integer(source.soft_resolved_count, 'soft_resolved_count'),
@@ -136,8 +146,8 @@ export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
   };
 }
 
-export async function loadZhEnPreview(signal?: AbortSignal): Promise<ZhEnPreviewArtifact | null> {
-  const response = await fetch(`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`, { signal });
+export async function loadZhEnPreview(signal?: AbortSignal, filename = 'v03-zh-en-results.json'): Promise<ZhEnPreviewArtifact | null> {
+  const response = await fetch(`${import.meta.env.BASE_URL}data/${filename}`, { signal });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`ZH-EN results request failed: ${response.status}`);
   if ((response.headers.get('content-type') || '').includes('text/html')) return null;

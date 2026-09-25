@@ -15,6 +15,13 @@ export const MethodologyView: React.FC = () => {
         </p>
       </div>
 
+      <div className="av-card" style={{ padding: '24px' }}>
+        <h2>2026-09-25 · Fixed-anchor incremental placements</h2>
+        <p>MiMo V2.6 Pro, GPT-6 Luna and DeepSeek V4.1 Flash form the priority judge pool. Contestant families recuse; Gemini 3.8 Flash resolves missing or split votes only when two independent matching verdicts are available. Historical scores keep their original version.</p>
+        <p>Qwen 3.8 Max, Muse Spark 1.2 and Solar Pro 4 provide frozen opponents. Scores remain 60% soft preference and 40% hard reliability, with coverage shown explicitly. Synthetic contract checks are not human calibration.</p>
+        <a href="https://github.com/Drlinglong/remis-aventine/blob/main/docs/zh-en-fixed-anchor-panel-20260925.md" target="_blank" rel="noreferrer">Protocol, sampling, cost accounting and limitations</a>
+      </div>
+
       {/* The 4 Hard Principles */}
       <div className="av-card" style={{ padding: '24px', backgroundColor: 'var(--bg-card)' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>

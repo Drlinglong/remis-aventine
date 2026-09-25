@@ -1069,3 +1069,26 @@ body {
 /* FINDING-005: vendor color as identity — ensure bar fills and table dots use vendor tokens */
 .preview-score { color: var(--vendor-color); }
 .preview-score i { background: var(--vendor-color); }
+/* Shared model selection for charts and leaderboard. */
+.cohort-tabs { margin: 28px 0 16px; }
+.comparison-controls { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin: 22px 0; padding: 20px; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--bg-card); }
+.comparison-controls p { margin: 6px 0; color: var(--text-secondary); font-size: 13px; }
+.comparison-controls small { color: var(--text-muted); overflow-wrap: anywhere; }
+.model-selection { position: relative; min-width: 270px; max-width: 100%; z-index: 20; }
+.model-selection summary { cursor: pointer; padding: 12px 16px; border: 1px solid var(--border-color, #bbb); border-radius: 8px; color: var(--text-primary); background: var(--bg-main); }
+.model-selection summary span { float: right; margin-left: 24px; }
+.model-selection-panel { position: absolute; right: 0; top: calc(100% + 8px); width: 360px; max-width: calc(100vw - 48px); padding: 16px; border: 1px solid var(--border-color, #bbb); border-radius: 10px; background: var(--bg-card); color: var(--text-primary); box-shadow: 0 8px 30px #0002; }
+.model-selection-panel input[type=search] { width: 100%; padding: 10px; border: 1px solid var(--border-color, #bbb); border-radius: 6px; background: var(--bg-main); color: var(--text-primary); }
+.model-selection-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.model-selection-actions button { cursor: pointer; border: 1px solid var(--border-color, #bbb); border-radius: 5px; padding: 6px 10px; background: var(--bg-main); color: var(--text-primary); }
+.model-selection-list { max-height: 330px; overflow: auto; }
+.model-selection-list label { display: flex; align-items: center; gap: 10px; padding: 10px 0; cursor: pointer; }
+.model-selection-list .model-selection-name { flex: 1; min-width: 0; }
+.model-selection-list .vendor-logo { flex: 0 0 20px; }
+.model-selection input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--brand-gold); }
+.empty-model-selection { padding: 42px; text-align: center; margin-bottom: 30px; }
+@media (max-width: 640px) {
+  .comparison-controls { flex-direction: column; gap: 16px; }
+  .model-selection { width: 100%; }
+  .model-selection-panel { position: static; margin-top: 8px; width: 100%; max-width: 100%; }
+}

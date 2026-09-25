@@ -42,3 +42,25 @@ def test_published_zh_en_contract_is_strict_and_distinct_from_multilingual_contr
     assert any("Additional properties are not allowed" in issue for issue in exc_info.value.issues)
     with pytest.raises(DocumentValidationError):
         validate_payload(payload, "v03-public-result.schema.json")
+
+
+def test_anchor_protocol_requires_its_own_version_and_three_distinct_anchors() -> None:
+    payload = json.loads(RESULT.read_text(encoding="utf-8"))
+    payload["protocol"] = "aventine-v0.3-zh-en-fixed-anchors-priority-dual"
+    payload["score_version"] = "v0.3-zh-en-anchors-20260925-v1"
+    with pytest.raises(DocumentValidationError):
+        validate_payload(payload, SCHEMA_NAME)
+    payload["anchor_panel"] = {
+        "revision": payload["score_version"],
+        "models": ["qwen/qwen3.8-max", "meta/muse-spark-1.2", "upstage/solar-pro4"],
+        "manifest_sha256": "a" * 64,
+        "judge_revision": "priority-mimo26-luna6-ds41-gemini38-20260925-v1",
+    }
+    validate_payload(payload, SCHEMA_NAME)
+    duplicate = copy.deepcopy(payload)
+    duplicate["anchor_panel"]["models"][1] = duplicate["anchor_panel"]["models"][0]
+    with pytest.raises(DocumentValidationError):
+        validate_payload(duplicate, SCHEMA_NAME)
+    payload["score_version"] = "v0.3-zh-en-60soft-40hard"
+    with pytest.raises(DocumentValidationError):
+        validate_payload(payload, SCHEMA_NAME)

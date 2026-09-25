@@ -1,6 +1,11 @@
 import type { ZhEnPreviewProfile } from '../types/zhEnPreview';
 
 const DISPLAY_NAMES: Record<string, string> = {
+  'openai/gpt-6-luna': 'GPT-6 Luna',
+  'openai/gpt-6-sol': 'GPT-6 Sol',
+  'xiaomi/mimo-v2.6-pro': 'MiMo-V2.6-Pro',
+  'deepseek/deepseek-v4.1-flash': 'DeepSeek V4.1 Flash',
+  'stepfun/step-5-preview': 'Step 5 Preview',
   'openai/gpt-5.6-sol-pro': 'GPT-5.6 Sol Pro',
   'qwen/qwen3.8-max': 'Qwen 3.8 Max',
   'meituan/longcat-2.0': 'LongCat 2.0',

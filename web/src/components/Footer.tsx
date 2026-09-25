@@ -1,12 +1,14 @@
 import React from 'react';
 import { Shield, BookOpen, GitBranch, ExternalLink } from 'lucide-react';
 import { useI18n } from '../i18n/I18nProvider';
+import type { ZhEnPreviewArtifact } from '../types/zhEnPreview';
 
 interface FooterProps {
   onSelectTab: (tab: string) => void;
+  result?: ZhEnPreviewArtifact | null;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
+export const Footer: React.FC<FooterProps> = ({ onSelectTab, result }) => {
   const { t } = useI18n();
   const [aboutBefore, aboutAfter] = t('footer.about').split('{remis}');
   return (
@@ -54,7 +56,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
               <li><button onClick={() => onSelectTab('leaderboard')} style={{ color: 'inherit', textAlign: 'left' }}>{t('footer.overview')}</button></li>
               <li><button onClick={() => onSelectTab('results')} style={{ color: 'inherit', textAlign: 'left' }}>{t('footer.results')}</button></li>
-              <li><a href={`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`} target="_blank" rel="noreferrer">{t('footer.json')}</a></li>
+              <li><a href={`${import.meta.env.BASE_URL}data/${result?.anchor_panel ? 'v03-zh-en-anchors-20260925.json' : 'v03-zh-en-results.json'}`} target="_blank" rel="noreferrer">{t('footer.json')}</a></li>
             </ul>
           </div>
 
@@ -105,7 +107,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab }) => {
           <div>
             {t('footer.copyright')}
           </div>
-          <span>{t('footer.source')} <code>c734ac4</code></span>
+          <span>{t('footer.source')} <code>{result?.source_commit.slice(0, 7) ?? 'c734ac4'}</code></span>
         </div>
       </div>
     </footer>

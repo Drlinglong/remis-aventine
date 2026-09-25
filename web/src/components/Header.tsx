@@ -12,6 +12,7 @@ interface HeaderProps {
   isDark: boolean;
   onToggleTheme: () => void;
   profiles: ZhEnPreviewProfile[];
+  scoreVersions: Map<string, string>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   isDark,
   onToggleTheme,
   profiles,
+  scoreVersions,
 }) => {
   const { locale, setLocale, t } = useI18n();
   const [query, setQuery] = useState('');
@@ -138,7 +140,7 @@ export const Header: React.FC<HeaderProps> = ({
                   return (
                     <a
                       key={profile.execution_identity_sha256}
-                      href={modelDetailHref(profile.model_id, locale)}
+                      href={modelDetailHref(profile.model_id, locale, undefined, undefined, scoreVersions.get(profile.model_id))}
                       target="_blank"
                       rel="noopener noreferrer"
                       role="option"

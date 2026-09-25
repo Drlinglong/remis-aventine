@@ -99,6 +99,10 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
   const [metric, setMetric] = useState<ParetoMetric>('cost');
   const [hovered, setHovered] = useState<ZhEnPreviewProfile | null>(null);
   const points = profiles.filter((profile) => paretoValue(profile, metric) !== null);
+  if (points.length === 0) return <article className="av-card pareto-card">
+    <h2>{t('pareto.title')}</h2><p>{t('common.notMeasured')}</p>
+    <button className="tab-btn" onClick={() => setMetric('latency')}>{t('pareto.elapsed')}</button>
+  </article>;
   const frontier = paretoFrontier(profiles, metric);
   const width = 940, height = 430, pad = { top: 38, right: 58, bottom: 66, left: 62 };
   const values = points.map((profile) => paretoValue(profile, metric) as number);
@@ -343,7 +347,7 @@ function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[];
 export function V03Visualizations({ artifact }: { artifact: ZhEnPreviewArtifact }) {
   const { locale, t } = useI18n();
   const openDetails = (profile: ZhEnPreviewProfile) => {
-    window.open(modelDetailHref(profile.model_id, locale), '_blank', 'noopener,noreferrer');
+    window.open(modelDetailHref(profile.model_id, locale, undefined, undefined, artifact.score_version), '_blank', 'noopener,noreferrer');
   };
   return (
     <section className="v03-analysis">

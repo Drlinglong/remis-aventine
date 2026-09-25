@@ -27,7 +27,7 @@ export function ModelDetailPage({
   profile: ZhEnPreviewProfile;
   onBack: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const verified = profile.telemetry.verified_cost;
   const name = zhEnProfileName(profile);
 
@@ -49,6 +49,7 @@ export function ModelDetailPage({
         <strong>{profile.zh_en_score.toFixed(2)}</strong>
       </div>
       <dl className="manifest-grid">
+        <div><dt>{locale === 'zh-CN' ? '评分版本' : 'Score version'}</dt><dd>{artifact.score_version}</dd></div>
         <div><dt>ZH→EN</dt><dd>{profile.directions['zh-CN->en'].score.toFixed(2)}</dd></div>
         <div><dt>EN→ZH</dt><dd>{profile.directions['en->zh-CN'].score.toFixed(2)}</dd></div>
         <div><dt>{t('manifest.observedCost')}</dt><dd>{profile.telemetry.cost_usd === null ? t('common.notMeasured') : `$${profile.telemetry.cost_usd.toFixed(4)}`}</dd></div>

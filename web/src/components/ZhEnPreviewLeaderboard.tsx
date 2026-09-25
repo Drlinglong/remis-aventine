@@ -34,7 +34,8 @@ function percent(value: number): string {
 }
 
 export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArtifact }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const anchored = Boolean(artifact.anchor_panel);
   const [view, setView] = useState<View>('overall');
   const viewLabels: Record<View, string> = { overall: t('leader.overall'), 'zh-CN->en': t('leader.zhEn'), 'en->zh-CN': t('leader.enZh') };
   const ranked = useMemo(() => [...artifact.profiles].sort((left, right) => metric(right, view).score - metric(left, view).score), [artifact.profiles, view]);
@@ -46,9 +47,9 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
       <div className="preview-disclosure">
         <div>
           <strong>{t('leader.scope')}</strong>
-          <p>{t('leader.policy')}</p>
+          <p>{anchored ? (locale === 'zh-CN' ? '固定高、中、低三个锚点，60% 软性偏好 + 40% 硬性可靠性；排名仅限当前面板，未裁定项单列。' : 'Three frozen high/middle/low anchors; 60% soft preference + 40% hard reliability. Ranks are within this panel; unresolved items remain separate.') : t('leader.policy')}</p>
         </div>
-        <span className="badge badge-gold">{t('leader.date')}</span>
+        <span className="badge badge-gold">{anchored ? '2026-09-25' : t('leader.date')}</span>
       </div>
 
       <div className="preview-kpis">
@@ -58,7 +59,7 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
         <div className="v03-panel"><span>{t('leader.current')}</span><strong>{zhEnProfileName(ranked[0])}</strong><small>{metric(ranked[0], view).score.toFixed(2)}</small></div>
       </div>
 
-      <div className="v03-panel" style={{ marginTop: 20, padding: 20 }}>
+      {!anchored && <div className="v03-panel" style={{ marginTop: 20, padding: 20 }}>
         <div className="section-title"><span>{t('focused.title')}</span></div>
         <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, marginBottom: 16 }}>
           {t('focused.scope', { prompts: GPT6_LUNA_FOCUSED.matchingPrompts, entries: GPT6_LUNA_FOCUSED.entries })}
@@ -77,7 +78,7 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
         <p style={{ color: 'var(--text-muted)', fontSize: 12, lineHeight: 1.6, marginTop: 14 }}>
           {t('focused.coverage', { soft: GPT6_LUNA_FOCUSED.softCasesResolved, softTotal: GPT6_LUNA_FOCUSED.softCasesTotal, structural: GPT6_LUNA_FOCUSED.structuralCasesResolved, structuralTotal: GPT6_LUNA_FOCUSED.structuralCasesTotal })}
         </p>
-      </div>
+      </div>}
 
       <div className="tab-group preview-tabs">
         {(Object.keys(viewLabels) as View[]).map((key) => (
@@ -136,7 +137,7 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
       <div className="preview-footnote">
         <span>{t('leader.source')} <code>{artifact.source_commit}</code></span>
         <span>{t('leader.judgeCost')} ${artifact.judge_cost_usd.toFixed(3)}</span>
-        <a href={`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`} target="_blank" rel="noreferrer">{t('leader.download')}</a>
+        <a href={`${import.meta.env.BASE_URL}data/${artifact.anchor_panel ? 'v03-zh-en-anchors-20260925.json' : 'v03-zh-en-results.json'}`} target="_blank" rel="noreferrer">{t('leader.download')}</a>
       </div>
     </section>
   );

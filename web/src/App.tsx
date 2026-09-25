@@ -3,8 +3,7 @@ import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { ModelDetailPage } from './components/ModelDetailPage';
 import { HeroSection, CredibilityStrip } from './components/HeroSection';
-import { V03Visualizations } from './components/V03Visualizations';
-import { ZhEnPreviewLeaderboard } from './components/ZhEnPreviewLeaderboard';
+import { ResultsExplorer } from './components/ResultsExplorer';
 import { MethodologyView } from './components/MethodologyView';
 import { PairwiseHeatmap } from './components/PairwiseHeatmap';
 import { ChangelogTimeline } from './components/ChangelogTimeline';
@@ -15,13 +14,28 @@ import type { RecipeEntry } from './types/benchmark';
 import { useI18n } from './i18n/I18nProvider';
 
 export const App = () => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [activeTab, setActiveTab] = useState('leaderboard');
   const [isDark, setIsDark] = useState(false);
-  const [result, setResult] = useState<ZhEnPreviewArtifact | null>(null);
+  const [historical, setHistorical] = useState<ZhEnPreviewArtifact | null>(null);
+  const [current, setCurrent] = useState<ZhEnPreviewArtifact | null>(null);
+  const [showHistory, setShowHistory] = useState(() => new URLSearchParams(window.location.search).get('score_version') === 'v0.3-zh-en-60soft-40hard');
+  const result = showHistory ? historical : current ?? historical;
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<RecipeEntry | null>(null);
   const requestedModelId = new URLSearchParams(window.location.search).get('model');
+  const detailArtifact = [result, current, historical].find((artifact) => artifact?.profiles.some((profile) => profile.model_id === requestedModelId));
+  const searchProfiles = [...(current?.profiles ?? []), ...(historical?.profiles ?? [])].filter((profile, index, all) => all.findIndex((other) => other.model_id === profile.model_id) === index);
+  const scoreVersions = new Map<string, string>();
+  for (const artifact of [historical, current, result]) {
+    for (const profile of artifact?.profiles ?? []) scoreVersions.set(profile.model_id, artifact!.score_version);
+  }
+  const selectCohort = (history: boolean) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('score_version', history ? 'v0.3-zh-en-60soft-40hard' : 'v0.3-zh-en-anchors-20260925-v1');
+    window.history.replaceState({}, '', url);
+    setShowHistory(history);
+  };
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
@@ -29,8 +43,14 @@ export const App = () => {
 
   useEffect(() => {
     const controller = new AbortController();
-    loadZhEnPreview(controller.signal)
-      .then(setResult)
+    Promise.allSettled([loadZhEnPreview(controller.signal), loadZhEnPreview(controller.signal, 'v03-zh-en-anchors-20260925.json')])
+      .then(([old, next]) => {
+        if (controller.signal.aborted) return;
+        if (old.status === 'fulfilled') setHistorical(old.value);
+        if (next.status === 'fulfilled') setCurrent(next.value);
+        const failed = [old, next].find((entry) => entry.status === 'rejected');
+        if (failed?.status === 'rejected') setLoadError(String(failed.reason));
+      })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) setLoadError(error instanceof Error ? error.message : String(error));
       });
@@ -47,8 +67,11 @@ export const App = () => {
 
   const resultPanel = result ? (
     <>
-      <V03Visualizations artifact={result} />
-      <ZhEnPreviewLeaderboard artifact={result} />
+      {current && historical && <div className="tab-group cohort-tabs" aria-label={locale === 'zh-CN' ? '评分版本' : 'Score version'}>
+        <button className={`tab-btn ${!showHistory ? 'active' : ''}`} onClick={() => selectCohort(false)}>{locale === 'zh-CN' ? '当前增量榜' : 'Current placements'}</button>
+        <button className={`tab-btn ${showHistory ? 'active' : ''}`} onClick={() => selectCohort(true)}>{locale === 'zh-CN' ? '历史榜单 · 2026-08' : 'Historical · Aug 2026'}</button>
+      </div>}
+      <ResultsExplorer key={result.score_version} artifact={result} />
     </>
   ) : (
     <div className="v03-panel" style={{ padding: 20, marginTop: 24 }}>
@@ -64,14 +87,15 @@ export const App = () => {
         onSelectTab={selectTab}
         isDark={isDark}
         onToggleTheme={() => setIsDark((current) => !current)}
-        profiles={result?.profiles ?? []}
+        profiles={searchProfiles}
+        scoreVersions={scoreVersions}
       />
 
       <main className="container" style={{ flex: 1 }}>
-        {requestedModelId && result?.profiles.find((profile) => profile.model_id === requestedModelId) && (
+        {requestedModelId && detailArtifact && (
           <ModelDetailPage
-            artifact={result}
-            profile={result.profiles.find((profile) => profile.model_id === requestedModelId)!}
+            artifact={detailArtifact}
+            profile={detailArtifact.profiles.find((profile) => profile.model_id === requestedModelId)!}
             onBack={() => selectTab('leaderboard')}
           />
         )}
@@ -128,7 +152,7 @@ export const App = () => {
         </>}
       </main>
 
-      <Footer onSelectTab={selectTab} />
+      <Footer onSelectTab={selectTab} result={detailArtifact ?? result} />
       <RecipeDrawer recipe={selectedModel} onClose={() => setSelectedModel(null)} onSelectTab={selectTab} />
     </div>
   );

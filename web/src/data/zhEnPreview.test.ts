@@ -5,6 +5,16 @@ import { parseZhEnPreview } from './zhEnPreview';
 const fixture = JSON.parse(readFileSync(new URL('../../public/data/v03-zh-en-results.json', import.meta.url), 'utf8')) as unknown;
 
 describe('ZH-EN published result artifact', () => {
+  it('keeps historical and anchored score versions distinct', () => {
+    const next = structuredClone(fixture) as Record<string, unknown>;
+    next.protocol = 'aventine-v0.3-zh-en-fixed-anchors-priority-dual';
+    next.score_version = 'v0.3-zh-en-anchors-20260925-v1';
+    expect(() => parseZhEnPreview(next)).toThrow('anchor_panel');
+    next.anchor_panel = { revision: next.score_version, models: ['qwen/qwen3.8-max', 'meta/muse-spark-1.2', 'upstage/solar-pro4'], manifest_sha256: 'a'.repeat(64), judge_revision: 'priority-v1' };
+    expect(parseZhEnPreview(next).anchor_panel?.models).toHaveLength(3);
+    next.score_version = 'v0.3-zh-en-60soft-40hard';
+    expect(() => parseZhEnPreview(next)).toThrow('score_version');
+  });
   it('loads the committed 17-contestant, two-direction result', () => {
     const result = parseZhEnPreview(fixture);
     const ranked = [...result.profiles].sort((left, right) => right.zh_en_score - left.zh_en_score);
