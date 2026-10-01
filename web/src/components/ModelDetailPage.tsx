@@ -67,6 +67,15 @@ export function ModelDetailPage({
         <div><dt>{t('manifest.soft')}</dt><dd>{aggregate(profile, 'soft').score.toFixed(2)}</dd></div>
         <div><dt>{t('manifest.hard')}</dt><dd>{aggregate(profile, 'hard').score.toFixed(2)}</dd></div>
       </dl>
+      {artifact.score_version === 'v0.3-zh-en-anchors-local-20261001-v1' && (
+        <section className="manifest-note">
+          <strong>{locale === 'zh-CN' ? '本地评测配方' : 'Local evaluation recipe'}</strong>
+          <p>{profile.model_id.startsWith('bilibili/')
+            ? (locale === 'zh-CN' ? 'LM Studio · RTX 5090 · Q8_0 · temperature 0 · Thinking 关闭。' : 'LM Studio · RTX 5090 · Q8_0 · temperature 0 · thinking off.')
+            : (locale === 'zh-CN' ? 'LM Studio · RTX 5090 · Q4_K_S · temperature 0.3 · Thinking 开启。' : 'LM Studio · RTX 5090 · Q4_K_S · temperature 0.3 · thinking on.')}</p>
+          <p>{locale === 'zh-CN' ? '硬件与电费未计量，因此不参与成本排名；分数对应这一量化与推理配方。' : 'Hardware and electricity costs are unmeasured, so this recipe is excluded from cost ranking. Scores describe this quantization and decoding recipe.'}</p>
+        </section>
+      )}
       {verified && (
         <section className="manifest-note">
           <strong>{t('manifest.verified')}</strong>

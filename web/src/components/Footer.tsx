@@ -2,6 +2,7 @@ import React from 'react';
 import { Shield, BookOpen, GitBranch, ExternalLink } from 'lucide-react';
 import { useI18n } from '../i18n/I18nProvider';
 import type { ZhEnPreviewArtifact } from '../types/zhEnPreview';
+import { zhEnSource } from '../data/zhEnSource';
 
 interface FooterProps {
   onSelectTab: (tab: string) => void;
@@ -56,7 +57,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectTab, result }) => {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
               <li><button onClick={() => onSelectTab('leaderboard')} style={{ color: 'inherit', textAlign: 'left' }}>{t('footer.overview')}</button></li>
               <li><button onClick={() => onSelectTab('results')} style={{ color: 'inherit', textAlign: 'left' }}>{t('footer.results')}</button></li>
-              <li><a href={`${import.meta.env.BASE_URL}data/${result?.anchor_panel ? 'v03-zh-en-anchors-20260925.json' : 'v03-zh-en-results.json'}`} target="_blank" rel="noreferrer">{result?.catalog ? (locale === 'zh-CN' ? '📦 增量结果 JSON' : '📦 Incremental results JSON') : t('footer.json')}</a></li>
+              <li><a href={`${import.meta.env.BASE_URL}data/${zhEnSource(result).filename}`} target="_blank" rel="noreferrer">{result?.catalog ? (locale === 'zh-CN' ? '📦 增量结果 JSON' : '📦 Incremental results JSON') : t('footer.json')}</a></li>
               {result?.catalog && <li><a href={`${import.meta.env.BASE_URL}data/v03-zh-en-results.json`} target="_blank" rel="noreferrer">{locale === 'zh-CN' ? '📦 原始结果 JSON' : '📦 Original results JSON'}</a></li>}
             </ul>
           </div>

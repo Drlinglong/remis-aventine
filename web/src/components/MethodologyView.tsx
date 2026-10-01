@@ -16,6 +16,13 @@ export const MethodologyView: React.FC = () => {
       </div>
 
       <div className="av-card" style={{ padding: '24px' }}>
+        <h2>2026-10-01 · Two local recipes join the unified leaderboard</h2>
+        <p>Index-Translate 9B Q8_0 and MiMo V2.6 Distill Qwen 9B Q4_K_S use the frozen bilingual exam: 44 calls, two repetitions, and unchanged prompt hashes. Index uses temperature 0 with thinking off; MiMo uses temperature 0.3 with thinking on, through LM Studio on an RTX 5090.</p>
+        <p>The September fixed anchors, seed, dual-judge consensus and position audits are retained. MiMo-family judges recuse from the distilled MiMo candidate. Local hardware and electricity costs are not measured, so these recipes are excluded from cost ranking. Quantization and decoding differ; scores describe these complete recipes.</p>
+        <a href="https://github.com/Drlinglong/remis-aventine/blob/main/docs/local-model-evaluation-2026-10-01.md" target="_blank" rel="noreferrer">Local recipe provenance, coverage and results</a>
+      </div>
+
+      <div className="av-card" style={{ padding: '24px' }}>
         <h2>2026-09-25 · Fixed-anchor incremental placements</h2>
         <p>MiMo V2.6 Pro, GPT-6 Luna and DeepSeek V4.1 Flash form the priority judge pool. Contestant families recuse; Gemini 3.8 Flash resolves missing or split votes only when two independent matching verdicts are available. Historical scores keep their original version.</p>
         <p>Qwen 3.8 Max, Muse Spark 1.2 and Solar Pro 4 provide frozen opponents. Scores remain 60% soft preference and 40% hard reliability, with coverage shown explicitly. Synthetic contract checks are not human calibration.</p>

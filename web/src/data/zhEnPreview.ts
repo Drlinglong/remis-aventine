@@ -111,7 +111,10 @@ export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
   if (!anchored && source.protocol !== 'aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard') {
     throw new Error('ZH-EN results protocol is unsupported');
   }
-  if (source.score_version !== (anchored ? 'v0.3-zh-en-anchors-20260925-v1' : 'v0.3-zh-en-60soft-40hard')) throw new Error('ZH-EN results score_version is unsupported');
+  const supportedVersions = anchored
+    ? ['v0.3-zh-en-anchors-20260925-v1', 'v0.3-zh-en-anchors-local-20261001-v1']
+    : ['v0.3-zh-en-60soft-40hard'];
+  if (!supportedVersions.includes(String(source.score_version))) throw new Error('ZH-EN results score_version is unsupported');
   const anchor = anchored ? object(source.anchor_panel, 'anchor_panel') : undefined;
   const missingCosts = anchored ? integer(source.judge_cost_missing_calls, 'judge_cost_missing_calls') : undefined;
   if (missingCosts !== undefined && missingCosts < 0) throw new Error('judge_cost_missing_calls must be nonnegative');

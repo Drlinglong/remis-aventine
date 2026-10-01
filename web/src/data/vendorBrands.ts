@@ -10,6 +10,7 @@ export type VendorBrandId =
   | 'alibaba'
   | 'inclusionai'
   | 'xiaomi'
+  | 'bilibili'
   | 'anthropic'
   | 'meta'
   | 'minimax'
@@ -35,6 +36,7 @@ const BRAND_DEFINITIONS: Record<VendorBrandId, Omit<VendorBrand, 'id'>> = {
   alibaba: { label: 'Alibaba / Qwen', logo: 'alibaba.png', color: 'var(--vendor-alibaba)' },
   inclusionai: { label: 'InclusionAI / Ling', logo: 'inclusionai.png', color: 'var(--vendor-alibaba)' },
   xiaomi: { label: 'Xiaomi / MiMo', logo: 'xiaomi.png', color: 'var(--vendor-xiaomi)' },
+  bilibili: { label: 'Bilibili / Index', logo: null, color: 'var(--vendor-neutral)' },
   anthropic: { label: 'Anthropic / Claude', logo: 'anthropic.svg', color: 'var(--vendor-anthropic)' },
   meta: { label: 'Meta', logo: 'meta.png', color: 'var(--vendor-meta)' },
   minimax: { label: 'MiniMax', logo: 'minimax.png', color: 'var(--vendor-minimax)' },
@@ -58,9 +60,10 @@ export function getVendorBrand(...signals: Array<string | null | undefined>): Ve
   else if (value.includes('longcat') || value.includes('meituan')) id = 'longcat';
   else if (value.includes('upstage') || value.includes('solar')) id = 'upstage';
   else if (value.includes('nvidia') || value.includes('nemotron')) id = 'nvidia';
+  else if (value.includes('bilibili') || value.includes('index-translate')) id = 'bilibili';
+  else if (value.includes('xiaomi') || value.includes('mimo')) id = 'xiaomi';
   else if (value.includes('qwen') || value.includes('alibaba')) id = 'alibaba';
   else if (value.includes('ling') || value.includes('inclusionai')) id = 'inclusionai';
-  else if (value.includes('xiaomi') || value.includes('mimo')) id = 'xiaomi';
   else if (value.includes('anthropic') || value.includes('claude')) id = 'anthropic';
   else if (value.includes('meta') || value.includes('muse-spark')) id = 'meta';
   else if (value.includes('minimax')) id = 'minimax';

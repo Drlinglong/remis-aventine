@@ -53,7 +53,7 @@ export interface ZhEnPreviewArtifact {
   profiles: ZhEnPreviewProfile[];
   protocol: 'aventine-v0.3-zh-en-balanced-degree4-sample20-60soft-40hard' | 'aventine-v0.3-zh-en-fixed-anchors-priority-dual';
   schema_version: 1;
-  score_version: 'v0.3-zh-en-60soft-40hard' | 'v0.3-zh-en-anchors-20260925-v1';
+  score_version: 'v0.3-zh-en-60soft-40hard' | 'v0.3-zh-en-anchors-20260925-v1' | 'v0.3-zh-en-anchors-local-20261001-v1';
   anchor_panel?: { revision: string; models: string[]; manifest_sha256: string; judge_revision: string };
   source_commit: string;
   soft_case_count: number;

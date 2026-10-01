@@ -2,6 +2,18 @@ import type { ChangelogItem } from '../types/benchmark';
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    id: 'ch-2026-10-01-local-recipes',
+    date: '01 Oct 2026',
+    title: 'Index-Translate and Distilled MiMo Join the Unified Leaderboard',
+    category: 'Tournaments',
+    summary: 'Two LM Studio recipes extend the existing 21-model catalog to 23 models, sharing search, selection, charts and version-specific detail pages.',
+    highlights: [
+      'Index-Translate 9B Q8_0 and MiMo V2.6 Distill Qwen 9B Q4_K_S use the frozen 44-call bilingual exam and unchanged prompt hashes.',
+      'Fixed anchors and independent priority judges retain unresolved cases. Original scores and both earlier result JSON files remain unchanged.',
+      'Local compute cost is unmeasured and excluded from cost ranking; quantization and thinking settings are disclosed as part of each recipe.',
+    ],
+  },
+  {
     id: 'ch-2026-09-25-unified-catalog',
     date: '25 Sep 2026',
     title: 'Four New Models Join the Original 17-Model Leaderboard',

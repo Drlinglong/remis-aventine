@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUpRight } from 'lucide-react';
 import type { ZhEnPreviewArtifact } from '../types/zhEnPreview';
 import { useI18n } from '../i18n/I18nProvider';
+import { zhEnSource } from '../data/zhEnSource';
 
 interface HeroSectionProps {
   onSelectTab: (tab: string) => void;
@@ -10,6 +11,7 @@ interface HeroSectionProps {
 export function HeroSection({ onSelectTab, result }: HeroSectionProps) {
   const { t, locale } = useI18n();
   const anchored = Boolean(result?.anchor_panel);
+  const source = zhEnSource(result);
   return (
     <section className="hero-editorial">
       <div className="hero-copy-column">
@@ -33,7 +35,7 @@ export function HeroSection({ onSelectTab, result }: HeroSectionProps) {
           <button className="hero-cta hero-cta-primary" onClick={() => onSelectTab('results')}>
             {t('hero.explore')} <ArrowDown size={16} />
           </button>
-          <a className="hero-cta hero-cta-secondary" href={`${import.meta.env.BASE_URL}data/${anchored ? 'v03-zh-en-anchors-20260925.json' : 'v03-zh-en-results.json'}`} target="_blank" rel="noreferrer">
+          <a className="hero-cta hero-cta-secondary" href={`${import.meta.env.BASE_URL}data/${source.filename}`} target="_blank" rel="noreferrer">
             {result?.catalog ? (locale === 'zh-CN' ? '下载本轮增量结果' : 'Download incremental results') : t('hero.download')} <ArrowUpRight size={16} />
           </a>
         </div>
@@ -53,7 +55,7 @@ export function HeroSection({ onSelectTab, result }: HeroSectionProps) {
         <dl className="benchmark-facts">
           <div><dt>{t('benchmark.directions')}</dt><dd>{result ? `${result.direction_count} / 18` : '2 / 18'}</dd></div>
           <div><dt>{t('benchmark.contestants')}</dt><dd>{result?.contestant_count ?? 17}</dd></div>
-          <div><dt>{t('benchmark.lastUpdated')}</dt><dd className="benchmark-date">{anchored ? '2026-09-25' : t('benchmark.updatedDate')}</dd></div>
+          <div><dt>{t('benchmark.lastUpdated')}</dt><dd className="benchmark-date">{anchored ? source.date : t('benchmark.updatedDate')}</dd></div>
           <div><dt>{t('benchmark.framework')}</dt><dd className="benchmark-framework"><a href="https://drlinglong.github.io/Remis/" target="_blank" rel="noreferrer">Remis <ArrowUpRight size={15} /></a></dd></div>
         </dl>
         <p className="benchmark-judges">

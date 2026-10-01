@@ -14,6 +14,9 @@ describe('ZH-EN published result artifact', () => {
     next.anchor_panel = { revision: next.score_version, models: ['qwen/qwen3.8-max', 'meta/muse-spark-1.2', 'upstage/solar-pro4'], manifest_sha256: 'a'.repeat(64), judge_revision: 'priority-v1' };
     expect(parseZhEnPreview(next).anchor_panel?.models).toHaveLength(3);
     expect(parseZhEnPreview(next).judge_cost_missing_calls).toBe(2);
+    next.score_version = 'v0.3-zh-en-anchors-local-20261001-v1';
+    (next.anchor_panel as Record<string, unknown>).revision = next.score_version;
+    expect(parseZhEnPreview(next).score_version).toBe(next.score_version);
     next.score_version = 'v0.3-zh-en-60soft-40hard';
     expect(() => parseZhEnPreview(next)).toThrow('score_version');
   });

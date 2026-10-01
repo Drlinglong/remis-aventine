@@ -15,6 +15,21 @@ RESULT = ROOT / "web" / "public" / "data" / "v03-zh-en-results.json"
 SCHEMA_NAME = "v03-zh-en-public-result.schema.json"
 
 
+def test_local_results_publish_two_identified_recipes_without_ranking_unmeasured_cost() -> None:
+    result = RESULT.with_name("v03-zh-en-anchors-local-20261001.json")
+    payload = validate_document(result, SCHEMA_NAME)
+    assert payload["contestant_count"] == len(payload["profiles"]) == 2
+    assert payload["score_version"] == "v0.3-zh-en-anchors-local-20261001-v1"
+    assert {profile["model_id"] for profile in payload["profiles"]} == {
+        "bilibili/index-translate-9b-q8_0",
+        "xiaomi/mimo-v2.6-distill-qwen-9b-q4_k_s",
+    }
+    for profile in payload["profiles"]:
+        assert profile["telemetry"]["cost_usd"] is None
+        assert profile["telemetry"]["cost_rank_eligible"] is False
+    assert payload["soft_resolved_count"] + payload["soft_unresolved_count"] == 114
+
+
 def test_published_zh_en_result_satisfies_its_public_contract() -> None:
     payload = validate_document(RESULT, SCHEMA_NAME)
 
@@ -58,6 +73,10 @@ def test_anchor_protocol_requires_its_own_version_and_three_distinct_anchors() -
         "judge_revision": "priority-mimo26-luna6-ds41-gemini38-20260925-v1",
     }
     validate_payload(payload, SCHEMA_NAME)
+    local = copy.deepcopy(payload)
+    local["score_version"] = "v0.3-zh-en-anchors-local-20261001-v1"
+    local["anchor_panel"]["revision"] = local["score_version"]
+    validate_payload(local, SCHEMA_NAME)
     duplicate = copy.deepcopy(payload)
     duplicate["anchor_panel"]["models"][1] = duplicate["anchor_panel"]["models"][0]
     with pytest.raises(DocumentValidationError):

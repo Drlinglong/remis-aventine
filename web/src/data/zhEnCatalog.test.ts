@@ -45,4 +45,22 @@ describe('incremental model catalog', () => {
     expect(catalog.judge_cost_usd).toBeCloseTo(original.judge_cost_usd + incremental.judge_cost_usd);
     expect(catalog.judge_cost_missing_calls).toBe(3);
   });
+  it('appends another source without replacing earlier model scores or provenance', () => {
+    const local = structuredClone(incremental);
+    local.score_version = 'v0.3-zh-en-anchors-local-20261001-v1';
+    local.profiles = [
+      { ...structuredClone(incremental.profiles[0]), model_id: 'bilibili/index-translate-9b-q8_0', model_family: 'bilibili-index' },
+      { ...structuredClone(incremental.profiles[0]), model_id: 'xiaomi/mimo-v2.6-distill-qwen-9b-q4_k_s', model_family: 'xiaomi-mimo' },
+      { ...structuredClone(original.profiles[0]), zh_en_score: 0 },
+    ];
+    const before = JSON.stringify([original, incremental, local]);
+    const previous = buildZhEnCatalog(original, incremental);
+    const catalog = buildZhEnCatalog(original, incremental, local);
+    expect(catalog.contestant_count).toBe(23);
+    expect(catalog.catalog).toMatchObject({ original_count: 17, added_count: 6 });
+    expect(catalog.catalog?.source_versions).toHaveLength(3);
+    for (const profile of previous.profiles) expect(catalog.profiles.find((p) => p.model_id === profile.model_id)).toEqual(profile);
+    expect(defaultModelIds(catalog.profiles)).toHaveLength(21);
+    expect(JSON.stringify([original, incremental, local])).toBe(before);
+  });
 });

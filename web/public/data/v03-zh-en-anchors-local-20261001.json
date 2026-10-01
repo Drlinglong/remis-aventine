@@ -1,0 +1,124 @@
+{
+  "$schema": "https://drlinglong.github.io/remis-aventine/schemas/v03-zh-en-public-result.schema.json",
+  "schema_version": 1,
+  "artifact_id": "v0.3-zh-en-results",
+  "protocol": "aventine-v0.3-zh-en-fixed-anchors-priority-dual",
+  "score_version": "v0.3-zh-en-anchors-local-20261001-v1",
+  "status": "published-partial",
+  "source_commit": "dcc405112f5a0eaefb61108832648de36e735feb",
+  "direction_count": 2,
+  "contestant_count": 2,
+  "judge_cost_usd": 0.8284635464,
+  "judge_cost_missing_calls": 2,
+  "soft_case_count": 114,
+  "soft_resolved_count": 108,
+  "soft_unresolved_count": 6,
+  "anchor_panel": {
+    "revision": "v0.3-zh-en-anchors-local-20261001-v1",
+    "models": [
+      "qwen/qwen3.8-max",
+      "meta/muse-spark-1.2",
+      "upstage/solar-pro4"
+    ],
+    "manifest_sha256": "34236fa200f81c7f23e6c24e4054fc078c550721b72eb8c3c17c5bcfb7d42819",
+    "judge_revision": "priority-mimo26-luna6-ds41-gemini38-20260925-v1"
+  },
+  "profiles": [
+    {
+      "model_id": "bilibili/index-translate-9b-q8_0",
+      "model_family": "bilibili-index",
+      "execution_identity_sha256": "56eb544ee0a00a0268864051d0f3ceb0381f134b65f0548de9f79b6f4716cb42",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 22,
+            "resolved": 36,
+            "total": 36,
+            "coverage": 1.0,
+            "score": 61.1111
+          },
+          "soft": {
+            "points": 9,
+            "resolved": 29,
+            "total": 30,
+            "coverage": 0.966667,
+            "score": 31.0345
+          },
+          "score": 43.0651
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 22,
+            "resolved": 40,
+            "total": 40,
+            "coverage": 1.0,
+            "score": 55.0
+          },
+          "soft": {
+            "points": 10,
+            "resolved": 26,
+            "total": 30,
+            "coverage": 0.866667,
+            "score": 38.4615
+          },
+          "score": 45.0769
+        }
+      },
+      "zh_en_score": 44.071,
+      "telemetry": {
+        "cost_usd": null,
+        "cost_rank_eligible": false,
+        "elapsed_seconds": 91.834,
+        "total_tokens": 50412
+      }
+    },
+    {
+      "model_id": "xiaomi/mimo-v2.6-distill-qwen-9b-q4_k_s",
+      "model_family": "xiaomi-mimo",
+      "execution_identity_sha256": "d95ed0a76f4a6a402f82c59e33df0b99e938d4b471460727c90cfbe834da8ab2",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 12,
+            "resolved": 36,
+            "total": 36,
+            "coverage": 1.0,
+            "score": 33.3333
+          },
+          "soft": {
+            "points": 1,
+            "resolved": 23,
+            "total": 24,
+            "coverage": 0.958333,
+            "score": 4.3478
+          },
+          "score": 15.942
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 22,
+            "resolved": 39,
+            "total": 40,
+            "coverage": 0.975,
+            "score": 56.4103
+          },
+          "soft": {
+            "points": 8,
+            "resolved": 30,
+            "total": 30,
+            "coverage": 1.0,
+            "score": 26.6667
+          },
+          "score": 38.5641
+        }
+      },
+      "zh_en_score": 27.2531,
+      "telemetry": {
+        "cost_usd": null,
+        "cost_rank_eligible": false,
+        "elapsed_seconds": 227.579,
+        "total_tokens": 73522
+      }
+    }
+  ]
+}

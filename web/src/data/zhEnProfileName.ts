@@ -1,6 +1,8 @@
 import type { ZhEnPreviewProfile } from '../types/zhEnPreview';
 
 const DISPLAY_NAMES: Record<string, string> = {
+  'bilibili/index-translate-9b-q8_0': 'Index-Translate 9B · Q8_0',
+  'xiaomi/mimo-v2.6-distill-qwen-9b-q4_k_s': 'MiMo V2.6 Distill Qwen 9B · Q4_K_S',
   'openai/gpt-6-luna': 'GPT-6 Luna',
   'openai/gpt-6-sol': 'GPT-6 Sol',
   'xiaomi/mimo-v2.6-pro': 'MiMo-V2.6-Pro',
