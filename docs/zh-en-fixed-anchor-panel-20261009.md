@@ -31,7 +31,8 @@ OpenRouter 的 `preferred_min_throughput` 是路由偏好，并非硬性速度�
 | 裁判 | 固定路由 | 四例预检最低输出速度 |
 | --- | --- | ---: |
 | GPT-6 Luna（high） | `openai` | 57.87 token/s |
-| DeepSeek V4.1 Flash（high） | `deepinfra/fp8` | 42.58 token/s |
+| DeepSeek V4.1 Flash（high，初始路由） | `deepinfra/fp8` | 42.58 token/s |
+| DeepSeek V4.1 Flash（high，修订后路由） | `fireworks` | 75.90 token/s |
 | Gemini 3.8 Flash（medium） | `google-ai-studio` | 54.76 token/s |
 
 MiMo 的 Xiaomi 路由预检约 1–6 token/s；DeepInfra 有一次约 23.64 token/s；
@@ -47,8 +48,15 @@ GMICloud 已返回的请求约 5–11 token/s；Novita 对所需参数返回 404
 Haiku 主审为 Luna＋DeepSeek，缺失或分歧时由 Gemini 补裁。
 Sol 同家族排除 Luna，且 MiMo 不满足路由门槛，因此由 DeepSeek＋Gemini 审理。
 必须有两张一致的有效票才裁定；分歧仍为未决。裁判版本为
-`priority-mimo26-luna6-ds41-gemini38-20261009-routes30-v1`。
+`priority-mimo26-luna6-ds41-gemini38-20261009-routes30-v1-fireworks-amendment1`。
 公开路由证据见 `web/public/data/v03-judge-routes-20261009.json`。
+
+正式运行中 DeepInfra 的一次响应降至约 29.4 token/s，保护机制隔离了后续请求。
+Fireworks 通过新的四例检查后，修订只恢复能证明未发出请求的任务与原先未调度的任务；
+已完成裁决、案例、提示词、推理强度、顺序与审计抽样均保留。停止旧执行器时，
+最后一个 DeepSeek 请求已返回并开始补裁；从已保存回执恢复了三条结果，另三条
+补裁仍无法确认结果与费用，保留未确认记录且不得重发。裁判费用因此按已知下界报告。
+初始计划和执行记录不覆盖，发布清单绑定原始清单与路由修订的哈希。
 
 ## 锚点与复现
 
@@ -62,3 +70,30 @@ Sol 同家族排除 Luna，且 MiMo 不满足路由门槛，因此由 DeepSeek�
 `panel_20261009.py` 保留计划、请求身份、回执、吞吐记录与可恢复检查点。
 `test_oct09_routes.py` 验证固定路由、禁用回退、低速隔离、离线恢复不联网与家族回避。
 公开结果不包含密封题目、候选译文、原始回执或裁判理由。
+
+## 已完成结果与费用
+
+| 模型配置 | 中英得分 | ZH→EN | EN→ZH | 软评测裁定 | 硬评测裁定 | 44 次生成费用 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| GPT-6.1 Sol（medium） | 89.10 | 85.22 | 92.97 | 42/60 | 74/76 | $0.3081232 |
+| Claude Haiku 5.5（high） | 64.12 | 65.56 | 62.69 | 54/60 | 76/76 | $0.0503831 |
+
+两个模型的 120 个软案例中，96 个获得裁定，24 个保留未决。
+每个模型均完成 12 个案例的双裁判交换顺序审计。部分审计跨越路由修订，
+不一致只作保守的未决处理，不能单独归因为位置偏好。
+
+正式裁判已知费用为至少 **$1.7459645444**：Sol $0.8626214556，
+Haiku 至少 $0.8833430888（3 条补裁费用未确认）。路由预检另有已知费用
+$0.0137738398。两模型生成共 $0.3585063；正式裁判已知费用约为生成的
+4.87 倍，**本轮并未彻底消除裁判成本倒挂**。费用不包含复用锚点的历史账单，
+也没有把尚未发出的隔离任务算作未知收费。
+
+DeepInfra 的两个在途响应低于门槛，最低约 28.03 token/s；首次约 29.4 时
+已拦截后续请求。46 个明确未发出的任务在 Fireworks 恢复，另完成原定尚未调度的
+审计。Fireworks 共记录 62 个响应（含 4 个预检），最低约 75.90 token/s；
+OpenAI / Luna 与 Google AI Studio / Gemini 的已测最低值分别约 57.87、54.76。
+三条未知补裁没有重发，所有已发送的历史裁决在合并账本中逐条保持原值，
+逻辑调用 ID 不重复。
+
+最终公开产物为 `web/public/data/v03-zh-en-anchors-20261009.json`。
+目录共 25 个模型，默认选择 22 个；三个旧产品线版本仍可手动添加。

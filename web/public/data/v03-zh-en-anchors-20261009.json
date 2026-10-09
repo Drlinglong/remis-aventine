@@ -1,0 +1,124 @@
+{
+  "$schema": "https://drlinglong.github.io/remis-aventine/schemas/v03-zh-en-public-result.schema.json",
+  "schema_version": 1,
+  "artifact_id": "v0.3-zh-en-results",
+  "protocol": "aventine-v0.3-zh-en-fixed-anchors-priority-dual",
+  "score_version": "v0.3-zh-en-anchors-20261009-v1",
+  "status": "published-partial",
+  "source_commit": "b07980922196f5259e33993e38955d3f13489b86",
+  "direction_count": 2,
+  "contestant_count": 2,
+  "judge_cost_usd": 1.7459645444,
+  "judge_cost_missing_calls": 3,
+  "soft_case_count": 120,
+  "soft_resolved_count": 96,
+  "soft_unresolved_count": 24,
+  "anchor_panel": {
+    "revision": "v0.3-zh-en-anchors-20261009-v1",
+    "models": [
+      "qwen/qwen3.8-max",
+      "meta/muse-spark-1.2",
+      "upstage/solar-pro4"
+    ],
+    "manifest_sha256": "ff03a89eba3883fbf002a484200dfd0a7474afd5e0ae2b7631a5b471e8e63796",
+    "judge_revision": "priority-mimo26-luna6-ds41-gemini38-20261009-routes30-v1-fireworks-amendment1"
+  },
+  "profiles": [
+    {
+      "model_id": "openai/gpt-6.1-sol",
+      "model_family": "openai-gpt",
+      "execution_identity_sha256": "0f8fd90494defb59fdd196f07bfcc1cfc3b992ae8609c5f83d0f4b8c5fea3e6f",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 34,
+            "resolved": 35,
+            "total": 36,
+            "coverage": 0.972222,
+            "score": 97.1429
+          },
+          "soft": {
+            "points": 17,
+            "resolved": 22,
+            "total": 30,
+            "coverage": 0.733333,
+            "score": 77.2727
+          },
+          "score": 85.2208
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 38,
+            "resolved": 39,
+            "total": 40,
+            "coverage": 0.975,
+            "score": 97.4359
+          },
+          "soft": {
+            "points": 18,
+            "resolved": 20,
+            "total": 30,
+            "coverage": 0.666667,
+            "score": 90.0
+          },
+          "score": 92.9744
+        }
+      },
+      "zh_en_score": 89.0976,
+      "telemetry": {
+        "cost_usd": 0.3081232,
+        "cost_rank_eligible": true,
+        "elapsed_seconds": 571.002,
+        "total_tokens": 62095
+      }
+    },
+    {
+      "model_id": "anthropic/claude-haiku-5.5",
+      "model_family": "anthropic",
+      "execution_identity_sha256": "d92730c80019340ff4fe9826674cf129ff58e3f8d5e9f77e9d31eb57acc43582",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 32,
+            "resolved": 36,
+            "total": 36,
+            "coverage": 1.0,
+            "score": 88.8889
+          },
+          "soft": {
+            "points": 14,
+            "resolved": 28,
+            "total": 30,
+            "coverage": 0.933333,
+            "score": 50.0
+          },
+          "score": 65.5556
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 35,
+            "resolved": 40,
+            "total": 40,
+            "coverage": 1.0,
+            "score": 87.5
+          },
+          "soft": {
+            "points": 12,
+            "resolved": 26,
+            "total": 30,
+            "coverage": 0.866667,
+            "score": 46.1538
+          },
+          "score": 62.6923
+        }
+      },
+      "zh_en_score": 64.124,
+      "telemetry": {
+        "cost_usd": 0.0503831,
+        "cost_rank_eligible": true,
+        "elapsed_seconds": 440.91,
+        "total_tokens": 149051
+      }
+    }
+  ]
+}

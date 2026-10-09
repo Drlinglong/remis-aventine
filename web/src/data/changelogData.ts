@@ -2,6 +2,21 @@ import type { ChangelogItem } from '../types/benchmark';
 
 export const CHANGELOG_DATA: ChangelogItem[] = [
   {
+    id: 'ch-2026-10-09-reasoning-routes',
+    date: '09 Oct 2026',
+    title: 'Haiku 5.5 (high), GPT-6.1 Sol (medium), and Explicit Reasoning Settings',
+    category: 'Tournaments',
+    provider: 'OpenRouter',
+    summary: 'Two fixed-anchor results extend the unified catalog to 25 models. Reasoning settings now appear in model names, charts, search, selection and recipe details, with execution-identity provenance.',
+    highlights: [
+      'Each entrant completed the unchanged 44-call, 76-translation bilingual exam. Historical scores remain immutable; Sol 6.1 replaces Sol 6 in the default selection, while both stay available.',
+      'Requests without explicit reasoning controls are labelled default, separately from thinking on or off. GPT-6 Luna was evaluated at high.',
+      'Judge endpoints passed a 30 output-token/s preflight and are pinned without provider fallback. No tested MiMo route qualified; Haiku uses Luna + DeepSeek with Gemini fallback, while Sol uses DeepSeek + Gemini after OpenAI family recusal.',
+      'A live DeepInfra response at about 29.4 output-token/s triggered quarantine. An explicit amendment moved only unsent work to qualified Fireworks, retaining completed votes and three unconfirmed fallback calls without resending them.',
+      'Batch format reliability remains visible: Haiku passed 7/44 raw contracts and 44/44 after existing parsing; Sol passed 44/44 in both stages. Unresolved judgments remain in coverage statistics.',
+    ],
+  },
+  {
     id: 'ch-2026-10-01-local-recipes',
     date: '01 Oct 2026',
     title: 'Index-Translate and Distilled MiMo Join the Unified Leaderboard',

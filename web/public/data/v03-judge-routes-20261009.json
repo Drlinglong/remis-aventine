@@ -1,5 +1,5 @@
 {
-  "revision": "priority-mimo26-luna6-ds41-gemini38-20261009-routes30-v1",
+  "revision": "priority-mimo26-luna6-ds41-gemini38-20261009-routes30-v1-fireworks-amendment1",
   "minimum_output_tokens_per_second": 30,
   "measurement": "Native completion tokens / generation_time where available; otherwise conservative completion tokens / full wall time, including reasoning output; never total input+output tokens.",
   "allow_provider_fallbacks": false,
@@ -9,8 +9,8 @@
       "preflight_minimum_output_tps": 57.87
     },
     "ds41": {
-      "route": "deepinfra/fp8",
-      "preflight_minimum_output_tps": 42.58
+      "route": "fireworks",
+      "preflight_minimum_output_tps": 75.9
     },
     "gemini38-fallback": {
       "route": "google-ai-studio",
@@ -40,6 +40,75 @@
   },
   "notes": [
     "Preflight qualification is not a guarantee of future speed. A below-floor or unmeasurable live response quarantines the route before subsequent calls; in-flight responses remain auditable.",
-    "Historical scores and historical judge identities are unchanged."
-  ]
+    "Historical scores and historical judge identities are unchanged.",
+    "Stopping the old executor left three fallback calls without confirmed responses or fees. They are never reissued; judge cost remains a lower bound."
+  ],
+  "qualification_sha256": "bc3d686a813bf473166c13887d1e1b7fe187dfec8dd762e4451aa5f3f278fbab",
+  "runtime_source_sha256": {
+    "run_oct09_candidates.py": "6aea1fdc261c52b37ccf6bfd160ab1760f676a9f57cfb10a8965e085ac82e767",
+    "run_oct09_judges.py": "1dba3312c6d1bad659c8a58a94255d63cc19416969409d968c62bfe18273df05",
+    "panel_20261009.py": "f7529cb8305ed691733bbe613fedbd04861ca35aa2a938391887550bedf01474",
+    "run_priority_judges.py": "6c06436a4fe2ff32a3a3ea645e1de0e5ac2158982dad847cfbb2c707d199395f",
+    "summarize_priority_anchors.py": "6e77c915143b93e23a18b66fcbb3964d3e500728f6ef02d56c221b3da7e4f43f",
+    "judge.py": "6ceac5d8601c2adc75d5112997cba6d781bcb5f9eb30a581ecbe3c6d8ab3e42f",
+    "priority_panel.py": "2a59c87698393829653bdd981ae17285962f21f0b46b0c2ca9b8390dd483092e",
+    "run_oct09_fireworks.py": "2cf10214d8dc79f81f29f8b466625399eea00206751c37541fbd6991f263499e",
+    "resume_oct09_amendment.py": "8c845e419f188f728b77911f56f51d35ca78ef966d893fd8cf6aec501aa2f957",
+    "summarize_oct09_final.py": "369fc65054d0b09a32f960252f18409bfa7c1d98a681ebaeb1a8f97dc2abd06f",
+    "resume_oct09_amendment.py (Sol recovery)": "9e370fd0a402d45d6274563a4d707f76e04e81633a90e4b9b00cc78b89110735"
+  },
+  "transport_amendment_sha256": "d48c4122fae2d5dfb168c21f0ebd85ea6eafa167186d030ba7228490c715eed2",
+  "route_changes": [
+    {
+      "member": "ds41",
+      "from": {
+        "route": "deepinfra/fp8",
+        "preflight_minimum_output_tps": 42.58
+      },
+      "to": {
+        "route": "fireworks",
+        "preflight_minimum_output_tps": 75.9
+      },
+      "trigger_output_tps": 29.4,
+      "retention": "Completed transmitted votes are retained. Only provably blocked-before-network and originally undispatched calls are resumed."
+    }
+  ],
+  "unverified_in_flight_calls": 3,
+  "observed_throughput": {
+    "gemini38-fallback@google-ai-studio": {
+      "responses": 108,
+      "minimum": 54.75810738968634,
+      "below_or_unverified": 0
+    },
+    "mimo26@xiaomi/fp8": {
+      "responses": 4,
+      "minimum": 1.3010461473102861,
+      "below_or_unverified": 4
+    },
+    "ds41@deepinfra/fp8": {
+      "responses": 117,
+      "minimum": 28.025101276194597,
+      "below_or_unverified": 2
+    },
+    "luna6@openai": {
+      "responses": 98,
+      "minimum": 57.874015748031496,
+      "below_or_unverified": 0
+    },
+    "mimo26@deepinfra/fp8": {
+      "responses": 4,
+      "minimum": 23.641148787247694,
+      "below_or_unverified": 1
+    },
+    "mimo26@gmicloud/bf16": {
+      "responses": 2,
+      "minimum": 5.074355575577112,
+      "below_or_unverified": 2
+    },
+    "ds41@fireworks": {
+      "responses": 62,
+      "minimum": 75.90363721445117,
+      "below_or_unverified": 0
+    }
+  }
 }

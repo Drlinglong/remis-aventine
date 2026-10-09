@@ -154,7 +154,7 @@ export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
 }
 
 export async function loadZhEnPreview(signal?: AbortSignal, filename = 'v03-zh-en-results.json'): Promise<ZhEnPreviewArtifact | null> {
-  const response = await fetch(`${import.meta.env.BASE_URL}data/${filename}`, { signal });
+  const response = await fetch(`${import.meta.env.BASE_URL}data/${filename}`, { signal, cache: 'no-cache' });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`ZH-EN results request failed: ${response.status}`);
   if ((response.headers.get('content-type') || '').includes('text/html')) return null;
