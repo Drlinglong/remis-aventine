@@ -21,17 +21,18 @@ export const App = () => {
   const [historical, setHistorical] = useState<ZhEnPreviewArtifact | null>(null);
   const [current, setCurrent] = useState<ZhEnPreviewArtifact | null>(null);
   const [local, setLocal] = useState<ZhEnPreviewArtifact | null>(null);
+  const [october, setOctober] = useState<ZhEnPreviewArtifact | null>(null);
   const [showHistory, setShowHistory] = useState(() => new URLSearchParams(window.location.search).get('view') === 'history');
   const catalog = useMemo(() => {
-    const available = [historical, current, local].filter((source): source is ZhEnPreviewArtifact => source !== null);
+    const available = [historical, current, local, october].filter((source): source is ZhEnPreviewArtifact => source !== null);
     return available.length ? buildZhEnCatalog(available[0], ...available.slice(1)) : null;
-  }, [historical, current, local]);
+  }, [historical, current, local, october]);
   const result = showHistory ? historical : catalog;
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<RecipeEntry | null>(null);
   const [requestedModelId, setRequestedModelId] = useState(() => new URLSearchParams(window.location.search).get('model'));
   const requestedVersion = new URLSearchParams(window.location.search).get('score_version');
-  const sources = [historical, current, local];
+  const sources = [historical, current, local, october];
   const detailArtifact = sources.find((artifact) => artifact?.score_version === requestedVersion && artifact.profiles.some((profile) => profile.model_id === requestedModelId))
     ?? sources.find((artifact) => artifact?.profiles.some((profile) => profile.model_id === requestedModelId));
   const searchProfiles = catalog?.profiles ?? [];
@@ -52,13 +53,14 @@ export const App = () => {
 
   useEffect(() => {
     const controller = new AbortController();
-    Promise.allSettled([loadZhEnPreview(controller.signal), loadZhEnPreview(controller.signal, 'v03-zh-en-anchors-20260925.json'), loadZhEnPreview(controller.signal, 'v03-zh-en-anchors-local-20261001.json')])
-      .then(([old, next, localResult]) => {
+    Promise.allSettled([loadZhEnPreview(controller.signal), loadZhEnPreview(controller.signal, 'v03-zh-en-anchors-20260925.json'), loadZhEnPreview(controller.signal, 'v03-zh-en-anchors-local-20261001.json'), loadZhEnPreview(controller.signal, 'v03-zh-en-anchors-20261009.json')])
+      .then(([old, next, localResult, octoberResult]) => {
         if (controller.signal.aborted) return;
         if (old.status === 'fulfilled') setHistorical(old.value);
         if (next.status === 'fulfilled') setCurrent(next.value);
         if (localResult.status === 'fulfilled') setLocal(localResult.value);
-        const failed = [old, next, localResult].find((entry) => entry.status === 'rejected');
+        if (octoberResult.status === 'fulfilled') setOctober(octoberResult.value);
+        const failed = [old, next, localResult, octoberResult].find((entry) => entry.status === 'rejected');
         if (failed?.status === 'rejected') setLoadError(String(failed.reason));
       })
       .catch((error: unknown) => {

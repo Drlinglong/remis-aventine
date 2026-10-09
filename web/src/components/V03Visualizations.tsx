@@ -32,7 +32,7 @@ function formatHighlight(value: number, metric: HighlightMetric): string {
 }
 
 function HighlightCard({ metric, profiles, onOpen }: { metric: HighlightMetric; profiles: ZhEnPreviewProfile[]; onOpen: (profile: ZhEnPreviewProfile) => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const ranked = profiles
     .map((profile) => ({ profile, value: highlightValue(profile, metric) }))
     .filter((item): item is { profile: ZhEnPreviewProfile; value: number } => item.value !== null)
@@ -58,14 +58,14 @@ function HighlightCard({ metric, profiles, onOpen }: { metric: HighlightMetric; 
               className={`hbar-row ${index === 0 ? 'lead' : ''}`}
               key={profile.execution_identity_sha256}
               onClick={() => onOpen(profile)}
-              title={`${zhEnProfileName(profile)} · ${formatHighlight(value, metric)}`}
+              title={`${zhEnProfileName(profile, locale === 'zh-CN')} · ${formatHighlight(value, metric)}`}
               style={{ '--vendor-color': brand.color } as CSSProperties}
             >
               <span className="hbar-rank">{index + 1}</span>
               <span className="hbar-main">
                 <span className="hbar-label">
-                  <VendorLogo signals={[profile.model_family, profile.model_id]} size={16} fallback={zhEnProfileName(profile)} />
-                  {zhEnProfileName(profile)}
+                  <VendorLogo signals={[profile.model_family, profile.model_id]} size={16} fallback={zhEnProfileName(profile, locale === 'zh-CN')} />
+                  {zhEnProfileName(profile, locale === 'zh-CN')}
                 </span>
                 <span className="hbar-track">
                   <i className="hbar-fill" style={{ width: `${Math.max(3, (value / max) * 100)}%` }} />
@@ -91,7 +91,7 @@ function Highlights({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[]; onOp
 }
 
 function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[]; onOpen: (profile: ZhEnPreviewProfile) => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const paretoCopy: Record<ParetoMetric, { label: string; axis: string; format: (value: number) => string }> = {
     cost: { label: t('pareto.cost'), axis: t('pareto.costAxis'), format: (value) => `$${value.toFixed(value < 0.1 ? 3 : 2)}` },
     latency: { label: t('pareto.elapsed'), axis: t('pareto.elapsedAxis'), format: (value) => t('common.minutes', { value: (value / 60).toFixed(1) }) },
@@ -181,7 +181,7 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
                 key={profile.execution_identity_sha256}
                 role="button"
                 tabIndex={0}
-                aria-label={`${zhEnProfileName(profile)}, ${t('common.score')} ${profile.zh_en_score.toFixed(2)}, ${paretoCopy[metric].format(value)}. ${t('pareto.open')}`}
+                aria-label={`${zhEnProfileName(profile, locale === 'zh-CN')}, ${t('common.score')} ${profile.zh_en_score.toFixed(2)}, ${paretoCopy[metric].format(value)}. ${t('pareto.open')}`}
                 onMouseEnter={() => setHovered(profile)}
                 onMouseLeave={() => setHovered(null)}
                 onFocus={() => setHovered(profile)}
@@ -202,7 +202,7 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
                 />
                 {(onFrontier || isHovered) && (
                   <text className="point-label" x={x(value) + (x(value) > width - 180 ? -10 : 10)} y={y(profile.zh_en_score) - 11} textAnchor={x(value) > width - 180 ? 'end' : 'start'}>
-                    {zhEnProfileName(profile)}
+                    {zhEnProfileName(profile, locale === 'zh-CN')}
                   </text>
                 )}
               </g>
@@ -222,9 +222,9 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
         </div>
         {active && (
           <div className="pareto-active">
-            <VendorLogo signals={[active.model_family, active.model_id]} size={32} fallback={zhEnProfileName(active)} />
+            <VendorLogo signals={[active.model_family, active.model_id]} size={32} fallback={zhEnProfileName(active, locale === 'zh-CN')} />
             <span className="pareto-active-copy">
-              <strong>{zhEnProfileName(active)}</strong>
+              <strong>{zhEnProfileName(active, locale === 'zh-CN')}</strong>
               <small>{t('common.score')} {active.zh_en_score.toFixed(2)} · {paretoCopy[metric].label} {paretoCopy[metric].format(paretoValue(active, metric) as number)}</small>
               <ScoreVersionTag profile={active} />
               <small>ZH→EN {active.directions['zh-CN->en'].score.toFixed(2)} · EN→ZH {active.directions['en->zh-CN'].score.toFixed(2)} · {t('manifest.soft')} {aggregate(active, 'soft').score.toFixed(1)} · {t('manifest.hard')} {aggregate(active, 'hard').score.toFixed(1)}</small>
@@ -238,7 +238,7 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
 }
 
 function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[]; onOpen: (profile: ZhEnPreviewProfile) => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [hovered, setHovered] = useState<ZhEnPreviewProfile | null>(null);
   const width = 940, height = 430, pad = { top: 30, right: 40, bottom: 56, left: 56 };
   const points = profiles.map((profile) => ({
@@ -307,7 +307,7 @@ function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[];
               key={profile.execution_identity_sha256}
               role="button"
               tabIndex={0}
-              aria-label={`${zhEnProfileName(profile)}, ${t('softhard.xAxis')} ${hard.toFixed(1)}, ${t('softhard.yAxis')} ${soft.toFixed(1)}`}
+              aria-label={`${zhEnProfileName(profile, locale === 'zh-CN')}, ${t('softhard.xAxis')} ${hard.toFixed(1)}, ${t('softhard.yAxis')} ${soft.toFixed(1)}`}
               onMouseEnter={() => setHovered(profile)}
               onMouseLeave={() => setHovered(null)}
               onFocus={() => setHovered(profile)}
@@ -320,7 +320,7 @@ function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[];
               <circle cx={x(hard)} cy={y(soft)} r={isHovered ? 6 : 4.5} fill={color(profile)} stroke="var(--bg-card)" strokeWidth="1.5" />
               {(isHovered || profile.zh_en_score === Math.max(...points.map((p) => p.profile.zh_en_score))) && (
                 <text className="point-label" x={x(hard) + 8} y={y(soft) - 6}>
-                  {zhEnProfileName(profile)}
+                  {zhEnProfileName(profile, locale === 'zh-CN')}
                 </text>
               )}
             </g>
@@ -341,9 +341,9 @@ function SoftHardScatter({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[];
           <small>{t('softhard.isoFormula')}</small>
         </div>
         <div className="soft-hard-active">
-          <VendorLogo signals={[active.model_family, active.model_id]} size={32} fallback={zhEnProfileName(active)} />
+          <VendorLogo signals={[active.model_family, active.model_id]} size={32} fallback={zhEnProfileName(active, locale === 'zh-CN')} />
           <span>
-            <strong>{zhEnProfileName(active)}</strong>
+            <strong>{zhEnProfileName(active, locale === 'zh-CN')}</strong>
             <small>{t('common.score')} {active.zh_en_score.toFixed(2)} · {t('manifest.soft')} {activeSoft.toFixed(1)} · {t('manifest.hard')} {activeHard.toFixed(1)}</small>
             <ScoreVersionTag profile={active} />
           </span>

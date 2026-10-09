@@ -5,8 +5,9 @@ export function ScoreVersionTag({ profile }: { profile: ZhEnPreviewProfile }) {
   const { locale } = useI18n();
   if (!profile.score_version) return null;
   const incremental = profile.score_version !== 'v0.3-zh-en-60soft-40hard';
+  const october = profile.score_version === 'v0.3-zh-en-anchors-20261009-v1';
   const local = profile.score_version === 'v0.3-zh-en-anchors-local-20261001-v1';
   return <small title={profile.score_version} className={`badge ${incremental ? 'badge-gold' : 'badge-neutral'}`}>
-    {locale === 'zh-CN' ? (local ? '本地增量 · 2026-10' : incremental ? '增量 · 2026-09' : '原评测 · 2026-08') : (local ? 'Local · Oct 2026' : incremental ? 'Incremental · Sep 2026' : 'Original · Aug 2026')}
+    {locale === 'zh-CN' ? (local ? '本地增量 · 2026-10' : october ? '增量 · 2026-10-09' : incremental ? '增量 · 2026-09' : '原评测 · 2026-08') : (local ? 'Local · Oct 2026' : october ? 'Incremental · Oct 9, 2026' : incremental ? 'Incremental · Sep 2026' : 'Original · Aug 2026')}
   </small>;
 }

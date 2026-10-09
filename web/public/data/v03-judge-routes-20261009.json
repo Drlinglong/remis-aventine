@@ -1,0 +1,45 @@
+{
+  "revision": "priority-mimo26-luna6-ds41-gemini38-20261009-routes30-v1",
+  "minimum_output_tokens_per_second": 30,
+  "measurement": "Native completion tokens / generation_time where available; otherwise conservative completion tokens / full wall time, including reasoning output; never total input+output tokens.",
+  "allow_provider_fallbacks": false,
+  "admitted_judges": {
+    "luna6": {
+      "route": "openai",
+      "preflight_minimum_output_tps": 57.87
+    },
+    "ds41": {
+      "route": "deepinfra/fp8",
+      "preflight_minimum_output_tps": 42.58
+    },
+    "gemini38-fallback": {
+      "route": "google-ai-studio",
+      "preflight_minimum_output_tps": 54.76
+    }
+  },
+  "excluded_judges": {
+    "mimo26": "No tested endpoint passed every preflight throughput and contract check."
+  },
+  "panels": {
+    "anthropic/claude-haiku-5.5": {
+      "primary": [
+        "luna6",
+        "ds41"
+      ],
+      "fallback": [
+        "gemini38-fallback"
+      ]
+    },
+    "openai/gpt-6.1-sol": {
+      "primary": [
+        "ds41",
+        "gemini38-fallback"
+      ],
+      "fallback": []
+    }
+  },
+  "notes": [
+    "Preflight qualification is not a guarantee of future speed. A below-floor or unmeasurable live response quarantines the route before subsequent calls; in-flight responses remain auditable.",
+    "Historical scores and historical judge identities are unchanged."
+  ]
+}

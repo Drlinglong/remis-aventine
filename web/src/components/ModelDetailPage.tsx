@@ -5,6 +5,7 @@ import { useI18n } from '../i18n/I18nProvider';
 import type { ZhEnMeasure, ZhEnPreviewArtifact, ZhEnPreviewProfile } from '../types/zhEnPreview';
 import { VendorLogo } from './VendorLogo';
 import { modelDetailHref } from '../data/modelDetailUrl';
+import { executionSettings, reasoningLabel } from '../data/executionSettings';
 
 function aggregate(profile: ZhEnPreviewProfile, kind: 'soft' | 'hard'): ZhEnMeasure {
   const values = Object.values(profile.directions).map((direction) => direction[kind]);
@@ -32,7 +33,8 @@ export function ModelDetailPage({
 }) {
   const { t, locale } = useI18n();
   const verified = profile.telemetry.verified_cost;
-  const name = zhEnProfileName(profile);
+  const name = zhEnProfileName(profile, locale === 'zh-CN');
+  const settings = executionSettings(profile);
 
   return (
     <article className="model-detail-page animate-fade-in">
@@ -57,6 +59,8 @@ export function ModelDetailPage({
         </a>)}
       </nav>}
       <dl className="manifest-grid">
+        <div><dt>{locale === 'zh-CN' ? '推理设置（请求值）' : 'Reasoning setting (requested)'}</dt><dd>{reasoningLabel(profile, locale === 'zh-CN')}</dd></div>
+        <div><dt>{locale === 'zh-CN' ? '输出 token 上限' : 'Output token limit'}</dt><dd>{settings?.max_output_tokens.toLocaleString() ?? (locale === 'zh-CN' ? '未记录' : 'Unrecorded')}</dd></div>
         <div><dt>{locale === 'zh-CN' ? '评分版本' : 'Score version'}</dt><dd>{artifact.score_version}</dd></div>
         <div><dt>ZH→EN</dt><dd>{profile.directions['zh-CN->en'].score.toFixed(2)}</dd></div>
         <div><dt>EN→ZH</dt><dd>{profile.directions['en->zh-CN'].score.toFixed(2)}</dd></div>
@@ -67,6 +71,18 @@ export function ModelDetailPage({
         <div><dt>{t('manifest.soft')}</dt><dd>{aggregate(profile, 'soft').score.toFixed(2)}</dd></div>
         <div><dt>{t('manifest.hard')}</dt><dd>{aggregate(profile, 'hard').score.toFixed(2)}</dd></div>
       </dl>
+      {settings?.generation && <section className="manifest-note">
+        <strong>{locale === 'zh-CN' ? '批量输出可靠性' : 'Batch output reliability'}</strong>
+        <p>{locale === 'zh-CN'
+          ? `${settings.generation.calls} 次调用 / ${settings.generation.entries} 条译文；原始格式通过 ${settings.generation.raw_contract_pass}/${settings.generation.calls}，现有解析与规范化后通过 ${settings.generation.final_contract_pass}/${settings.generation.calls}，空响应 ${settings.generation.empty_responses}。`
+          : `${settings.generation.calls} calls / ${settings.generation.entries} translations; raw contract passed ${settings.generation.raw_contract_pass}/${settings.generation.calls}, after existing parsing and normalization ${settings.generation.final_contract_pass}/${settings.generation.calls}; empty responses ${settings.generation.empty_responses}.`}</p>
+      </section>}
+      <p className="manifest-disclosure">{locale === 'zh-CN' ? '推理设置来自该次运行身份记录。“默认配置”表示本次请求未显式设置推理参数，不代表关闭推理；供应商默认的具体强度未记录。' : 'Reasoning settings come from this execution identity. “Default” means the request omitted explicit reasoning controls, not that reasoning was disabled; the provider’s default effort was not recorded.'} <a href={`${import.meta.env.BASE_URL}data/v03-execution-settings.json`}>{locale === 'zh-CN' ? '查看参数记录' : 'Execution settings'}</a></p>
+      {artifact.score_version === 'v0.3-zh-en-anchors-20261009-v1' && <section className="manifest-note">
+        <strong>{locale === 'zh-CN' ? '本轮裁判与路由' : 'Judges and routes for this run'}</strong>
+        <p>{profile.model_id.startsWith('anthropic/') ? (locale === 'zh-CN' ? '主审：GPT-6 Luna（high）＋DeepSeek V4.1 Flash（high）；缺失或分歧时由 Gemini 3.8 Flash（medium）补裁。' : 'Primary: GPT-6 Luna (high) + DeepSeek V4.1 Flash (high); Gemini 3.8 Flash (medium) handles missing or disputed votes.') : (locale === 'zh-CN' ? '裁判：DeepSeek V4.1 Flash（high）＋Gemini 3.8 Flash（medium）。Luna 同家族回避；MiMo 无通过速度预检的路由，启用 Gemini。' : 'Judges: DeepSeek V4.1 Flash (high) + Gemini 3.8 Flash (medium). Luna recuses by family; Gemini replaces MiMo because no tested MiMo route qualified.')}</p>
+        <p>{locale === 'zh-CN' ? '固定通过 ≥30 output token/s 预检的端点，关闭供应商自动回退。运行中检测到低速或无法计量即隔离后续调用；预检不保证每次请求的速度。' : 'Routes are pinned after ≥30 output token/s preflight, with provider fallback disabled. Slow or unmeasurable live responses quarantine later calls; preflight is not a per-request speed guarantee.'} <a href={`${import.meta.env.BASE_URL}data/v03-judge-routes-20261009.json`}>{locale === 'zh-CN' ? '路由记录' : 'Route record'}</a></p>
+      </section>}
       {artifact.score_version === 'v0.3-zh-en-anchors-local-20261001-v1' && (
         <section className="manifest-note">
           <strong>{locale === 'zh-CN' ? '本地评测配方' : 'Local evaluation recipe'}</strong>

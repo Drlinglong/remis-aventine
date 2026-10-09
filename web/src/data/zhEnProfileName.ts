@@ -1,6 +1,9 @@
 import type { ZhEnPreviewProfile } from '../types/zhEnPreview';
+import { reasoningLabel } from './executionSettings';
 
 const DISPLAY_NAMES: Record<string, string> = {
+  'anthropic/claude-haiku-5.5': 'Claude Haiku 5.5',
+  'openai/gpt-6.1-sol': 'GPT-6.1 Sol',
   'bilibili/index-translate-9b-q8_0': 'Index-Translate 9B · Q8_0',
   'xiaomi/mimo-v2.6-distill-qwen-9b-q4_k_s': 'MiMo V2.6 Distill Qwen 9B · Q4_K_S',
   'openai/gpt-6-luna': 'GPT-6 Luna',
@@ -27,6 +30,7 @@ const DISPLAY_NAMES: Record<string, string> = {
   'nvidia/nemotron-3.5-lightning': 'Nemotron 3.5 Lightning',
 };
 
-export function zhEnProfileName(profile: ZhEnPreviewProfile): string {
-  return DISPLAY_NAMES[profile.model_id] ?? profile.model_id.split('/').pop() ?? profile.model_id;
+export function zhEnProfileName(profile: ZhEnPreviewProfile, zh = false): string {
+  const name = DISPLAY_NAMES[profile.model_id] ?? profile.model_id.split('/').pop() ?? profile.model_id;
+  return `${name} (${reasoningLabel(profile, zh)})`;
 }

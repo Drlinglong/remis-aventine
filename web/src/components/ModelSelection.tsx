@@ -12,7 +12,7 @@ export function ModelSelection({ profiles, selected, onChange }: {
   const zh = locale === 'zh-CN';
   const [query, setQuery] = useState('');
   const defaults = new Set(defaultModelIds(profiles));
-  const visible = profiles.filter((p) => `${zhEnProfileName(p)} ${p.model_id}`.toLowerCase().includes(query.toLowerCase()));
+  const visible = profiles.filter((p) => `${zhEnProfileName(p, locale === 'zh-CN')} ${p.model_id}`.toLowerCase().includes(query.toLowerCase()));
   return <details className="model-selection">
     <summary>{zh ? `显示 ${selected.length} / ${profiles.length} 个模型` : `${selected.length} of ${profiles.length} models`} <span>＋ / −</span></summary>
     <div className="model-selection-panel">
@@ -26,8 +26,8 @@ export function ModelSelection({ profiles, selected, onChange }: {
       <div className="model-selection-list">
         {visible.map((p) => <label key={p.model_id}>
           <input type="checkbox" checked={selected.includes(p.model_id)} onChange={(e) => onChange(e.target.checked ? [...selected, p.model_id] : selected.filter((id) => id !== p.model_id))} />
-          <VendorLogo signals={[p.model_family, p.model_id]} size={20} fallback={zhEnProfileName(p)} />
-          <span className="model-selection-name">{zhEnProfileName(p)}</span>
+          <VendorLogo signals={[p.model_family, p.model_id]} size={20} fallback={zhEnProfileName(p, locale === 'zh-CN')} />
+          <span className="model-selection-name">{zhEnProfileName(p, locale === 'zh-CN')}</span>
           {!defaults.has(p.model_id) && <small>{zh ? '上一代' : 'Previous'}</small>}
         </label>)}
         {visible.length === 0 && <p>{zh ? '没有匹配的模型。' : 'No matching models.'}</p>}

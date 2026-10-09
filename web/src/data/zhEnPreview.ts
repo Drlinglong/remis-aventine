@@ -112,7 +112,7 @@ export function parseZhEnPreview(value: unknown): ZhEnPreviewArtifact {
     throw new Error('ZH-EN results protocol is unsupported');
   }
   const supportedVersions = anchored
-    ? ['v0.3-zh-en-anchors-20260925-v1', 'v0.3-zh-en-anchors-local-20261001-v1']
+    ? ['v0.3-zh-en-anchors-20260925-v1', 'v0.3-zh-en-anchors-local-20261001-v1', 'v0.3-zh-en-anchors-20261009-v1']
     : ['v0.3-zh-en-60soft-40hard'];
   if (!supportedVersions.includes(String(source.score_version))) throw new Error('ZH-EN results score_version is unsupported');
   const anchor = anchored ? object(source.anchor_panel, 'anchor_panel') : undefined;

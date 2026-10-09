@@ -27,6 +27,7 @@ export function ResultsExplorer({ artifact }: { artifact: ZhEnPreviewArtifact })
       </div>
       <ModelSelection profiles={artifact.profiles} selected={selected} onChange={setSelected} />
     </div>
+    <p className="manifest-disclosure">{zh ? '模型名括号内为本次评测的推理设置：high / medium 为请求强度；“默认配置”为未显式设置推理参数，不代表关闭推理。详情页可核对运行身份与参数。' : 'Model names include the evaluated reasoning setting: high / medium are requested efforts; default means no reasoning parameter was sent, not disabled thinking. Details retain the execution identity and settings.'}</p>
     {shown.profiles.length ? <>
       <V03Visualizations key={selected.join('|')} artifact={shown} />
       <ZhEnPreviewLeaderboard artifact={shown} />

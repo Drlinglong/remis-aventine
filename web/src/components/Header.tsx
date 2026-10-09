@@ -29,9 +29,9 @@ export const Header: React.FC<HeaderProps> = ({
     const needle = query.trim().toLowerCase();
     if (!needle) return [];
     return profiles.filter((profile) => (
-      `${zhEnProfileName(profile)} ${profile.model_id} ${profile.model_family}`.toLowerCase().includes(needle)
+      `${zhEnProfileName(profile, locale === 'zh-CN')} ${profile.model_id} ${profile.model_family}`.toLowerCase().includes(needle)
     )).slice(0, 8);
-  }, [profiles, query]);
+  }, [profiles, query, locale]);
   const navItems = [
     { id: 'leaderboard', label: t('nav.overview') },
     { id: 'results', label: t('nav.results') },
@@ -136,7 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
             {query && (
               <div className="model-search-results" id="model-search-results" role="listbox">
                 {matches.length > 0 ? matches.map((profile) => {
-                  const name = zhEnProfileName(profile);
+                  const name = zhEnProfileName(profile, locale === 'zh-CN');
                   return (
                     <a
                       key={profile.execution_identity_sha256}

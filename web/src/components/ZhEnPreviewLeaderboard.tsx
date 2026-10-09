@@ -58,7 +58,7 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
         <div className="v03-panel"><span>{t('benchmark.contestants')}</span><strong>{artifact.contestant_count}</strong></div>
         <div className="v03-panel"><span>{t('leader.completed')}</span><strong>{artifact.direction_count} / 18</strong></div>
         <div className="v03-panel"><span>{artifact.catalog ? (locale === 'zh-CN' ? '已判定模型侧软评测记录' : 'Resolved model-side soft observations') : t('leader.resolved')}</span><strong>{artifact.soft_resolved_count} / {artifact.soft_case_count}</strong><small>{t('leader.coverage', { value: (resolvedRate * 100).toFixed(1) })}</small></div>
-        <div className="v03-panel"><span>{t('leader.current')}</span><strong>{zhEnProfileName(ranked[0])}</strong><small>{metric(ranked[0], view).score.toFixed(2)}</small></div>
+        <div className="v03-panel"><span>{t('leader.current')}</span><strong>{zhEnProfileName(ranked[0], locale === 'zh-CN')}</strong><small>{metric(ranked[0], view).score.toFixed(2)}</small></div>
       </div>
 
       {!anchored && <div className="v03-panel" style={{ marginTop: 20, padding: 20 }}>
@@ -106,8 +106,8 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
                   <td className="preview-rank">{index + 1}</td>
                   <td>
                     <div className="preview-model">
-                      <VendorLogo signals={[profile.model_family, profile.model_id]} fallback={zhEnProfileName(profile)} />
-                      <div><strong>{zhEnProfileName(profile)}</strong><small>{profile.model_id}</small><ScoreVersionTag profile={profile} /></div>
+                      <VendorLogo signals={[profile.model_family, profile.model_id]} fallback={zhEnProfileName(profile, locale === 'zh-CN')} />
+                      <div><strong>{zhEnProfileName(profile, locale === 'zh-CN')}</strong><small>{profile.model_id}</small><ScoreVersionTag profile={profile} /></div>
                     </div>
                   </td>
                   <td>

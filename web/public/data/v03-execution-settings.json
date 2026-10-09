@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "provenance": "Verified execution identity; requested settings, not inferred provider defaults.",
+  "identities": {
+    "d5b93e9cbd657f4583ad6524d92f6f7c64187d4d70c51e090d452a02b126ac86": {
+      "model_id": "openai/gpt-5.6-sol-pro",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "30a286399c05f0095a935caacc93c1f51807c95bec19c6d5dbe4022b5f308e32"
+    },
+    "79ce2783881f128945e998ec89b5d30ac35d629dc442527fc96fec1767c120b9": {
+      "model_id": "qwen/qwen3.8-max",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "30a286399c05f0095a935caacc93c1f51807c95bec19c6d5dbe4022b5f308e32"
+    },
+    "57d3c729c2836b8be6b50942cea1b5fe3a89928c687864abdd15f1cb66ba21ba": {
+      "model_id": "meituan/longcat-2.0",
+      "reasoning": "unspecified",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "30a286399c05f0095a935caacc93c1f51807c95bec19c6d5dbe4022b5f308e32"
+    },
+    "5e75a3727649372c9bfe420a4fafd05fee17858346f389a9a1fea68c133273da": {
+      "model_id": "google/gemini-3.7-flash",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "9691d967c09010052018a9f04c7a2114e0e53050a3845e7a474a8d9679d94d3b"
+    },
+    "ecb278a7f3c43c052aed11203237be381a0e9c3536a954ee7f49f9c12cbeef76": {
+      "model_id": "deepseek/deepseek-v4-pro-0813",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "deepseek-official",
+      "runner_sha256": "4d53a19255439e54c5664cfea41ecee2d697d8bc117846a646b4775b282851d4"
+    },
+    "7acb32080602f8e366580b26bdaeff2e429d94f611b57c3485970276d63d62a3": {
+      "model_id": "moonshotai/kimi-k3",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "30a286399c05f0095a935caacc93c1f51807c95bec19c6d5dbe4022b5f308e32"
+    },
+    "90ac0401bb4e3393a20b37beac3efe3bd34d871a735e20f4b9df0b3c3f6faa67": {
+      "model_id": "openai/gpt-5.6-terra",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "30a286399c05f0095a935caacc93c1f51807c95bec19c6d5dbe4022b5f308e32"
+    },
+    "ac23669eaf9530fe11533fee0f8b87fdc1659d31520223ef0ec9f6870578a7c6": {
+      "model_id": "x-ai/grok-4.6",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "9691d967c09010052018a9f04c7a2114e0e53050a3845e7a474a8d9679d94d3b"
+    },
+    "42b60b7dac9c19174d66ef84bd34ce9091c6f4dfd9657d69b0ffff4f819def06": {
+      "model_id": "tencent/hy3",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "30a286399c05f0095a935caacc93c1f51807c95bec19c6d5dbe4022b5f308e32"
+    },
+    "1699ecfd2f2760e56d1381c7506d53467ad1dc1d4d3dfc3d5d8100ac2712a585": {
+      "model_id": "meta/muse-spark-1.2",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "4d53a19255439e54c5664cfea41ecee2d697d8bc117846a646b4775b282851d4"
+    },
+    "35091c75fca7012121185fa9f6283abb34ba76e383afe822e80229a2cbc0c7c2": {
+      "model_id": "minimax/minimax-m3",
+      "reasoning": "unspecified",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "9691d967c09010052018a9f04c7a2114e0e53050a3845e7a474a8d9679d94d3b"
+    },
+    "96c760e1919ebc634a6b83e4e5f78b1f267d4cce9b1656f1013a91e4bcc563f9": {
+      "model_id": "openai/gpt-5.6-luna",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "9691d967c09010052018a9f04c7a2114e0e53050a3845e7a474a8d9679d94d3b"
+    },
+    "c59494c4fc408a06e2cee89a3d17cecdf40ef5e0d338bf3d82fe3e859db9f846": {
+      "model_id": "qwen/qwen3.8-27b",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "30a286399c05f0095a935caacc93c1f51807c95bec19c6d5dbe4022b5f308e32"
+    },
+    "c6d6c074943b505bb61559f43060baea04c92c92c76942ba351be51bee2c0534": {
+      "model_id": "deepseek/deepseek-v4-flash-0731",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "9691d967c09010052018a9f04c7a2114e0e53050a3845e7a474a8d9679d94d3b"
+    },
+    "e9cfbe5c874d8c497142559e8a84b1968c2452a5b70a655ac9165b1c6883f32d": {
+      "model_id": "xiaomi/mimo-v2.5",
+      "reasoning": "unspecified",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "9691d967c09010052018a9f04c7a2114e0e53050a3845e7a474a8d9679d94d3b"
+    },
+    "144bd2291cb97f1873403bc69ad5ce9c7a55bd5692c6bf3b17a75023c6a27457": {
+      "model_id": "upstage/solar-pro4",
+      "reasoning": "unspecified",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "9691d967c09010052018a9f04c7a2114e0e53050a3845e7a474a8d9679d94d3b"
+    },
+    "c5415394e317a78d394d1f16049700fce6d67ff0444c7a3da352bdc392d4bc9d": {
+      "model_id": "nvidia/nemotron-3.5-lightning",
+      "reasoning": "unspecified",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "9691d967c09010052018a9f04c7a2114e0e53050a3845e7a474a8d9679d94d3b"
+    },
+    "75f471cc5dc08205aaa5fc1bff85011d6556fd28d92003b04c24f0b2b9363a6d": {
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "4360ff0ff8e60fd6bd029eb4c22e224b5eaf37e1bc26c3431d54b0296c2ad3b0"
+    },
+    "a5f7cf27dbea889b4bead6f300cf1d6fdf26251ca78422908f5ed54d0847f3c1": {
+      "model_id": "openai/gpt-6-sol",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "dc6fef49da926827b3f284c79dea39aa3151fa7051bf4188d64a7670cb20e34b"
+    },
+    "8ec758db43a41bd030006b573b2df6300bb8c08111cf2e9d9944e9459d48e5ad": {
+      "model_id": "xiaomi/mimo-v2.6-pro",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "dc6fef49da926827b3f284c79dea39aa3151fa7051bf4188d64a7670cb20e34b"
+    },
+    "cee50d1699336c0d604f5c816ec6b416aa082bdc99dfe637fa34222da11b71fc": {
+      "model_id": "openai/gpt-6-luna",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "4d53a19255439e54c5664cfea41ecee2d697d8bc117846a646b4775b282851d4"
+    },
+    "56eb544ee0a00a0268864051d0f3ceb0381f134b65f0548de9f79b6f4716cb42": {
+      "model_id": "bilibili/index-translate-9b-q8_0",
+      "reasoning": "off",
+      "max_output_tokens": 32768,
+      "provider": "lm_studio",
+      "runner_sha256": "f9691c2fddd07ab2be01488d40aba7df1a0c8c0e73169caf61398f409a7266d4"
+    },
+    "d95ed0a76f4a6a402f82c59e33df0b99e938d4b471460727c90cfbe834da8ab2": {
+      "model_id": "xiaomi/mimo-v2.6-distill-qwen-9b-q4_k_s",
+      "reasoning": "on",
+      "max_output_tokens": 32768,
+      "provider": "lm_studio",
+      "runner_sha256": "f9691c2fddd07ab2be01488d40aba7df1a0c8c0e73169caf61398f409a7266d4"
+    },
+    "d92730c80019340ff4fe9826674cf129ff58e3f8d5e9f77e9d31eb57acc43582": {
+      "model_id": "anthropic/claude-haiku-5.5",
+      "reasoning": "high",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "6aea1fdc261c52b37ccf6bfd160ab1760f676a9f57cfb10a8965e085ac82e767",
+      "generation": {
+        "calls": 44,
+        "entries": 76,
+        "raw_contract_pass": 7,
+        "final_contract_pass": 44,
+        "empty_responses": 0,
+        "finish_stop": 44
+      }
+    },
+    "0f8fd90494defb59fdd196f07bfcc1cfc3b992ae8609c5f83d0f4b8c5fea3e6f": {
+      "model_id": "openai/gpt-6.1-sol",
+      "reasoning": "medium",
+      "max_output_tokens": 32768,
+      "provider": "openrouter",
+      "runner_sha256": "6aea1fdc261c52b37ccf6bfd160ab1760f676a9f57cfb10a8965e085ac82e767",
+      "generation": {
+        "calls": 44,
+        "entries": 76,
+        "raw_contract_pass": 44,
+        "final_contract_pass": 44,
+        "empty_responses": 0,
+        "finish_stop": 44
+      }
+    }
+  }
+}
