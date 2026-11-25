@@ -122,7 +122,9 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
                     {profile.telemetry.cost_rank_eligible && profile.telemetry.cost_usd !== null
                       ? profile.telemetry.verified_cost
                         ? <><span>${profile.telemetry.cost_usd.toFixed(3)}</span><small style={{ display: 'block' }}>¥{profile.telemetry.verified_cost.amount.toFixed(2)} {t('table.verified')}</small></>
-                        : `$${profile.telemetry.cost_usd.toFixed(3)}`
+                        : profile.telemetry.cost_source
+                          ? <><span>${profile.telemetry.cost_usd.toFixed(3)}</span><small>{t('table.estimated')}</small></>
+                          : `$${profile.telemetry.cost_usd.toFixed(3)}`
                       : profile.telemetry.verified_cost
                         ? <><span>¥{profile.telemetry.verified_cost.amount.toFixed(2)} CNY</span><small>{t('table.providerVerified')}</small></>
                         : profile.telemetry.generation_cost_upper_bound_usd !== undefined

@@ -82,6 +82,9 @@ def test_november_publication_has_three_complete_medium_profiles():
     for profile in artifact["profiles"]:
         execution = settings["identities"][profile["execution_identity_sha256"]]
         assert execution["reasoning"] == "medium"
+        assert profile["telemetry"]["cost_source"] == "openai-token-estimate"
+        assert profile["telemetry"]["cost_rank_eligible"]
+        assert profile["telemetry"]["cost_usd"] > 0
         assert execution["generation"]["calls"] == 44
         directions = profile["directions"].values()
         assert sum(d["hard"]["total"] for d in directions) == 76
