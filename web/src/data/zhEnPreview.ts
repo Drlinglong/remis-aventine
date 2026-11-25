@@ -91,6 +91,9 @@ function profile(value: unknown, index: number): ZhEnPreviewProfile {
     telemetry: {
       cost_rank_eligible: telemetry.cost_rank_eligible,
       cost_usd: cost,
+      ...(telemetry.generation_cost_upper_bound_usd === undefined ? {} : {
+        generation_cost_upper_bound_usd: finite(telemetry.generation_cost_upper_bound_usd, `${path}.telemetry.generation_cost_upper_bound_usd`),
+      }),
       elapsed_seconds: finite(telemetry.elapsed_seconds, `${path}.telemetry.elapsed_seconds`),
       total_tokens: integer(telemetry.total_tokens, `${path}.telemetry.total_tokens`),
       verified_cost: verifiedCost as ZhEnPreviewProfile['telemetry']['verified_cost'],
