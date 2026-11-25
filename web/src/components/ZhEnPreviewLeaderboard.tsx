@@ -125,7 +125,9 @@ export function ZhEnPreviewLeaderboard({ artifact }: { artifact: ZhEnPreviewArti
                         : `$${profile.telemetry.cost_usd.toFixed(3)}`
                       : profile.telemetry.verified_cost
                         ? <><span>¥{profile.telemetry.verified_cost.amount.toFixed(2)} CNY</span><small>{t('table.providerVerified')}</small></>
-                        : t('table.notRankable')}
+                        : profile.telemetry.generation_cost_upper_bound_usd !== undefined
+                          ? <><span>≤ ${profile.telemetry.generation_cost_upper_bound_usd.toFixed(4)}</span><small>{t('table.costUpperBound')}</small></>
+                          : t('table.notRankable')}
                   </td>
                   <td>{t('common.minutes', { value: (profile.telemetry.elapsed_seconds / 60).toFixed(1) })}</td>
                   <td>{profile.telemetry.total_tokens.toLocaleString()}</td>

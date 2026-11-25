@@ -64,7 +64,7 @@ export function ModelDetailPage({
         <div><dt>{locale === 'zh-CN' ? '评分版本' : 'Score version'}</dt><dd>{artifact.score_version}</dd></div>
         <div><dt>ZH→EN</dt><dd>{profile.directions['zh-CN->en'].score.toFixed(2)}</dd></div>
         <div><dt>EN→ZH</dt><dd>{profile.directions['en->zh-CN'].score.toFixed(2)}</dd></div>
-        <div><dt>{t('manifest.observedCost')}</dt><dd>{profile.telemetry.cost_usd === null ? t('common.notMeasured') : `$${profile.telemetry.cost_usd.toFixed(4)}`}</dd></div>
+        <div><dt>{t(profile.telemetry.generation_cost_upper_bound_usd === undefined ? 'manifest.observedCost' : 'table.costUpperBound')}</dt><dd>{profile.telemetry.generation_cost_upper_bound_usd !== undefined ? `≤ $${profile.telemetry.generation_cost_upper_bound_usd.toFixed(4)}` : profile.telemetry.cost_usd === null ? t('common.notMeasured') : `$${profile.telemetry.cost_usd.toFixed(4)}`}</dd></div>
         <div><dt>{t('manifest.elapsed')}</dt><dd>{t('common.minutes', { value: (profile.telemetry.elapsed_seconds / 60).toFixed(1) })}</dd></div>
         <div><dt>{t('manifest.tokens')}</dt><dd>{profile.telemetry.total_tokens.toLocaleString()}</dd></div>
         <div><dt>{t('manifest.throughput')}</dt><dd>{observedThroughput(profile).toFixed(1)} tok/s</dd></div>

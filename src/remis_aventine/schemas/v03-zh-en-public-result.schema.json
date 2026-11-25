@@ -270,6 +270,10 @@
           "type": "integer",
           "minimum": 0
         },
+        "generation_cost_upper_bound_usd": {
+          "type": "number",
+          "minimum": 0
+        },
         "verified_cost": {
           "$ref": "#/$defs/verified_cost"
         }
