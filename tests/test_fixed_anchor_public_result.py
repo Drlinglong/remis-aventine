@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -65,3 +66,23 @@ def test_october_publication_retains_complete_exam_and_coverage():
     assert artifact["soft_case_count"] == soft_total
     assert artifact["soft_resolved_count"] == soft_resolved
     assert artifact["soft_unresolved_count"] == soft_total - soft_resolved
+
+def test_november_publication_has_three_complete_medium_profiles():
+    root = Path(__file__).resolve().parents[1] / "web/public/data"
+    path = root / "v03-zh-en-anchors-20261125.json"
+    artifact = validate_document(path, "v03-zh-en-public-result.schema.json")
+    assert artifact["contestant_count"] == 3
+    assert {profile["model_id"] for profile in artifact["profiles"]} == {
+        "openai/gpt-6.1-terra", "openai/gpt-6.2-sol", "openai/gpt-6.2-astra",
+    }
+    settings = json.loads((root / "v03-execution-settings.json").read_text(encoding="utf-8"))
+    for profile in artifact["profiles"]:
+        execution = settings["identities"][profile["execution_identity_sha256"]]
+        assert execution["reasoning"] == "medium"
+        assert execution["generation"]["calls"] == 44
+        directions = profile["directions"].values()
+        assert sum(d["hard"]["total"] for d in directions) == 76
+        assert sum(d["soft"]["total"] for d in directions) == 60
+        assert profile["zh_en_score"] == pytest.approx(
+            sum(d["score"] for d in directions) / 2, abs=0.0001
+        )

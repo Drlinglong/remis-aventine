@@ -2,6 +2,8 @@ import type { ZhEnPreviewArtifact } from '../types/zhEnPreview';
 
 export function zhEnSource(artifact?: ZhEnPreviewArtifact | null) {
   switch (artifact?.score_version) {
+    case 'v0.3-zh-en-anchors-20261125-v1':
+      return { filename: 'v03-zh-en-anchors-20261125.json', date: '2026-11-25' };
     case 'v0.3-zh-en-anchors-20261009-v1':
       return { filename: 'v03-zh-en-anchors-20261009.json', date: '2026-10-09' };
     case 'v0.3-zh-en-anchors-local-20261001-v1':
