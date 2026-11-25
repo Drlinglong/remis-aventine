@@ -255,6 +255,9 @@
         "cost_rank_eligible": {
           "type": "boolean"
         },
+        "cost_source": {
+          "const": "openai-token-estimate"
+        },
         "cost_usd": {
           "type": [
             "number",
@@ -292,7 +295,10 @@
           },
           "then": {
             "properties": {
-              "cost_usd": {
+              "cost_source": {
+          "const": "openai-token-estimate"
+        },
+        "cost_usd": {
                 "type": "number"
               }
             }

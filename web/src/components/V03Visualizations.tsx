@@ -71,7 +71,7 @@ function HighlightCard({ metric, profiles, onOpen }: { metric: HighlightMetric; 
                   <i className="hbar-fill" style={{ width: `${Math.max(3, (value / max) * 100)}%` }} />
                 </span>
               </span>
-              <span className="hbar-val mono">{formatHighlight(value, metric)}</span>
+              <span className="hbar-val mono">{formatHighlight(value, metric)}{metric === 'cost' && profile.telemetry.cost_source ? ` · ${t('table.estimated')}` : ''}</span>
             </button>
           );
         })}
@@ -181,7 +181,7 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
                 key={profile.execution_identity_sha256}
                 role="button"
                 tabIndex={0}
-                aria-label={`${zhEnProfileName(profile, locale === 'zh-CN')}, ${t('common.score')} ${profile.zh_en_score.toFixed(2)}, ${paretoCopy[metric].format(value)}. ${t('pareto.open')}`}
+                aria-label={`${zhEnProfileName(profile, locale === 'zh-CN')}, ${t('common.score')} ${profile.zh_en_score.toFixed(2)}, ${paretoCopy[metric].format(value)}${metric === 'cost' && profile.telemetry.cost_source ? ` (${t('table.estimated')})` : ''}. ${t('pareto.open')}`}
                 onMouseEnter={() => setHovered(profile)}
                 onMouseLeave={() => setHovered(null)}
                 onFocus={() => setHovered(profile)}
@@ -228,7 +228,7 @@ function InteractivePareto({ profiles, onOpen }: { profiles: ZhEnPreviewProfile[
               <small>{t('common.score')} {active.zh_en_score.toFixed(2)} · {paretoCopy[metric].label} {paretoCopy[metric].format(paretoValue(active, metric) as number)}</small>
               <ScoreVersionTag profile={active} />
               <small>ZH→EN {active.directions['zh-CN->en'].score.toFixed(2)} · EN→ZH {active.directions['en->zh-CN'].score.toFixed(2)} · {t('manifest.soft')} {aggregate(active, 'soft').score.toFixed(1)} · {t('manifest.hard')} {aggregate(active, 'hard').score.toFixed(1)}</small>
-              <small>{t('manifest.observedCost')} {active.telemetry.cost_usd === null ? t('common.notMeasured') : `$${active.telemetry.cost_usd.toFixed(3)}`} · {t('manifest.elapsed')} {t('common.minutes', { value: (active.telemetry.elapsed_seconds / 60).toFixed(1) })} · {active.telemetry.total_tokens.toLocaleString()} {t('table.tokens')}</small>
+              <small>{t(active.telemetry.cost_source ? 'manifest.estimatedCost' : 'manifest.observedCost')} {active.telemetry.cost_usd === null ? t('common.notMeasured') : `$${active.telemetry.cost_usd.toFixed(3)}`} · {t('manifest.elapsed')} {t('common.minutes', { value: (active.telemetry.elapsed_seconds / 60).toFixed(1) })} · {active.telemetry.total_tokens.toLocaleString()} {t('table.tokens')}</small>
             </span>
           </div>
         )}

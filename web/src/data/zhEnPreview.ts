@@ -91,6 +91,7 @@ function profile(value: unknown, index: number): ZhEnPreviewProfile {
     telemetry: {
       cost_rank_eligible: telemetry.cost_rank_eligible,
       cost_usd: cost,
+      ...(telemetry.cost_source === 'openai-token-estimate' ? { cost_source: 'openai-token-estimate' as const } : {}),
       ...(telemetry.generation_cost_upper_bound_usd === undefined ? {} : {
         generation_cost_upper_bound_usd: finite(telemetry.generation_cost_upper_bound_usd, `${path}.telemetry.generation_cost_upper_bound_usd`),
       }),

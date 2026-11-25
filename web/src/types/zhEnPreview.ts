@@ -25,6 +25,7 @@ export interface ZhEnPreviewProfile {
   telemetry: {
     cost_rank_eligible: boolean;
     cost_usd: number | null;
+    cost_source?: 'openai-token-estimate';
     generation_cost_upper_bound_usd?: number;
     elapsed_seconds: number;
     total_tokens: number;

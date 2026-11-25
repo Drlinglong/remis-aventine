@@ -66,11 +66,11 @@
       },
       "zh_en_score": 90.9298,
       "telemetry": {
-        "cost_usd": null,
-        "cost_rank_eligible": false,
+        "cost_usd": 0.2454442,
+        "cost_rank_eligible": true,
         "elapsed_seconds": 363.408,
         "total_tokens": 55818,
-        "generation_cost_upper_bound_usd": 0.274305
+        "cost_source": "openai-token-estimate"
       }
     },
     {
@@ -115,11 +115,11 @@
       },
       "zh_en_score": 90.7451,
       "telemetry": {
-        "cost_usd": null,
-        "cost_rank_eligible": false,
+        "cost_usd": 0.1371266,
+        "cost_rank_eligible": true,
         "elapsed_seconds": 381.148,
         "total_tokens": 58708,
-        "generation_cost_upper_bound_usd": 0.1516025
+        "cost_source": "openai-token-estimate"
       }
     },
     {
@@ -164,11 +164,11 @@
       },
       "zh_en_score": 86.866,
       "telemetry": {
-        "cost_usd": null,
-        "cost_rank_eligible": false,
+        "cost_usd": 0.8977368,
+        "cost_rank_eligible": true,
         "elapsed_seconds": 456.575,
         "total_tokens": 53717,
-        "generation_cost_upper_bound_usd": 1.01318
+        "cost_source": "openai-token-estimate"
       }
     }
   ]
