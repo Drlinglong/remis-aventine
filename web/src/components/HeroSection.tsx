@@ -12,6 +12,7 @@ export function HeroSection({ onSelectTab, result }: HeroSectionProps) {
   const { t, locale } = useI18n();
   const anchored = Boolean(result?.anchor_panel);
   const source = zhEnSource(result);
+  const november = result?.score_version === 'v0.3-zh-en-anchors-20261125-v1';
   const october = result?.score_version === 'v0.3-zh-en-anchors-20261009-v1';
   return (
     <section className="hero-editorial">
@@ -60,7 +61,7 @@ export function HeroSection({ onSelectTab, result }: HeroSectionProps) {
           <div><dt>{t('benchmark.framework')}</dt><dd className="benchmark-framework"><a href="https://drlinglong.github.io/Remis/" target="_blank" rel="noreferrer">Remis <ArrowUpRight size={15} /></a></dd></div>
         </dl>
         <p className="benchmark-judges">
-          <span>{result?.catalog ? (locale === 'zh-CN' ? '本轮增量裁判：' : 'Incremental judges:') : t('benchmark.judges')}</span> {october ? (locale === 'zh-CN' ? 'GPT-6 Luna / DeepSeek V4.1 Flash / Gemini 3.8 Flash；家族回避，端点预检 ≥30 output token/s；MiMo 路由未通过预检。' : 'GPT-6 Luna / DeepSeek V4.1 Flash / Gemini 3.8 Flash; family recusal, endpoint preflight ≥30 output token/s; MiMo routes did not qualify.') : anchored ? (locale === 'zh-CN' ? 'MiMo 2.6 Pro / GPT-6 Luna / DeepSeek V4.1 Flash；家族回避，Gemini 3.8 备用' : 'MiMo 2.6 Pro / GPT-6 Luna / DeepSeek V4.1 Flash; family recusal, Gemini 3.8 fallback') : t('benchmark.judgeNames')}
+          <span>{result?.catalog ? (locale === 'zh-CN' ? '本轮增量裁判：' : 'Incremental judges:') : t('benchmark.judges')}</span> {november ? 'DeepSeek V4.1 Flash / Gemini 3.8 Flash → Gemini 4 Hydrogen' : october ? (locale === 'zh-CN' ? 'GPT-6 Luna / DeepSeek V4.1 Flash / Gemini 3.8 Flash；家族回避，端点预检 ≥30 output token/s；MiMo 路由未通过预检。' : 'GPT-6 Luna / DeepSeek V4.1 Flash / Gemini 3.8 Flash; family recusal, endpoint preflight ≥30 output token/s; MiMo routes did not qualify.') : anchored ? (locale === 'zh-CN' ? 'MiMo 2.6 Pro / GPT-6 Luna / DeepSeek V4.1 Flash；家族回避，Gemini 3.8 备用' : 'MiMo 2.6 Pro / GPT-6 Luna / DeepSeek V4.1 Flash; family recusal, Gemini 3.8 fallback') : t('benchmark.judgeNames')}
         </p>
       </aside>
     </section>

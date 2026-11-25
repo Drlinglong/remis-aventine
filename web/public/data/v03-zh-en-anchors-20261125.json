@@ -1,0 +1,172 @@
+{
+  "$schema": "https://drlinglong.github.io/remis-aventine/schemas/v03-zh-en-public-result.schema.json",
+  "schema_version": 1,
+  "artifact_id": "v0.3-zh-en-results",
+  "protocol": "aventine-v0.3-zh-en-fixed-anchors-priority-dual",
+  "score_version": "v0.3-zh-en-anchors-20261125-v1",
+  "status": "published-partial",
+  "source_commit": "a8747e0c616178a85b9e680175c1dfc4fe1425d0",
+  "direction_count": 2,
+  "contestant_count": 3,
+  "judge_cost_usd": 5.191666182,
+  "judge_cost_missing_calls": 0,
+  "soft_case_count": 180,
+  "soft_resolved_count": 116,
+  "soft_unresolved_count": 64,
+  "anchor_panel": {
+    "revision": "v0.3-zh-en-anchors-20261125-v1",
+    "models": [
+      "qwen/qwen3.8-max",
+      "meta/muse-spark-1.2",
+      "upstage/solar-pro4"
+    ],
+    "manifest_sha256": "afd882c4c61c6f94067cd0bdee71fc62b526b6cf4323bd32e06c83f401e02557",
+    "judge_revision": "priority-mimo26-luna6-ds41-gemini38-20261009-routes30-v1-fireworks-amendment1-cap16k-hydrogen-vertex"
+  },
+  "profiles": [
+    {
+      "model_id": "openai/gpt-6.2-sol",
+      "model_family": "openai-gpt",
+      "execution_identity_sha256": "95415abf66f401891bd489041678d4684b4aae24aa8df0dac16dddd91abe18fb",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 35,
+            "resolved": 35,
+            "total": 36,
+            "coverage": 0.972222,
+            "score": 100.0
+          },
+          "soft": {
+            "points": 16,
+            "resolved": 19,
+            "total": 30,
+            "coverage": 0.633333,
+            "score": 84.2105
+          },
+          "score": 90.5263
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 38,
+            "resolved": 40,
+            "total": 40,
+            "coverage": 1.0,
+            "score": 95.0
+          },
+          "soft": {
+            "points": 16,
+            "resolved": 18,
+            "total": 30,
+            "coverage": 0.6,
+            "score": 88.8889
+          },
+          "score": 91.3333
+        }
+      },
+      "zh_en_score": 90.9298,
+      "telemetry": {
+        "cost_usd": null,
+        "cost_rank_eligible": false,
+        "elapsed_seconds": 363.408,
+        "total_tokens": 55818
+      }
+    },
+    {
+      "model_id": "openai/gpt-6.1-terra",
+      "model_family": "openai-gpt",
+      "execution_identity_sha256": "e1433edf3c8060656430bdcc97bedd0f142da258aff4f806b6171e3fe6164f1d",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 33,
+            "resolved": 34,
+            "total": 36,
+            "coverage": 0.944444,
+            "score": 97.0588
+          },
+          "soft": {
+            "points": 17,
+            "resolved": 20,
+            "total": 30,
+            "coverage": 0.666667,
+            "score": 85.0
+          },
+          "score": 89.8235
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 35,
+            "resolved": 35,
+            "total": 40,
+            "coverage": 0.875,
+            "score": 100.0
+          },
+          "soft": {
+            "points": 15.5,
+            "resolved": 18,
+            "total": 30,
+            "coverage": 0.6,
+            "score": 86.1111
+          },
+          "score": 91.6667
+        }
+      },
+      "zh_en_score": 90.7451,
+      "telemetry": {
+        "cost_usd": null,
+        "cost_rank_eligible": false,
+        "elapsed_seconds": 381.148,
+        "total_tokens": 58708
+      }
+    },
+    {
+      "model_id": "openai/gpt-6.2-astra",
+      "model_family": "openai-gpt",
+      "execution_identity_sha256": "a180440171dae9096fa58d89754faec7cd86b8656029d07ffe49d1c3a6b957ba",
+      "directions": {
+        "zh-CN->en": {
+          "hard": {
+            "points": 36,
+            "resolved": 36,
+            "total": 36,
+            "coverage": 1.0,
+            "score": 100.0
+          },
+          "soft": {
+            "points": 15,
+            "resolved": 19,
+            "total": 30,
+            "coverage": 0.633333,
+            "score": 78.9474
+          },
+          "score": 87.3684
+        },
+        "en->zh-CN": {
+          "hard": {
+            "points": 40,
+            "resolved": 40,
+            "total": 40,
+            "coverage": 1.0,
+            "score": 100.0
+          },
+          "soft": {
+            "points": 17,
+            "resolved": 22,
+            "total": 30,
+            "coverage": 0.733333,
+            "score": 77.2727
+          },
+          "score": 86.3636
+        }
+      },
+      "zh_en_score": 86.866,
+      "telemetry": {
+        "cost_usd": null,
+        "cost_rank_eligible": false,
+        "elapsed_seconds": 456.575,
+        "total_tokens": 53717
+      }
+    }
+  ]
+}

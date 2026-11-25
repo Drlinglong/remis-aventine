@@ -3,6 +3,9 @@ import { reasoningLabel } from './executionSettings';
 
 const DISPLAY_NAMES: Record<string, string> = {
   'anthropic/claude-haiku-5.5': 'Claude Haiku 5.5',
+  'openai/gpt-6.1-terra': 'GPT-6.1 Terra',
+  'openai/gpt-6.2-sol': 'GPT-6.2 Sol',
+  'openai/gpt-6.2-astra': 'GPT-6.2 Astra',
   'openai/gpt-6.1-sol': 'GPT-6.1 Sol',
   'bilibili/index-translate-9b-q8_0': 'Index-Translate 9B · Q8_0',
   'xiaomi/mimo-v2.6-distill-qwen-9b-q4_k_s': 'MiMo V2.6 Distill Qwen 9B · Q4_K_S',

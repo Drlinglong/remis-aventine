@@ -192,6 +192,51 @@
         "empty_responses": 0,
         "finish_stop": 44
       }
+    },
+    "95415abf66f401891bd489041678d4684b4aae24aa8df0dac16dddd91abe18fb": {
+      "model_id": "openai/gpt-6.2-sol",
+      "reasoning": "medium",
+      "max_output_tokens": 32768,
+      "provider": "openai",
+      "runner_sha256": "86c3340c83ab63fbb80a2cb1de1a7a9e6399a09bff1a103dfc50f6f3dacdf31c",
+      "generation": {
+        "calls": 44,
+        "entries": 76,
+        "raw_contract_pass": 44,
+        "final_contract_pass": 44,
+        "empty_responses": 0,
+        "finish_stop": 44
+      }
+    },
+    "e1433edf3c8060656430bdcc97bedd0f142da258aff4f806b6171e3fe6164f1d": {
+      "model_id": "openai/gpt-6.1-terra",
+      "reasoning": "medium",
+      "max_output_tokens": 32768,
+      "provider": "openai",
+      "runner_sha256": "86c3340c83ab63fbb80a2cb1de1a7a9e6399a09bff1a103dfc50f6f3dacdf31c",
+      "generation": {
+        "calls": 44,
+        "entries": 76,
+        "raw_contract_pass": 44,
+        "final_contract_pass": 44,
+        "empty_responses": 0,
+        "finish_stop": 44
+      }
+    },
+    "a180440171dae9096fa58d89754faec7cd86b8656029d07ffe49d1c3a6b957ba": {
+      "model_id": "openai/gpt-6.2-astra",
+      "reasoning": "medium",
+      "max_output_tokens": 32768,
+      "provider": "openai",
+      "runner_sha256": "86c3340c83ab63fbb80a2cb1de1a7a9e6399a09bff1a103dfc50f6f3dacdf31c",
+      "generation": {
+        "calls": 44,
+        "entries": 76,
+        "raw_contract_pass": 44,
+        "final_contract_pass": 44,
+        "empty_responses": 0,
+        "finish_stop": 44
+      }
     }
   }
 }
